@@ -214,36 +214,39 @@ JSON.parse = function () {
 
     // Manual SponsorBlock Skips
 
-    if (configRead('sponsorBlockManualSkips').length > 0 && r?.playerOverlays?.playerOverlayRenderer) {
-      const manualSkippedSegments = configRead('sponsorBlockManualSkips');
-      let timelyActions = [];
-      if (window?.sponsorblock?.segments) {
-        for (const segment of window.sponsorblock.segments) {
-          if (manualSkippedSegments.includes(segment.category)) {
-            const timelyActionData = timelyAction(
-              t('sponsorblock.toasts.skip', { segment: t(`sponsorblock.segments.${segment.category}`) }),
-              'SKIP_NEXT',
-              {
-                clickTrackingParams: null,
-                showEngagementPanelEndpoint: {
-                  customAction: {
-                    action: 'SKIP',
-                    parameters: {
-                      time: segment.segment[1]
+    if (r?.playerOverlays?.playerOverlayRenderer) {
+      if (r.playerOverlays.playerOverlayRenderer.timelyActionRenderers) {
+        r.playerOverlays.playerOverlayRenderer.timelyActionRenderers = 
+        r.playerOverlays.playerOverlayRenderer.timelyActionRenderers.filter(a => a.timelyActionRenderer.type !== 'TIMELY_ACTION_TYPE_SHOPPING' ||
+                                                                                a.timelyActionRenderer.type !== 'TIMELY_ACTION_TYPE_NFL_WATERMARK');
+      } else r.playerOverlays.playerOverlayRenderer.timelyActionRenderers = [];
+      if (configRead('sponsorBlockManualSkips').length > 0) {
+        const manualSkippedSegments = configRead('sponsorBlockManualSkips');
+        if (window?.sponsorblock?.segments) {
+          for (const segment of window.sponsorblock.segments) {
+            if (manualSkippedSegments.includes(segment.category)) {
+              const timelyActionData = timelyAction(
+                t('sponsorblock.toasts.skip', { segment: t(`sponsorblock.segments.${segment.category}`) }),
+                'SKIP_NEXT',
+                {
+                  clickTrackingParams: null,
+                  showEngagementPanelEndpoint: {
+                    customAction: {
+                      action: 'SKIP',
+                      parameters: {
+                        time: segment.segment[1]
+                      }
                     }
                   }
-                }
-              },
-              segment.segment[0] * 1000,
-              segment.segment[1] * 1000 - segment.segment[0] * 1000
-            );
-            timelyActions.push(timelyActionData);
+                },
+                segment.segment[0] * 1000,
+                segment.segment[1] * 1000 - segment.segment[0] * 1000
+              );
+              r.playerOverlays.playerOverlayRenderer.timelyActionRenderers.push(timelyActionData);
+            }
           }
         }
-        r.playerOverlays.playerOverlayRenderer.timelyActionRenderers = timelyActions;
       }
-    } else if (r?.playerOverlays?.playerOverlayRenderer) {
-      r.playerOverlays.playerOverlayRenderer.timelyActionRenderers = [];
     }
 
     if (r?.transportControls?.transportControlsRenderer?.promotedActions && configRead('enableSponsorBlockHighlight')) {
@@ -410,16 +413,16 @@ function addLongPress(items) {
     if (!item.tileRenderer) continue;
     if (item.tileRenderer.style !== 'TILE_STYLE_YTLR_DEFAULT') continue;
     if (item.tileRenderer.onLongPressCommand?.showMenuCommand?.menu?.menuRenderer?.items) {
-        const copiedItem = JSON.parse(JSON.stringify(item));
-        item.tileRenderer.onLongPressCommand.showMenuCommand.menu.menuRenderer.items.push(MenuServiceItemRenderer('Add to Queue', {
-          clickTrackingParams: null,
-          playlistEditEndpoint: {
-            customAction: {
-              action: 'ADD_TO_QUEUE',
-              parameters: copiedItem
-            }
+      const copiedItem = JSON.parse(JSON.stringify(item));
+      item.tileRenderer.onLongPressCommand.showMenuCommand.menu.menuRenderer.items.push(MenuServiceItemRenderer('Add to Queue', {
+        clickTrackingParams: null,
+        playlistEditEndpoint: {
+          customAction: {
+            action: 'ADD_TO_QUEUE',
+            parameters: copiedItem
           }
-        }));
+        }
+      }));
       continue;
     }
     if (!configRead('enableLongPress')) continue;
