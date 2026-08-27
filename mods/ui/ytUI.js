@@ -1,7 +1,16 @@
 import resolveCommand from '../resolveCommand.js';
 import { t } from 'i18next';
 
+// Chained SponsorBlock skips can fire the same toast twice in a second, which
+// on a TV means two overlapping banners across the subtitle area.
+let lastToast = { key: '', at: 0 };
+
 function showToast(title, subtitle, thumbnails) {
+    const key = `${title}\u0000${subtitle}`;
+    const now = Date.now();
+    if (key === lastToast.key && now - lastToast.at < 3000) return;
+    lastToast = { key, at: now };
+
     const toastCmd = {
         openPopupAction: {
             popupType: 'TOAST',

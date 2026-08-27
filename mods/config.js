@@ -51,7 +51,7 @@ const defaultConfig = {
   enablePaidPromotionOverlay: true,
   speedSettingsIncrement: 0.25,
   videoPreferredCodec: 'any',
-  launchToOnStartup: null,
+  launchToOnStartup: '',
   reloadHomeOnStartup: true,
   disabledSidebarContents: [],
   disableChannelsOnSidebar: false,

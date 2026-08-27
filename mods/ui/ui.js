@@ -309,9 +309,13 @@ function execute_once_dom_loaded() {
       }
       return false;
     } else if (evt.keyCode == 404 || evt.keyCode == 172) {
+      // Consumed the same way as RED above, so YouTube does not act on it too.
+      evt.preventDefault();
+      evt.stopPropagation();
       if (evt.type === 'keydown') {
         modernUI();
       }
+      return false;
     } else if (evt.keyCode == 39) {
       // Right key, for PiP
       if (evt.type === 'keydown') {

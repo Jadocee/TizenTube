@@ -2,7 +2,6 @@ import { configRead } from '../config.js';
 import { showModal, buttonItem, overlayPanelItemListRenderer, scrollPaneRenderer, overlayMessageRenderer, QrCodeRenderer } from './ytUI.js';
 import qrcode from 'qrcode-npm';
 import { t } from 'i18next';
-import { getComprehensiveLanguageList } from '../features/moreSubtitles.js';
 
 const qrcodes = {};
 
@@ -56,7 +55,6 @@ function themeColorOptions(configKey) {
     return THEME_COLORS.map((color) => {
         return {
             name: t(`settings.options.uiSettings.options.theme.colors.${color.key}`),
-            icon: 'LENS_BLUE',
             key: configKey,
             value: color.value
         };
@@ -86,6 +84,11 @@ export default function modernUI(update, parameters) {
             name: t('settings.options.socialMedia.title'),
             icon: 'PRIVACY_UNLISTED',
             value: null,
+            menuId: 'tt-social-media',
+            menuHeader: {
+                title: t('settings.options.socialMedia.title'),
+                subtitle: t('settings.ttSettings.title')
+            },
             options: [
                 {
                     name: 'GitHub',
@@ -185,6 +188,10 @@ export default function modernUI(update, parameters) {
                     value: null,
                     arrayToEdit: 'sponsorBlockManualSkips',
                     menuId: 'tt-sponsorblock-manual-segment-skip',
+                    menuHeader: {
+                        title: t('settings.options.sponsorblock.options.manualSkip'),
+                        subtitle: t('settings.options.sponsorblock.title')
+                    },
                     options: [
                         {
                             name: t('settings.options.sponsorblock.options.categories.sponsor'),
@@ -227,6 +234,10 @@ export default function modernUI(update, parameters) {
                     icon: 'SETTINGS',
                     value: null,
                     menuId: 'tt-sponsorblock-segments',
+                    menuHeader: {
+                        title: t('settings.options.sponsorblock.options.segments'),
+                        subtitle: t('settings.options.sponsorblock.title')
+                    },
                     options: [
                         {
                             name: t('settings.options.sponsorblock.options.categories.sponsor'),
@@ -279,6 +290,7 @@ export default function modernUI(update, parameters) {
             name: t('settings.options.dearrow.title'),
             icon: 'VISIBILITY_OFF',
             value: null,
+            menuId: 'tt-dearrow-settings',
             menuHeader: {
                 title: t('settings.options.dearrow.title'),
                 subtitle: 'https://dearrow.ajay.app/'
@@ -301,6 +313,11 @@ export default function modernUI(update, parameters) {
             name: t('settings.options.misc.title'),
             icon: 'SETTINGS',
             value: null,
+            menuId: 'tt-misc-settings',
+            menuHeader: {
+                title: t('settings.options.misc.title'),
+                subtitle: t('settings.ttSettings.title')
+            },
             options: [
                 {
                     name: t('settings.options.misc.options.endScreenCards'),
@@ -323,6 +340,10 @@ export default function modernUI(update, parameters) {
                     icon: 'ACCOUNT_CIRCLE',
                     menuId: 'tt-whos-watching-menu-settings',
                     value: null,
+                    menuHeader: {
+                        title: t('settings.options.misc.options.whosWatching.title'),
+                        subtitle: t('settings.options.misc.title')
+                    },
                     options: [
                         {
                             name: t('settings.options.misc.options.whosWatching.options.enableWW'),
@@ -384,6 +405,11 @@ export default function modernUI(update, parameters) {
             name: t('settings.options.subtitles.title'),
             icon: 'TRANSLATE',
             value: null,
+            menuId: 'tt-subtitle-settings',
+            menuHeader: {
+                title: t('settings.options.subtitles.title'),
+                subtitle: t('settings.ttSettings.title')
+            },
             options: [
                 {
                     name: t('settings.options.subtitles.options.showLocalSubtitle'),
@@ -399,6 +425,7 @@ export default function modernUI(update, parameters) {
             name: t('settings.options.videoPlayer.title'),
             icon: 'VIDEO_YOUTUBE',
             value: null,
+            menuId: 'tt-video-player-settings',
             menuHeader: {
                 title: t('settings.options.videoPlayer.title'),
                 subtitle: t('settings.options.videoPlayer.subtitle')
@@ -409,6 +436,10 @@ export default function modernUI(update, parameters) {
                     icon: 'SETTINGS',
                     value: null,
                     menuId: 'tt-video-player-ui-patching',
+                    menuHeader: {
+                        title: t('settings.options.videoPlayer.options.patching.title'),
+                        subtitle: t('settings.options.videoPlayer.title')
+                    },
                     options: [
                         {
                             name: t('settings.options.videoPlayer.options.patching.options.enableVPUIPatching'),
@@ -528,6 +559,7 @@ export default function modernUI(update, parameters) {
             name: t('settings.options.uiSettings.title'),
             icon: 'SETTINGS',
             value: null,
+            menuId: 'tt-ui-settings',
             menuHeader: {
                 title: t('settings.options.uiSettings.title'),
                 subtitle: t('settings.options.uiSettings.subtitle')
@@ -538,6 +570,10 @@ export default function modernUI(update, parameters) {
                     icon: 'VISIBILITY_OFF',
                     value: null,
                     menuId: 'tt-hide-watched-videos-settings',
+                    menuHeader: {
+                        title: t('settings.options.uiSettings.options.hideWatchedVideos.title'),
+                        subtitle: t('settings.options.uiSettings.title')
+                    },
                     options: [
                         {
                             name: t('settings.options.uiSettings.options.hideWatchedVideos.options.enableHideWatchedVideos'),
@@ -565,6 +601,10 @@ export default function modernUI(update, parameters) {
                             value: null,
                             arrayToEdit: 'hideWatchedVideosPages',
                             menuId: 'tt-hide-watched-videos-pages',
+                            menuHeader: {
+                                title: t('settings.options.uiSettings.options.hideWatchedVideos.options.setPagesToHideWatchedVideos'),
+                                subtitle: t('settings.options.uiSettings.options.hideWatchedVideos.title')
+                            },
                             options: [
                                 {
                                     name: t('settings.options.uiSettings.options.categories.searchResults'),
@@ -603,6 +643,10 @@ export default function modernUI(update, parameters) {
                     icon: 'EYE_OFF',
                     value: null,
                     menuId: 'tt-screen-dimming-settings',
+                    menuHeader: {
+                        title: t('settings.options.uiSettings.options.screenDimming.title'),
+                        subtitle: t('settings.options.uiSettings.title')
+                    },
                     options: [
                         {
                             name: t('settings.options.uiSettings.options.screenDimming.options.enableScreenDimming'),
@@ -734,6 +778,13 @@ export default function modernUI(update, parameters) {
                         subtitle: t('settings.options.uiSettings.options.launchToOnStartup.subtitle')
                     },
                     options: [
+                        {
+                            name: t('settings.options.uiSettings.options.launchToOnStartup.none'),
+                            key: 'launchToOnStartup',
+                            // Empty rather than null: a null value routes a row into the
+                            // submenu branch instead of writing the setting.
+                            value: ''
+                        },
                         {
                             name: t('settings.options.uiSettings.options.categories.search'),
                             icon: 'SEARCH',
@@ -912,7 +963,6 @@ export default function modernUI(update, parameters) {
                             options: CLOCK_POSITIONS.map((position) => {
                                 return {
                                     name: t(`settings.options.uiSettings.options.clock.options.clockPosition.options.${position}`),
-                                    icon: 'TIMER',
                                     key: 'clockPosition',
                                     value: position
                                 };
@@ -927,6 +977,7 @@ export default function modernUI(update, parameters) {
                 name: t('settings.options.updater.title'),
                 icon: 'SYSTEM_UPDATE',
                 value: null,
+                menuId: 'tt-updater-settings',
                 menuHeader: {
                     title: t('settings.options.updater.title'),
                     subtitle: t('settings.options.updater.menuSubtitle')
@@ -1108,7 +1159,17 @@ export function optionShow(parameters, update) {
                                     update: option.options?.title ? 'customUI' : false,
                                     menuId: option.menuId,
                                     arrayToEdit: option.arrayToEdit,
-                                    menuHeader: option.menuHeader
+                                    menuHeader: option.menuHeader,
+                                    // Lets a choice made in that menu redraw this row, which
+                                    // shows the chosen value as its subtitle.
+                                    parent: {
+                                        options: parameters.options,
+                                        selectedIndex: index,
+                                        update: true,
+                                        menuId: parameters.menuId,
+                                        arrayToEdit: parameters.arrayToEdit,
+                                        menuHeader: parameters.menuHeader
+                                    }
                                 }
                             }
                         }
@@ -1125,20 +1186,34 @@ export function optionShow(parameters, update) {
                                 ]
                             }
                         },
-                        {
-                            customAction: {
-                                action: 'OPTIONS_SHOW',
-                                parameters: {
-                                    options: parameters.options,
-                                    selectedIndex: index,
-                                    update: parameters.options?.title ? 'customUI' : true,
-                                    menuId: parameters.menuId,
-                                    arrayToEdit: parameters.arrayToEdit,
-                                    menuHeader: parameters.menuHeader
+                        parameters.parent
+                            ? {
+                                signalAction: {
+                                    signal: 'POPUP_BACK'
                                 }
                             }
-                        }
-                    ] : [
+                            : {
+                                customAction: {
+                                    action: 'OPTIONS_SHOW',
+                                    parameters: {
+                                        options: parameters.options,
+                                        selectedIndex: index,
+                                        update: parameters.options?.title ? 'customUI' : true,
+                                        menuId: parameters.menuId,
+                                        arrayToEdit: parameters.arrayToEdit,
+                                        menuHeader: parameters.menuHeader
+                                    }
+                                }
+                            },
+                        parameters.parent
+                            ? {
+                                customAction: {
+                                    action: 'OPTIONS_SHOW',
+                                    parameters: parameters.parent
+                                }
+                            }
+                            : null
+                    ].filter(Boolean) : [
                         {
                             setClientSettingEndpoint: {
                                 settingDatas: [
