@@ -175,7 +175,34 @@
                         "options": {
                             "enableClock": "Enable Clock",
                             "isClock12HourFormat": "Use 12-Hour Format for Clock",
-                            "clockShowSeconds": "Show Seconds on Clock"
+                            "clockShowSeconds": "Show Seconds on Clock",
+                            "clockPosition": {
+                                "title": "Clock Position",
+                                "subtitle": "Choose which corner of the screen the clock sits in",
+                                "options": {
+                                    "top-left": "Top Left",
+                                    "top-right": "Top Right",
+                                    "bottom-left": "Bottom Left",
+                                    "bottom-right": "Bottom Right"
+                                }
+                            }
+                        },
+                        "am": "AM",
+                        "pm": "PM"
+                    },
+                    "theme": {
+                        "title": "Theme Colors",
+                        "subtitle": "Choose the colors used behind the sidebar and the main content",
+                        "barColor": "Navigation Bar Color",
+                        "routeColor": "Main Content Color",
+                        "colors": {
+                            "default": "Default",
+                            "trueBlack": "True Black",
+                            "darkGray": "Dark Gray",
+                            "midnightBlue": "Midnight Blue",
+                            "deepPurple": "Deep Purple",
+                            "darkGreen": "Dark Green",
+                            "darkRed": "Dark Red"
                         }
                     }
                 }
@@ -212,6 +239,16 @@
                 "downloading": {
                     "title": "TizenTube Update",
                     "subtitle": "Downloading update, please wait..."
+                }
+            },
+            "shortcuts": {
+                "title": "Button Shortcuts",
+                "subtitle": "What the coloured buttons on your remote do",
+                "content": {
+                    "1": "GREEN — Open TizenTube Settings.",
+                    "2": "RED — Open the TizenTube theme panel, where a colour can be typed in by hand.",
+                    "3": "BLUE — Open the playback speed controls.",
+                    "4": "TizenTube Settings is also the first entry in YouTube's own Settings screen."
                 }
             }
         },
@@ -271,5 +308,23 @@
     "toasts": {
         "videoAddedToQueue": "Video added to queue.",
         "videoQueueCleared": "Video queue cleared."
+    },
+    "common": {
+        "back": "Back"
+    },
+    "longPress": {
+        "play": "Play",
+        "saveToWatchLater": "Save to Watch Later",
+        "removeFromWatchLater": "Remove from Watch Later",
+        "saveToPlaylist": "Save to Playlist",
+        "addToQueue": "Add to Queue",
+        "videoOptions": "Video options"
+    },
+    "themePanel": {
+        "title": "TizenTube Theme",
+        "subtitle": "Colors are applied as soon as you confirm them. Presets are also available under TizenTube Settings.",
+        "barColor": "Navigation Bar Color",
+        "routeColor": "Main Content Color",
+        "hint": "Press BACK to close"
     }
 }

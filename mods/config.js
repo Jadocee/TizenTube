@@ -63,6 +63,7 @@ const defaultConfig = {
   enableClock: false,
   isClock12HourFormat: false,
   clockShowSeconds: false,
+  clockPosition: 'top-right',
 };
 
 let localConfig;

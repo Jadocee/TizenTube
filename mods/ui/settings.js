@@ -6,6 +6,63 @@ import { getComprehensiveLanguageList } from '../features/moreSubtitles.js';
 
 const qrcodes = {};
 
+// TV-friendly presets: every one is dark enough to sit behind white text and to
+// keep an OLED panel from driving a full-brightness background for hours.
+const THEME_COLORS = [
+    { key: 'default', value: '#0f0f0f' },
+    { key: 'trueBlack', value: '#000000' },
+    { key: 'darkGray', value: '#212121' },
+    { key: 'midnightBlue', value: '#101b2d' },
+    { key: 'deepPurple', value: '#1a1024' },
+    { key: 'darkGreen', value: '#0d1f14' },
+    { key: 'darkRed', value: '#2a0f10' }
+];
+
+const CLOCK_POSITIONS = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
+
+/**
+ * The options of a row that opens a list of mutually exclusive choices, i.e.
+ * every entry carries the config key it writes to.
+ */
+function isChoiceList(options) {
+    return Array.isArray(options) && options.some((option) => option && option.key !== undefined && option.key !== null);
+}
+
+/**
+ * The label of whichever choice is stored right now, so a row can show its
+ * value inline instead of making the user open it to find out.
+ */
+function currentChoiceLabel(options) {
+    if (!isChoiceList(options)) return undefined;
+    for (const option of options) {
+        if (!option || option.key === undefined || option.key === null) continue;
+        if (configRead(option.key) === option.value) return option.name;
+    }
+    return undefined;
+}
+
+/** The same choice's position, so the list opens on it rather than at the top. */
+function currentChoiceIndex(options) {
+    if (!isChoiceList(options)) return 0;
+    for (let index = 0; index < options.length; index++) {
+        const option = options[index];
+        if (!option || option.key === undefined || option.key === null) continue;
+        if (configRead(option.key) === option.value) return index;
+    }
+    return 0;
+}
+
+function themeColorOptions(configKey) {
+    return THEME_COLORS.map((color) => {
+        return {
+            name: t(`settings.options.uiSettings.options.theme.colors.${color.key}`),
+            icon: 'LENS_BLUE',
+            key: configKey,
+            value: color.value
+        };
+    });
+}
+
 export default function modernUI(update, parameters) {
     const settings = [
         {
@@ -86,6 +143,21 @@ export default function modernUI(update, parameters) {
                     }
                 }
             })
+        },
+        {
+            name: t('settings.options.shortcuts.title'),
+            icon: 'INFO',
+            value: null,
+            options: {
+                title: t('settings.options.shortcuts.title'),
+                subtitle: t('settings.options.shortcuts.subtitle'),
+                content: scrollPaneRenderer([
+                    overlayMessageRenderer(t('settings.options.shortcuts.content.1')),
+                    overlayMessageRenderer(t('settings.options.shortcuts.content.2')),
+                    overlayMessageRenderer(t('settings.options.shortcuts.content.3')),
+                    overlayMessageRenderer(t('settings.options.shortcuts.content.4'))
+                ])
+            }
         },
         {
             name: t('settings.options.adBlock'),
@@ -423,7 +495,7 @@ export default function modernUI(update, parameters) {
                     options: ['any', 'vp9', 'av01', 'avc1'].map((codec) => {
                         return {
                             name: codec === 'any' ? t('settings.options.videoPlayer.options.codecAny') : codec.toUpperCase(),
-                            key: 'preferredVideoCodec',
+                            key: 'videoPreferredCodec',
                             value: codec
                         }
                     })
@@ -770,6 +842,40 @@ export default function modernUI(update, parameters) {
                     value: 'disableChannelsOnSidebar'
                 },
                 {
+                    name: t('settings.options.uiSettings.options.theme.title'),
+                    value: null,
+                    icon: 'LENS_BLUE',
+                    menuId: 'tt-theme-settings',
+                    menuHeader: {
+                        title: t('settings.options.uiSettings.options.theme.title'),
+                        subtitle: t('settings.options.uiSettings.options.theme.subtitle')
+                    },
+                    options: [
+                        {
+                            name: t('settings.options.uiSettings.options.theme.barColor'),
+                            icon: 'LENS_BLUE',
+                            value: null,
+                            menuId: 'tt-theme-bar-color',
+                            menuHeader: {
+                                title: t('settings.options.uiSettings.options.theme.barColor'),
+                                subtitle: t('settings.options.uiSettings.options.theme.subtitle')
+                            },
+                            options: themeColorOptions('focusContainerColor')
+                        },
+                        {
+                            name: t('settings.options.uiSettings.options.theme.routeColor'),
+                            icon: 'LENS_BLUE',
+                            value: null,
+                            menuId: 'tt-theme-route-color',
+                            menuHeader: {
+                                title: t('settings.options.uiSettings.options.theme.routeColor'),
+                                subtitle: t('settings.options.uiSettings.options.theme.subtitle')
+                            },
+                            options: themeColorOptions('routeColor')
+                        }
+                    ]
+                },
+                {
                     name: t('settings.options.uiSettings.options.clock.title'),
                     value: null,
                     icon: 'TIMER',
@@ -793,6 +899,24 @@ export default function modernUI(update, parameters) {
                             name: t('settings.options.uiSettings.options.clock.options.clockShowSeconds'),
                             icon: 'TIMER',
                             value: 'clockShowSeconds'
+                        },
+                        {
+                            name: t('settings.options.uiSettings.options.clock.options.clockPosition.title'),
+                            icon: 'TIMER',
+                            value: null,
+                            menuId: 'tt-clock-position',
+                            menuHeader: {
+                                title: t('settings.options.uiSettings.options.clock.options.clockPosition.title'),
+                                subtitle: t('settings.options.uiSettings.options.clock.options.clockPosition.subtitle')
+                            },
+                            options: CLOCK_POSITIONS.map((position) => {
+                                return {
+                                    name: t(`settings.options.uiSettings.options.clock.options.clockPosition.options.${position}`),
+                                    icon: 'TIMER',
+                                    key: 'clockPosition',
+                                    value: position
+                                };
+                            })
                         }
                     ]
                 }
@@ -837,7 +961,7 @@ export default function modernUI(update, parameters) {
         const currentVal = setting.value ? configRead(setting.value) : null;
         buttons.push(
             buttonItem(
-                { title: setting.name, subtitle: setting.subtitle },
+                { title: setting.name, subtitle: setting.subtitle || currentChoiceLabel(setting.options) },
                 {
                     icon: setting.icon ? setting.icon : 'CHEVRON_DOWN',
                     secondaryIcon:
@@ -870,7 +994,7 @@ export default function modernUI(update, parameters) {
                                 action: 'OPTIONS_SHOW',
                                 parameters: {
                                     options: setting.options,
-                                    selectedIndex: 0,
+                                    selectedIndex: currentChoiceIndex(setting.options),
                                     update: setting.options?.title ? 'customUI' : false,
                                     menuId: setting.menuId,
                                     arrayToEdit: setting.arrayToEdit,
@@ -969,7 +1093,7 @@ export function optionShow(parameters, update) {
             const currentVal = option.value === null ? undefined : configRead(isRadioChoice ? option.key : option.value);
             buttons.push(
                 buttonItem(
-                    { title: option.name, subtitle: option.subtitle },
+                    { title: option.name, subtitle: option.subtitle || currentChoiceLabel(option.options) },
                     {
                         icon: option.icon ? option.icon : 'CHEVRON_DOWN',
                         secondaryIcon: isRadioChoice ? currentVal === option.value ? 'RADIO_BUTTON_CHECKED' : 'RADIO_BUTTON_UNCHECKED' : option.value === null ? 'CHEVRON_RIGHT' : currentVal ? 'CHECK_BOX' : 'CHECK_BOX_OUTLINE_BLANK'
@@ -980,7 +1104,7 @@ export function optionShow(parameters, update) {
                                 action: 'OPTIONS_SHOW',
                                 parameters: {
                                     options: option.options,
-                                    selectedIndex: 0,
+                                    selectedIndex: currentChoiceIndex(option.options),
                                     update: option.options?.title ? 'customUI' : false,
                                     menuId: option.menuId,
                                     arrayToEdit: option.arrayToEdit,
