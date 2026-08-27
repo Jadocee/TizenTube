@@ -21,7 +21,9 @@ function updateStyle() {
     const existingStyle = document.querySelector('style[nonce]');
     if (existingStyle) {
         existingStyle.textContent = appendedCss
-            ? existingStyle.textContent.replace(appendedCss, css)
+            // A function replacement, so a '$' in a stored colour cannot be read
+            // as a replacement pattern.
+            ? existingStyle.textContent.replace(appendedCss, () => css)
             : existingStyle.textContent + css;
         appendedCss = css;
     } else {

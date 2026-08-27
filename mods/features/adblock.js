@@ -414,7 +414,7 @@ function addLongPress(items) {
     if (item.tileRenderer.style !== 'TILE_STYLE_YTLR_DEFAULT') continue;
     if (item.tileRenderer.onLongPressCommand?.showMenuCommand?.menu?.menuRenderer?.items) {
       const copiedItem = JSON.parse(JSON.stringify(item));
-      item.tileRenderer.onLongPressCommand.showMenuCommand.menu.menuRenderer.items.push(MenuServiceItemRenderer('Add to Queue', {
+      item.tileRenderer.onLongPressCommand.showMenuCommand.menu.menuRenderer.items.push(MenuServiceItemRenderer(t('longPress.addToQueue'), {
         clickTrackingParams: null,
         playlistEditEndpoint: {
           customAction: {
