@@ -1,4 +1,5 @@
 import resolveCommand from '../resolveCommand.js';
+import { t } from 'i18next';
 
 function showToast(title, subtitle, thumbnails) {
     const toastCmd = {
@@ -18,7 +19,7 @@ function showToast(title, subtitle, thumbnails) {
     }
 
     if (thumbnails) {
-        toastCmd.openPopupAction.popup.overlayToastRenderer.image.thumbnails = thumbnails;
+        toastCmd.openPopupAction.popup.overlayToastRenderer.image = { thumbnails };
     }
     resolveCommand(toastCmd);
 }
@@ -66,7 +67,7 @@ function Modal(header, content, id, update) {
                                 buttonRenderer: {
                                     accessibilityData: {
                                         accessibilityData: {
-                                            label: 'Back'
+                                            label: t('common.back')
                                         }
                                     },
                                     command: {
@@ -213,11 +214,11 @@ function longPressData(data) {
             menu: {
                 menuRenderer: {
                     items: [
-                        MenuNavigationItemRenderer('Play', {
+                        MenuNavigationItemRenderer(t('longPress.play'), {
                             clickTrackingParams: null,
                             watchEndpoint: data.watchEndpointData
                         }),
-                        MenuServiceItemRenderer(isWatchLaterItem ? 'Remove from Watch Later' : 'Save to Watch Later', {
+                        MenuServiceItemRenderer(isWatchLaterItem ? t('longPress.removeFromWatchLater') : t('longPress.saveToWatchLater'), {
                             clickTrackingParams: null,
                             commandMetadata: {
                                 webCommandMetadata: {
@@ -230,13 +231,13 @@ function longPressData(data) {
                                 actions: [watchLaterAction]
                             }
                         }),
-                        MenuNavigationItemRenderer('Save to Playlist', {
+                        MenuNavigationItemRenderer(t('longPress.saveToPlaylist'), {
                             clickTrackingParams: null,
                             addToPlaylistEndpoint: {
                                 videoId: data.videoId
                             }
                         }),
-                        MenuServiceItemRenderer('Add to Queue', {
+                        MenuServiceItemRenderer(t('longPress.addToQueue'), {
                             clickTrackingParams: null,
                             playlistEditEndpoint: {
                                 customAction: {
@@ -249,7 +250,7 @@ function longPressData(data) {
                     trackingParams: null,
                     accessibility: {
                         accessibilityData: {
-                            label: 'Video options'
+                            label: t('longPress.videoOptions')
                         }
                     }
                 }
