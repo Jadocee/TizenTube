@@ -25,7 +25,7 @@ function getLatestRelease() {
         });
 }
 
-function checkForUpdates(showNoUpdateToast) {
+function checkForUpdates(isUserInitiated) {
     const currentAppVersion = window.h5vcc.tizentube.GetVersion();
     const currentEpoch = Math.floor(Date.now() / 1000);
 
@@ -99,20 +99,27 @@ function checkForUpdates(showNoUpdateToast) {
                         title: t('settings.options.updater.updateAvailable.title'),
                         subtitle: t('settings.options.updater.updateAvailable.subtitle', { latestVersion, currentVersion: currentAppVersion })
                     },
-                    overlayPanelItemListRenderer(buttons),
+                    // An unasked-for modal must not open with "Update Now" under the
+                    // cursor: on a TV, OK is the button most likely to be pressed by
+                    // reflex, and it starts an APK download.
+                    overlayPanelItemListRenderer(buttons, isUserInitiated ? 0 : 1),
                     'tt-update-modal',
                     false
                 )
             } else {
                 console.info('You are using the latest version of TizenTube.');
-                if (showNoUpdateToast) {
+                if (isUserInitiated) {
                     showToast(t('settings.options.updater.upToDate.title'), t('settings.options.updater.upToDate.subtitle', { version: currentAppVersion }), null);
                 }
             }
         })
         .catch(error => {
             console.error('Error fetching the latest release:', error);
-            showToast(t('settings.options.updater.checkFailed.title'), t('settings.options.updater.checkFailed.subtitle'), null);
+            // Only worth interrupting for when the user asked; otherwise every
+            // launch without a network shows an error nobody requested.
+            if (isUserInitiated) {
+                showToast(t('settings.options.updater.checkFailed.title'), t('settings.options.updater.checkFailed.subtitle'), null);
+            }
         });
 }
 

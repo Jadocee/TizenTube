@@ -149,7 +149,8 @@
                     },
                     "launchToOnStartup": {
                         "title": "Launch To on Startup",
-                        "subtitle": "Choose the default page TizenTube opens to on startup"
+                        "subtitle": "Choose the default page TizenTube opens to on startup",
+                        "none": "None (open where YouTube normally starts)"
                     },
                     "categories": {
                         "search": "Search",
@@ -243,7 +244,7 @@
             },
             "shortcuts": {
                 "title": "Button Shortcuts",
-                "subtitle": "What the coloured buttons on your remote do",
+                "subtitle": "What the colored buttons on your remote do",
                 "content": {
                     "1": "GREEN — Open TizenTube Settings.",
                     "2": "RED — Open the TizenTube theme panel, where a colour can be typed in by hand.",
@@ -326,5 +327,9 @@
         "barColor": "Navigation Bar Color",
         "routeColor": "Main Content Color",
         "hint": "Press BACK to close"
+    },
+    "queue": {
+        "shelfTitle": "Queued Videos",
+        "clear": "Clear Queue"
     }
 }

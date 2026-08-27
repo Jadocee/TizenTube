@@ -177,14 +177,14 @@ JSON.parse = function () {
       if (window.queuedVideos.videos.length > 0) {
         const queuedVideosClone = window.queuedVideos.videos.slice();
         queuedVideosClone.unshift(TileRenderer(
-          'Clear Queue',
+          t('queue.clear'),
           {
             customAction: {
               action: 'CLEAR_QUEUE'
             }
           }));
         r.contents.singleColumnWatchNextResults.pivot.sectionListRenderer.contents.unshift(ShelfRenderer(
-          'Queued Videos',
+          t('queue.shelfTitle'),
           queuedVideosClone,
           queuedVideosClone.findIndex(v => v.contentId === window.queuedVideos.lastVideoId) !== -1 ?
             queuedVideosClone.findIndex(v => v.contentId === window.queuedVideos.lastVideoId)
