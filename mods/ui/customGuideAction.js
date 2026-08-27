@@ -7,9 +7,10 @@ JSON.parse = function () {
 
     const disabledSidebarContents = configRead('disabledSidebarContents');
     const disableChannelsOnSidebar = configRead('disableChannelsOnSidebar');
-    if (r.items && Array.isArray(r.items) && r.items[0].guideSectionRenderer) {
+    if (r && r.items && Array.isArray(r.items) && r.items[0]?.guideSectionRenderer) {
         for (let i = 0; i < r.items.length; i++) {
             const section = r.items[i].guideSectionRenderer;
+            if (!section || !Array.isArray(section.items)) continue;
             for (let j = 0; j < section.items.length; j++) {
                 const item = section.items[j].guideEntryRenderer;
                 if (!item) continue;

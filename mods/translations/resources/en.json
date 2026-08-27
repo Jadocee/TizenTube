@@ -331,5 +331,11 @@
     "queue": {
         "shelfTitle": "Queued Videos",
         "clear": "Clear Queue"
+    },
+    "chapters": {
+        "title": "Chapters",
+        "enterNudge": "To view chapters, press the up arrow button",
+        "navNudge": "Navigate between chapters",
+        "navNudgeA11y": "Press the left or right arrow button to navigate between chapters"
     }
 }

@@ -67,6 +67,7 @@ export default function modernUI(update, parameters) {
             name: t('settings.supportTT.title'),
             icon: 'MONEY_HEART',
             value: null,
+            menuId: 'tt-support',
             options: {
                 title: t('settings.supportTT.title'),
                 subtitle: t('settings.supportTT.subtitle'),
@@ -136,6 +137,7 @@ export default function modernUI(update, parameters) {
                     name: option.name,
                     icon: 'OPEN_IN_NEW',
                     value: null,
+                    menuId: `tt-social-${option.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
                     options: {
                         title: option.name,
                         subtitle: option.link,
@@ -151,6 +153,7 @@ export default function modernUI(update, parameters) {
             name: t('settings.options.shortcuts.title'),
             icon: 'INFO',
             value: null,
+            menuId: 'tt-shortcuts',
             options: {
                 title: t('settings.options.shortcuts.title'),
                 subtitle: t('settings.options.shortcuts.subtitle'),
@@ -1079,7 +1082,7 @@ export function optionShow(parameters, update) {
                 subtitle: option.subtitle
             },
             option.content,
-            'tt-settings-support',
+            parameters.menuId || 'tt-settings-support',
             false
         );
         return;
