@@ -5,3 +5,7 @@ dist/
 .sign
 package-lock.json
 userScript.generated.js
+
+# Harness snapshots, re-derived from source by test/refresh.mjs on every run.
+test/**/*.generated.*
+test/stylesheet/page.html

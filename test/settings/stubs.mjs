@@ -1,0 +1,34 @@
+import { readRepo } from '../lib/repo.mjs';
+import { readFileSync } from 'fs';
+const en = JSON.parse(readRepo('mods', 'translations', 'resources', 'en.json'));
+export function t(key, opts) {
+  let node = en;
+  for (const part of key.split('.')) { node = node?.[part]; if (node === undefined) return key; }
+  if (typeof node !== 'string') return key;
+  return opts ? node.replace(/\{\{(\w+)\}\}/g, (_, k) => opts[k]) : node;
+}
+
+export const store = {};
+export function configRead(k) {
+  if (!(k in store)) { missing.add(k); }
+  return store[k];
+}
+export const missing = new Set();
+export function configWrite(k, v) { store[k] = v; }
+export const configChangeEmitter = { addEventListener(){}, removeEventListener(){}, dispatchEvent(){} };
+
+export const modals = [];
+export function showModal(header, content, id, update) { modals.push({ header, content, id, update }); }
+export function overlayPanelItemListRenderer(items, selectedIndex) { return { overlayPanelItemListRenderer: { items, selectedIndex } }; }
+export function buttonItem(title, icon, commands) {
+  const b = { compactLinkRenderer: { serviceEndpoint: { commandExecutorCommand: { commands } } } };
+  if (title) b.compactLinkRenderer.title = { simpleText: title.title };
+  if (title.subtitle) b.compactLinkRenderer.subtitle = { simpleText: title.subtitle };
+  if (icon) b.compactLinkRenderer.icon = { iconType: icon.icon };
+  if (icon && icon.secondaryIcon) b.compactLinkRenderer.secondaryIcon = { iconType: icon.secondaryIcon };
+  return b;
+}
+export const scrollPaneRenderer = (items) => ({ scrollPaneRenderer: { content: { scrollPaneItemListRenderer: { items } } } });
+export const overlayMessageRenderer = (simpleText) => ({ overlayMessageRenderer: { title: { simpleText } } });
+export const QrCodeRenderer = (url) => ({ qrCodeRenderer: { qrCodeImage: { thumbnails: [{ url }] } } });
+export const qrcode = { qrcode: () => ({ addData(){}, make(){}, createImgTag: () => 'src="data:image/gif;base64,AAA"' }) };
