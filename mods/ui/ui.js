@@ -13,10 +13,25 @@ import { t } from 'i18next';
 // It just works, okay?
 const interval = setInterval(() => {
   const videoElement = document.querySelector('video');
-  if (videoElement) {
+  if (!videoElement) return;
+
+  // Cleared before the body runs, not after. A throw in here used to leave the
+  // timer armed, so startup re-ran every 250ms -- firing another
+  // SOFT_RELOAD_PAGE, appending another copy of the stylesheet, adding another
+  // panel and three more key listeners on each pass, and never patching
+  // resolveCommand. The visible result is an app that never finishes painting.
+  clearInterval(interval);
+
+  try {
     execute_once_dom_loaded();
+  } catch (e) {
+    console.error('TizenTube: startup failed', e);
+  }
+
+  try {
     patchResolveCommand();
-    clearInterval(interval);
+  } catch (e) {
+    console.error('TizenTube: could not patch resolveCommand', e);
   }
 }, 250);
 
