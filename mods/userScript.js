@@ -5,6 +5,13 @@ if (window.location.hostname === 'localhost') {
 import "./features/userAgentSpoofing.js";
 import "whatwg-fetch";
 import "core-js/proposals/object-getownpropertydescriptors";
+// The build targets Chrome 47 and preset-env transpiles syntax only, so
+// anything newer than ES6 has to be polyfilled by hand. Array.prototype.flat
+// is reached on every spatial-navigation search, i.e. every D-pad press
+// inside the theme panel.
+import "core-js/es/array/flat";
+import "core-js/es/object/values";
+import "core-js/es/object/entries";
 
 import './translations/index.js'
 import "./domrect-polyfill";
