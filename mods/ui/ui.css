@@ -4,10 +4,14 @@
 
 .ytaf-ui-container {
   position: fixed;
-  top: 8%;
+  /* Sized to its content and centred, rather than stretched to a fixed box:
+     the panel holds two rows, and a half-empty full-height sheet reads as a
+     rendering fault on a TV. */
+  top: 50%;
   left: 8%;
   right: 8%;
-  bottom: 8%;
+  transform: translateY(-50%);
+  max-height: 84%;
 
   box-sizing: border-box;
   overflow-y: auto;
