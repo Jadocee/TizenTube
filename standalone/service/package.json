@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "node build-service.js"
+    "build": "node embed-userscript.js && node build-service.js",
+    "embed": "node embed-userscript.js"
   },
   "keywords": [],
   "author": "",
