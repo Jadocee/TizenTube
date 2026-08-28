@@ -18,8 +18,13 @@ const STARTUP_ACTIONS = [
 
 configChangeEmitter.addEventListener('configChange', (event) => {
     const { key, value } = event.detail;
-    if (key === 'enableWhoIsWatchingMenu') {
-        disableWhosWatching(value);
+    // permanentlyEnableWhoIsWatchingMenu is what decides whether the interval
+    // below gets armed, and it is a user-facing toggle too -- dropping its
+    // change meant turning it off left the 60s interval running until reload.
+    // Re-read rather than trusting event.value, which for the perma key is not
+    // the argument this function takes.
+    if (key === 'enableWhoIsWatchingMenu' || key === 'permanentlyEnableWhoIsWatchingMenu') {
+        disableWhosWatching(configRead('enableWhoIsWatchingMenu'));
     }
 });
 
@@ -78,10 +83,13 @@ function disableWhosWatching(value: unknown): void {
     if (shouldPermanentlyEnable) {
         date.setDate(date.getDate() - 7);
         setLastFired(LeanbackRecurringActions, date.getTime());
-        interval = setInterval(
-            () => setLastFired(LeanbackRecurringActions, date.getTime()),
-            60 * 1000
-        );
+        // Re-read each tick. setLastFired re-serialises the whole blob it is
+        // handed, and this used to hand it the snapshot parsed at launch --
+        // rewriting every unrelated key YouTube had updated since, once a minute.
+        interval = setInterval(() => {
+            const fresh = readRecurringActions();
+            if (fresh) setLastFired(fresh, date.getTime());
+        }, 60 * 1000);
     }
 }
 

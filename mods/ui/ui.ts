@@ -1,5 +1,12 @@
 /*global navigate*/
 import '../spatial-navigation-polyfill.js';
+// We handle key events ourselves. This has to happen at module scope, not in
+// execute_once_dom_loaded: the polyfill arms its own arrow handler on `load`
+// and defaults to ARROW, while that function waits for a <video> to exist --
+// so between the two, every arrow press was handled twice. Guarded because the
+// polyfill returns early leaving this undefined when the engine ships spatial
+// navigation natively, and an unguarded throw here would abort the bundle.
+if (window.__spatialNavigation__) window.__spatialNavigation__.keyMode = 'NONE';
 import css from './ui.css';
 import { configChangeEmitter, configRead, configWrite } from '../config.js';
 import updateStyle from './theme.js';
@@ -58,6 +65,9 @@ const interval = setInterval(() => {
     patchResolveCommand();
   } catch (e) {
     console.error('TizenTube: could not patch resolveCommand', e);
+    // As above: clearStartupError() has just wiped the previous boot's
+    // breadcrumb, so without this a run that gets here leaves no trace at all.
+    recordStartupError(e);
   }
 }, 250);
 
@@ -105,7 +115,11 @@ function resetScreenDimming(): void {
   setIdleOpacity('1');
   keyTimeout = setTimeout(() => {
     keyTimeout = null;
-    if (isVideoPlaying()) return;
+    // Re-armed, not dropped: this was the only thing that ever scheduled the
+    // timer, so firing once during playback stopped dimming until the next
+    // keypress. resetScreenDimming() re-reads both settings, so a mid-video
+    // change is still honoured.
+    if (isVideoPlaying()) { resetScreenDimming(); return; }
     setIdleOpacity((1 - configRead('dimmingOpacity')).toString());
   }, configRead('dimmingTimeout') * 1000);
 }
@@ -143,13 +157,14 @@ function execute_once_dom_loaded(): void {
     } catch (e) { }
   }
 
-  // We handle key events ourselves.
-  window.__spatialNavigation__.keyMode = 'NONE';
-
   var ARROW_KEY_CODE: Record<number, 'left' | 'up' | 'right' | 'down'> = { 37: 'left', 38: 'up', 39: 'right', 40: 'down' };
 
   var uiContainer = document.createElement('div');
   uiContainer.classList.add('ytaf-ui-container');
+  // Set inline, not in ui.css: the polyfill's readCssVar reads
+  // element.style.getPropertyValue, not the cascade, so a stylesheet
+  // declaration was never visible to it.
+  uiContainer.style.setProperty('--spatial-navigation-contain', 'contain');
   uiContainer.style['display'] = 'none';
   uiContainer.setAttribute('tabindex', '0');
   // What had focus before the panel opened, so it can be handed back on close.
@@ -201,11 +216,17 @@ function execute_once_dom_loaded(): void {
     // currently showing rather than leaving it on <body>.
     const active = document.activeElement;
     if (!active || active === document.body) {
-      const fallback = document.querySelector<HTMLElement>('[hybridnavfocusable="true"], .zylon-focus');
-      if (fallback) {
-        try {
-          fallback.focus();
-        } catch (e) { }
+      // Tried in order of preference. A selector list hands back the first
+      // match in DOCUMENT order, not the first arm that matches, so the old
+      // single query almost always returned the earliest focusable element on
+      // the page rather than the app's current selection. .zylon-focus is a
+      // state class and is not guaranteed focusable, hence the check that
+      // focus actually landed before stopping.
+      for (const sel of ['.zylon-focus[hybridnavfocusable="true"]', '.zylon-focus', '[hybridnavfocusable="true"]']) {
+        const el = document.querySelector<HTMLElement>(sel);
+        if (!el) continue;
+        try { el.focus(); } catch (e) { }
+        if (document.activeElement && document.activeElement !== document.body) break;
       }
     }
   }
@@ -395,6 +416,11 @@ function execute_once_dom_loaded(): void {
   document.addEventListener('keydown', eventHandler, true);
   document.addEventListener('keypress', eventHandler, true);
   document.addEventListener('keyup', eventHandler, true);
+
+  // Armed here rather than waiting for the first keypress. Placed before the
+  // startup-command block below so a throw there cannot skip it; no-ops when
+  // the setting is off.
+  resetScreenDimming();
   if (configRead('showWelcomeToast')) {
     setTimeout(() => {
       showToast(t('welcomeMsg.title'), t('welcomeMsg.subtitle'));

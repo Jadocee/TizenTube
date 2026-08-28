@@ -51,8 +51,13 @@ function speedSettings(): void {
     const maxSpeed = 5;
     const increment = configRead('speedSettingsIncrement') || 0.25;
     const buttons: CompactLinkRenderer[] = [];
-    for (let speed = increment; speed <= maxSpeed; speed += increment) {
-        const fixedSpeed = Math.round(speed * 100) / 100;
+    // Driven by an integer counter: adding `increment` repeatedly accumulates
+    // float error into the bound test, which dropped the 5x row at an increment
+    // of 0.2. floor, not round -- round would add rows above maxSpeed at 0.3
+    // and 0.4.
+    const steps = Math.floor(maxSpeed / increment);
+    for (let i = 1; i <= steps; i++) {
+        const fixedSpeed = Math.round(i * increment * 100) / 100;
         buttons.push(
             buttonItem(
                 { title: `${fixedSpeed}x` },
@@ -120,6 +125,11 @@ function speedSettings(): void {
             ]
         )
     );
+
+    // The stuttering row writes 1.0001, a value the increment loop can never
+    // produce, so the loop's own check could never select it and the menu always
+    // reopened on the first entry after using it.
+    if (currentSpeed === 1.0001) selectedIndex = buttons.length - 1;
 
     showModal(t('player.playbackSpeed.title'), overlayPanelItemListRenderer(buttons, selectedIndex), 'tt-speed');
 }

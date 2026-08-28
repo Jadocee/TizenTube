@@ -53,15 +53,35 @@ app.get('/tizentube/getState', (_req: Request, res: Response) => {
     });
 });
 
-app.get('/tizentube/debugger', (req: Request, _res: Response) => {
+app.get('/tizentube/debugger', (req: Request, res: Response) => {
     const args = req.originalUrl.split('?')[1] || '';
+    // Answered immediately: the caller is index.html, which exits the app right
+    // after and never reads a body. This route used to leave the request hanging.
+    res.status(202).end();
+
+    // getAppsContext is asynchronous and clearInterval only ran inside its
+    // callback, so every tick queued in between also saw `!app` and started
+    // another debugger attach -- several outstanding at a 50ms period against a
+    // platform IPC, each registering the userscript on its own CDP client. The
+    // flag is set BEFORE the async call so the extra callbacks are no-ops.
+    let started = false;
+    let ticks = 0;
     const interval = setInterval(() => {
+        if (started) return;
+        // ~30s, rather than polling for the life of the service if the app
+        // never disappears from the context list.
+        if (++ticks > 600) {
+            clearInterval(interval);
+            return;
+        }
         tizen.application.getAppsContext((appsContext: any[]) => {
+            if (started) return;
             const packageId = tizen.application.getAppInfo().packageId;
             const app = appsContext.find((entry: any) => entry.appId === `${packageId}.TizenTubeStandalone`);
             if (!app) {
+                started = true;
+                clearInterval(interval);
                 injector.startDebugger(args);
-                clearInterval(interval)
             }
         });
     }, 50);
@@ -132,6 +152,19 @@ app.all('*', (req: Request, res: Response) => {
 
                     const value = response.headers.get(key);
                     if (value === null) continue;
+                    // Every URL in the BODY is rewritten through the proxy, but
+                    // this one in the headers was not -- and fetchOptions sets
+                    // redirect: 'manual', so a 3xx goes straight back to the page
+                    // and navigates it off the proxy origin entirely. A
+                    // youtube.com target collapses to a path so the browser stays
+                    // on localhost and re-enters this same route; anything else
+                    // goes back through /cors-bypass/. Relative values already
+                    // resolve against the proxy origin, so they are left alone.
+                    if (lowerKey === 'location' && /^https?:\/\//i.test(value)) {
+                        const yt = value.match(/^https?:\/\/www\.youtube\.com(\/.*)?$/i);
+                        res.setHeader(key, yt ? (yt[1] || '/') : `http://localhost:${PORT}/cors-bypass/${value}`);
+                        continue;
+                    }
                     if (lowerKey === 'set-cookie') {
                         const rawCookies = headerKeys[key];
                         if (Array.isArray(rawCookies)) {
