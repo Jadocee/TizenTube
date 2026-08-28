@@ -300,15 +300,56 @@ JSON.stringify = function (value, replacer, space) {
   return origStringify.call(this, value, replacer, space);
 };
 
-window.JSON.stringify = JSON.stringify;
+// `window.JSON` is the same object the assignments above already wrote to, so
+// the two `window.JSON.x = x` lines that used to sit here were no-ops.
+//
+// This part is not. YouTube's bundle keeps per-module references to JSON, and a
+// module that captured `parse` before this script ran keeps calling the native
+// one -- its ad payloads are never filtered. This loop exists to repair that,
+// but it used to run once at module load, when `window._yttv` does not exist
+// yet: every other feature in this mod polls for it, and `for (const key in
+// undefined)` iterates zero times. So it never patched anything, and whether
+// ads were blocked came down to whether this script won the race against
+// YouTube's bundle -- which is why blocking silently fails for a whole session
+// now and then and comes back after restarting the app.
 
-// Patch JSON.parse to use the custom one
-window.JSON.parse = JSON.parse;
-for (const key in window._yttv) {
-  if (window._yttv[key] && window._yttv[key].JSON && window._yttv[key].JSON.parse) {
-    window._yttv[key].JSON.parse = JSON.parse;
+let jsonPatchAttempts = 0;
+let jsonPatchQuietPasses = 0;
+
+function patchYttvJson() {
+  let sawModules = false;
+  let applied = 0;
+
+  for (const key in window._yttv) {
+    sawModules = true;
+    const module = window._yttv[key];
+    if (!module || !module.JSON) continue;
+    try {
+      if (module.JSON.parse && module.JSON.parse !== JSON.parse) {
+        module.JSON.parse = JSON.parse;
+        applied++;
+      }
+      if (module.JSON.stringify && module.JSON.stringify !== JSON.stringify) {
+        module.JSON.stringify = JSON.stringify;
+        applied++;
+      }
+    } catch (e) {
+      // A frozen module is not worth failing the whole pass over.
+    }
+  }
+
+  jsonPatchQuietPasses = applied ? 0 : jsonPatchQuietPasses + 1;
+
+  // Modules keep appearing as the app boots and as surfaces are opened, so this
+  // runs until the registry exists and has needed nothing for five seconds.
+  // Capped at a minute, after which it either worked or never will.
+  const settled = sawModules && jsonPatchQuietPasses >= 20;
+  if (++jsonPatchAttempts < 240 && !settled) {
+    setTimeout(patchYttvJson, 250);
   }
 }
+
+patchYttvJson();
 
 
 function processShelves(shelves, shouldAddPreviews = true) {
