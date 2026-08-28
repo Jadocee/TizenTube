@@ -50,7 +50,7 @@ jobs:
         working-directory: service
         run: |
           npm install
-          npx rollup -c rollup.config.js
+          npm run build
 
       - name: Build the userscript so it can be packaged into the app
         working-directory: mods
@@ -62,7 +62,7 @@ jobs:
         working-directory: standalone/service
         run: |
           npm install
-          npm install -g @vercel/ncc https://github.com/reisxd/tizen.js/tarball/main
+          npm install -g https://github.com/reisxd/tizen.js/tarball/main
           npm run build
           rm -rf node_modules
 

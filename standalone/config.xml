@@ -2,7 +2,7 @@
 <widget xmlns:tizen="http://tizen.org/ns/widgets" xmlns="http://www.w3.org/ns/widgets" id="https://tizentube.app" version="2.0.1" viewmodes="maximized">
     <access origin="*" subdomains="true"></access>
     <tizen:allow-navigation href="*"/>
-    <tizen:application id="xvvl3S1TT1.TizenTubeStandalone" package="xvvl3S1TT1" required_version="3.0"/>
+    <tizen:application id="xvvl3S1TT1.TizenTubeStandalone" package="xvvl3S1TT1" required_version="9.0"/>
     <author href="https://tizentube.app">Reis Can</author>
     <content src="index.html"/>
     <feature name="http://tizen.org/feature/screen.size.all"/>

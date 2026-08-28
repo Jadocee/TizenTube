@@ -1,6 +1,6 @@
 // Imports that carry no types of their own.
 
-/** Loaded as a string by rollup-plugin-string. */
+/** Loaded as text by rolldown's `moduleTypes` mapping. */
 declare module '*.css' {
     const content: string;
     export default content;
@@ -22,10 +22,10 @@ declare module 'tiny-sha256' {
     export default sha256;
 }
 
-// Vendored third-party polyfills, kept as JavaScript.
+// Vendored spatial-navigation polyfill, kept as JavaScript. Spatial navigation
+// is a draft spec that no Chromium implements, so unlike the built-in polyfills
+// this one does not go away with the move to Chromium M120.
 declare module '*/spatial-navigation-polyfill.js';
-declare module '*/domrect-polyfill';
-declare module '*/domrect-polyfill.js';
 
 // esprima and estraverse ship no type definitions here. The parser walks a
 // minified bundle, so the node shapes are whatever the input happens to be;
