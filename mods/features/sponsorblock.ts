@@ -291,16 +291,8 @@ class SponsorBlockHandler {
         }
       });
 
-      // Once per batch rather than once per mutation record, and guarded: an
-      // absent progress bar used to throw here on every batch for the life of
-      // the observer.
-      const progressBar = document.querySelector('ytlr-progress-bar');
-      if (!progressBar) return;
-      const display = progressBar.getAttribute('hybridnavfocusable') === 'false' ? 'none' : 'block';
-      if (display !== this.segmentsoverlayDisplay) {
-        this.segmentsoverlayDisplay = display;
-        this.segmentsoverlay.style.setProperty('display', display, 'important');
-      }
+      // Once per batch rather than once per mutation record.
+      this.syncOverlayDisplay();
     });
 
     this.sliderInterval = setInterval(() => {
@@ -310,11 +302,39 @@ class SponsorBlockHandler {
         this.sliderInterval = null;
         this.observer!.observe(this.slider, {
           childList: true,
-          subtree: true
+          subtree: true,
+          // The callback reads the hybridnavfocusable attribute, so it has to
+          // be subscribed to it -- without this the overlay's visibility only
+          // resynced when some unrelated child happened to be added or removed.
+          // Filtered deliberately: with subtree:true a bare attributes:true
+          // would wake this on every attribute write under the progress bar.
+          attributes: true,
+          attributeFilter: ['hybridnavfocusable']
         });
         this.slider.appendChild(this.segmentsoverlay!);
+        // First sync, now that the overlay is actually in the tree. Otherwise
+        // its initial visibility is whatever CSS happened to give it, until the
+        // first mutation.
+        this.syncOverlayDisplay();
       }
     }, 500);
+  }
+
+  /**
+   * Mirrors the progress bar's focusability onto the overlay, so the segment
+   * bars fade out with the transport controls instead of floating over the
+   * video. Guarded: an absent progress bar used to throw here on every
+   * mutation batch for the life of the observer.
+   */
+  syncOverlayDisplay(): void {
+    if (!this.segmentsoverlay) return;
+    const progressBar = document.querySelector('ytlr-progress-bar');
+    if (!progressBar) return;
+    const display = progressBar.getAttribute('hybridnavfocusable') === 'false' ? 'none' : 'block';
+    if (display !== this.segmentsoverlayDisplay) {
+      this.segmentsoverlayDisplay = display;
+      this.segmentsoverlay.style.setProperty('display', display, 'important');
+    }
   }
 
   scheduleSkip(): void {
@@ -460,12 +480,11 @@ class SponsorBlockHandler {
   }
 }
 
-// When this global variable was declared using let and two consecutive hashchange
-// events were fired (due to bubbling? not sure...) the second call handled below
-// would not see the value change from first call, and that would cause multiple
-// SponsorBlockHandler initializations... This has been noticed on Chromium 38.
-// This either reveals some bug in chromium/webpack/babel scope handling, or
-// shows my lack of understanding of javascript. (or both)
+// Deliberately a property of window rather than a module-scoped binding:
+// adblock.ts reads window.sponsorblock.segments from its JSON.parse hook to
+// build the manual-skip timely actions and the poi_highlight transport button
+// (see types/globals.d.ts). The comment that used to sit here blamed a
+// let-in-closure bug on Chromium 38, which is not why this has to be a global.
 window.sponsorblock = null;
 
 window.addEventListener(
