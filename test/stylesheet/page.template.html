@@ -1,0 +1,32 @@
+<!doctype html><html><head><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="style-src 'nonce-tt-test-nonce'">
+<style nonce="tt-test-nonce">
+  .from-text { color: rgb(10, 20, 30); }
+</style>
+</head><body>
+<div class="from-text">a</div><div class="from-cssom">b</div>
+<div class="tt-ui">c</div><div class="tt-theme">d</div><div class="no-nonce">e</div>
+<script>
+const sheet = document.querySelector('style[nonce]').sheet;
+sheet.insertRule('.from-cssom { color: rgb(1, 2, 3); }', sheet.cssRules.length);
+const bare = document.createElement('style');
+bare.textContent = '.no-nonce { color: rgb(9, 9, 9); }';
+document.head.appendChild(bare);
+
+/* __STYLESHEET__ */
+
+setStyleBlock('ui', '.tt-ui { color: rgb(40, 50, 60); }');
+setStyleBlock('theme', '.tt-theme { color: rgb(255, 0, 0); }');
+setStyleBlock('theme', '.tt-theme { color: rgb(70, 80, 90); }');
+window.__ttBlocks = document.querySelectorAll('style').length;
+window.__ttSheetText = document.querySelector('style[nonce]').textContent;
+
+const px = (sel) => getComputedStyle(document.querySelector(sel)).color;
+window.__result = {
+  cspEnforced: px('.no-nonce') !== 'rgb(9, 9, 9)',
+  fromText: px('.from-text'),
+  fromCssom: px('.from-cssom'),
+  ttUi: px('.tt-ui'),
+  ttTheme: px('.tt-theme'),
+};
+</script></body></html>
