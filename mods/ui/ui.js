@@ -9,6 +9,7 @@ import resolveCommand, { patchResolveCommand } from '../resolveCommand.js';
 import { pipToFullscreen } from '../features/pictureInPicture.js';
 import getCommandExecutor from './customCommandExecution.js';
 import { recordStartupError, clearStartupError } from './startupError.js';
+import { setStyleBlock } from './styleSheet.js';
 import { t } from 'i18next';
 
 // It just works, okay?
@@ -106,14 +107,7 @@ function execute_once_dom_loaded() {
 
   // Add CSS to head.
 
-  const existingStyle = document.querySelector('style[nonce]');
-  if (existingStyle) {
-    existingStyle.textContent += css;
-  } else {
-    const style = document.createElement('style');
-    style.textContent = css;
-    document.head.appendChild(style);
-  }
+  setStyleBlock('ui', css);
 
   // Fix UI issues.
   const ui = configRead('enableFixedUI');
