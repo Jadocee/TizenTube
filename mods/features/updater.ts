@@ -39,7 +39,15 @@ function getLatestRelease(): Promise<GitHubRelease> {
         });
 }
 
+// 'Check for updates' shows nothing while it runs, so a user who thinks the row
+// is dead presses OK again. Each completion pushed a NEW modal rather than
+// matching the live one, and a user-initiated modal opens focused on
+// 'Update Now' -- so the second press could land on starting an APK download.
+let checkInFlight = false;
+
 function checkForUpdates(isUserInitiated?: boolean): void {
+    if (checkInFlight) return;
+    checkInFlight = true;
     const currentAppVersion = window.h5vcc!.tizentube!.GetVersion();
     const currentEpoch = Math.floor(Date.now() / 1000);
 
@@ -55,13 +63,21 @@ function checkForUpdates(isUserInitiated?: boolean): void {
                 architecture = window.h5vcc!.tizentube!.GetArchitecture!();
             }
 
-            if (architecture) {
-                if (architecture === 'arm64-v8a') {
-                    downloadUrl = release.assets.find(asset => asset.name.includes('arm64.apk'))!.browser_download_url;
-                } else {
-                    downloadUrl = release.assets.find(asset => asset.name.includes('arm.apk'))!.browser_download_url;
+            // These were three non-null assertions on lookups the GitHub API
+            // does not guarantee: find() returns undefined when a release has no
+            // matching APK, and assets[0] assumes the release has any asset at
+            // all. The resulting TypeError was swallowed by the catch below, so
+            // a user-initiated check just looked like nothing happened.
+            const wanted = architecture ? (architecture === 'arm64-v8a' ? 'arm64.apk' : 'arm.apk') : null;
+            const asset = wanted ? release.assets.find(a => a.name.includes(wanted)) : release.assets[0];
+            if (!asset) {
+                console.warn('No matching release asset', release.tag_name, architecture, release.assets.map(a => a.name));
+                if (isUserInitiated) {
+                    showToast(t('settings.options.updater.checkFailed.title'), t('settings.options.updater.checkFailed.subtitle'), null);
                 }
-            } else downloadUrl = release.assets[0].browser_download_url;
+                return;
+            }
+            downloadUrl = asset.browser_download_url;
 
             if (latestVersion !== currentAppVersion) {
                 console.info(`New version available: ${latestVersion} (current: ${currentAppVersion})`);
@@ -134,6 +150,9 @@ function checkForUpdates(isUserInitiated?: boolean): void {
             if (isUserInitiated) {
                 showToast(t('settings.options.updater.checkFailed.title'), t('settings.options.updater.checkFailed.subtitle'), null);
             }
+        })
+        .finally(() => {
+            checkInFlight = false;
         });
 }
 

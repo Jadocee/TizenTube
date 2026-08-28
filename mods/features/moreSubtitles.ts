@@ -206,6 +206,10 @@ function createSectionTitle(title: string) {
     };
 }
 
+// Attempts spent waiting for the resolveCommand instance to register. The two
+// exits above this one re-arm themselves; this one used to give up silently.
+let instanceAttempts = 0;
+
 // Main function to patch the subtitle menu
 function patchSubtitleMenu() {
     if (isPatched) return;
@@ -222,17 +226,20 @@ function patchSubtitleMenu() {
             typeof obj.instance.resolveCommand === "function"
     );
 
-    if (
-        !yttvInstance ||
-        yttvInstance.instance.resolveCommand.isPatchedBySubtitleLocalization
-    ) {
-        if (!yttvInstance) {
-            console.error(
-                "TizenTube Subtitle Localization: Could not find resolveCommand instance."
-            );
-        } else {
-            console.log("TizenTube Subtitle Localization: Already patched.");
-        }
+    if (!yttvInstance) {
+        // _yttv fills in progressively, so a miss here means "not yet". The
+        // bootstrap interval clears itself as soon as it has called this once,
+        // so without re-arming, losing this race meant the subtitle menu was
+        // never patched at all. Capped at roughly thirty seconds.
+        if (++instanceAttempts <= 120) return setTimeout(patchSubtitleMenu, 250);
+        console.error(
+            "TizenTube Subtitle Localization: Could not find resolveCommand instance."
+        );
+        return;
+    }
+
+    if (yttvInstance.instance.resolveCommand.isPatchedBySubtitleLocalization) {
+        console.log("TizenTube Subtitle Localization: Already patched.");
         return;
     }
 

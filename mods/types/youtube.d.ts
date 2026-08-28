@@ -79,7 +79,9 @@ export interface QueuedVideos {
 export interface YouTubePlayer extends Element {
     getPlayerStateObject?(): { isPlaying?: boolean } | undefined;
     getVideoData?(): { video_id?: string } | undefined;
-    getVideoStats(): Record<string, any>;
+    /** Optional: not attached until the player API is ready, and the one call
+     *  site guards it. Declaring it as always-present hid that from the compiler. */
+    getVideoStats?(): Record<string, any>;
     getStatsForNerds(): { resolution: string;[key: string]: any };
     getAvailableQualityData(): { quality: string; qualityLabel: string;[key: string]: any }[];
     setPlaybackQualityRange(min: string, max: string): void;

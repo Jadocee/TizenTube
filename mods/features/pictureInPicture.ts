@@ -41,8 +41,15 @@ if (document.readyState === 'complete') {
     pipLoad();
 } else window.addEventListener('load', pipLoad);
 
+// The observer armed by the last enablePip(), so a second press supersedes the
+// first instead of leaving a stale one armed. A stale observer still holds the
+// timestamp and playback config of the earlier video, and would reload the wrong
+// video at the wrong position when its class mutation finally arrived.
+let pipObserver: MutationObserver | null = null;
+
 function enablePip(): void {
     if (!PlayerService) return;
+    pipObserver?.disconnect();
     const timestamp = Math.floor(document.querySelector('video')!.currentTime);
     const videoElement = document.querySelector('video')!;
 
@@ -77,6 +84,7 @@ function enablePip(): void {
 
                     videoElement.addEventListener('play', onPipEnter);
                     observer.disconnect();
+                    pipObserver = null;
 
                     setTimeout(() => {
                         PlayerService.loadedPlaybackConfig.watchEndpoint.startTimeSeconds = timestamp;
@@ -87,6 +95,7 @@ function enablePip(): void {
         });
     });
 
+    pipObserver = observer;
     observer.observe(ytlrPlayer, { attributes: true });
 
     // Exit from the current video player
@@ -121,7 +130,14 @@ const originalClasses = {
 }
 
 const observerPipEnter = new MutationObserver(() => {
-    if (!window.isPipPlaying) return;
+    // Keyed off the flag rather than off any one caller, so every exit path --
+    // pipToFullscreen(), the watchEndpoint branch in resolveCommand, and any
+    // future one -- clears the button. It carries focusability but no handler,
+    // so leaving it behind puts a dead control in the search bar.
+    if (!window.isPipPlaying) {
+        document.querySelector('#tt-pip-button')?.remove();
+        return;
+    }
     const searchBar = document.querySelector('ytlr-search-bar');
     if (searchBar) {
         const pipButtonExists = document.querySelector('#tt-pip-button');

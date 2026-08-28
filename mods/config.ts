@@ -97,7 +97,11 @@ export function isConfigKey(key: string): key is ConfigKey {
 }
 
 export function configRead<K extends ConfigKey>(key: K): Config[K] {
-  if (localConfig[key] === undefined) {
+  // A stored null counts as missing. No entry in defaultConfig is nullable, so
+  // there is no legitimate null to clobber -- but older releases persisted one
+  // (launchToOnStartup defaulted to null before it became ''), and repairing
+  // only `undefined` handed that back typed as a non-nullable string forever.
+  if (localConfig[key] === undefined || localConfig[key] === null) {
     console.warn('Populating key', key, 'with default value', defaultConfig[key]);
     localConfig[key] = defaultConfig[key];
   }

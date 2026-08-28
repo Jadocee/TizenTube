@@ -1,4 +1,4 @@
-import { configRead } from '../config.js';
+import { configRead, configWrite } from '../config.js';
 import Chapters from '../ui/chapters.js';
 import resolveCommand from '../resolveCommand.js';
 import { timelyAction, longPressData, MenuServiceItemRenderer, ShelfRenderer, TileRenderer, ButtonRenderer } from '../ui/ytUI.js';
@@ -104,6 +104,8 @@ JSON.parse = function () {
         ?.gridRenderer?.items
     ) {
       addLongPress(r.contents.tvBrowseRenderer.content.tvSurfaceContentRenderer.content.gridRenderer.items);
+      r.contents.tvBrowseRenderer.content.tvSurfaceContentRenderer.content.gridRenderer.items =
+        hideVideo(r.contents.tvBrowseRenderer.content.tvSurfaceContentRenderer.content.gridRenderer.items);
     }
 
     if (r.endscreen && configRead('enableHideEndScreenCards')) {
@@ -148,6 +150,7 @@ JSON.parse = function () {
 
     if (r?.continuationContents?.gridContinuation?.items) {
       addLongPress(r.continuationContents.gridContinuation.items);
+      r.continuationContents.gridContinuation.items = hideVideo(r.continuationContents.gridContinuation.items);
     }
 
     if (r?.contents?.tvBrowseRenderer?.content?.tvSecondaryNavRenderer?.sections) {
@@ -174,6 +177,7 @@ JSON.parse = function () {
           }
           if (content?.gridRenderer?.items) {
             addLongPress(content.gridRenderer.items);
+            content.gridRenderer.items = hideVideo(content.gridRenderer.items);
           }
         }
       }
@@ -235,8 +239,8 @@ JSON.parse = function () {
     if (r?.playerOverlays?.playerOverlayRenderer) {
       if (r.playerOverlays.playerOverlayRenderer.timelyActionRenderers) {
         r.playerOverlays.playerOverlayRenderer.timelyActionRenderers = 
-        r.playerOverlays.playerOverlayRenderer.timelyActionRenderers.filter((a: any) => a.timelyActionRenderer.type !== 'TIMELY_ACTION_TYPE_SHOPPING' ||
-                                                                                a.timelyActionRenderer.type !== 'TIMELY_ACTION_TYPE_NFL_WATERMARK');
+        r.playerOverlays.playerOverlayRenderer.timelyActionRenderers.filter((a: any) => a?.timelyActionRenderer?.type !== 'TIMELY_ACTION_TYPE_SHOPPING' &&
+                                                                                a?.timelyActionRenderer?.type !== 'TIMELY_ACTION_TYPE_NFL_WATERMARK');
       } else r.playerOverlays.playerOverlayRenderer.timelyActionRenderers = [];
       if (configRead('sponsorBlockManualSkips').length > 0) {
         const manualSkippedSegments = configRead('sponsorBlockManualSkips');
@@ -351,7 +355,10 @@ function patchYttvJson() {
     }
   }
 
-  jsonPatchQuietPasses = applied ? 0 : jsonPatchQuietPasses + 1;
+  // Only count quiet passes once the registry actually exists -- otherwise the
+  // passes taken before _yttv appears count as "needed nothing", and the loop
+  // can settle on the very first pass that sees it.
+  jsonPatchQuietPasses = !sawModules ? 0 : (applied ? 0 : jsonPatchQuietPasses + 1);
 
   // Modules keep appearing as the app boots and as surfaces are opened, so this
   // runs until the registry exists and has needed nothing for five seconds.
@@ -366,7 +373,11 @@ patchYttvJson();
 
 
 function processShelves(shelves: any[], shouldAddPreviews = true) {
-  for (const shelve of shelves) {
+  // Walked backwards because the Shorts branch below splices this same array:
+  // forwards, removing index i makes the iterator's next read skip what was at
+  // i + 1, so the shelf after a removed Shorts shelf was never processed.
+  for (let i = shelves.length - 1; i >= 0; i--) {
+    const shelve = shelves[i];
     if (shelve.shelfRenderer) {
       if (!shelve.shelfRenderer.content?.horizontalListRenderer?.items) continue;
       deArrowify(shelve.shelfRenderer.content.horizontalListRenderer.items);
@@ -378,7 +389,7 @@ function processShelves(shelves: any[], shouldAddPreviews = true) {
       shelve.shelfRenderer.content.horizontalListRenderer.items = hideVideo(shelve.shelfRenderer.content.horizontalListRenderer.items);
       if (!configRead('enableShorts')) {
         if (shelve.shelfRenderer.tvhtml5ShelfRendererType === 'TVHTML5_SHELF_RENDERER_TYPE_SHORTS') {
-          shelves.splice(shelves.indexOf(shelve), 1);
+          shelves.splice(i, 1);
           continue;
         }
         shelve.shelfRenderer.content.horizontalListRenderer.items = shelve.shelfRenderer.content.horizontalListRenderer.items.filter((item: any) => item.tileRenderer?.tvhtml5ShelfRendererType !== 'TVHTML5_TILE_RENDERER_TYPE_SHORTS');
@@ -393,10 +404,15 @@ function addPreviews(items: any[]) {
   if (!configRead('enablePreviews')) return;
   for (const item of items) {
     if (item.tileRenderer) {
+      if (item.tileRenderer.onFocusCommand?.playbackEndpoint) continue;
+      if (item.tileRenderer.onFocusCommand?.commandExecutorCommand) continue;
+      // Cloned only after the guards, and only when there is something to clone:
+      // JSON.stringify(undefined) returns undefined, and JSON.parse(undefined)
+      // stringifies it to "undefined" and throws, which aborted the whole
+      // response for every tile without an onSelectCommand.
       const watchEndpoint = item.tileRenderer.onSelectCommand;
+      if (!watchEndpoint) continue;
       const copiedEndpoint = JSON.parse(JSON.stringify(watchEndpoint));
-      if (item.tileRenderer?.onFocusCommand?.playbackEndpoint) continue;
-      if (item.tileRenderer?.onFocusCommand?.commandExecutorCommand) continue;
       item.tileRenderer.onFocusCommand = {
         startInlinePlaybackCommand: {
           blockAdoption: true,
@@ -414,10 +430,12 @@ function addPreviews(items: any[]) {
 }
 
 function deArrowify(items: any[]) {
-  for (const item of items) {
+  // Backwards, for the same reason as processShelves: splicing forwards skipped
+  // an ad tile sitting directly after another ad tile.
+  for (let i = items.length - 1; i >= 0; i--) {
+    const item = items[i];
     if (item.adSlotRenderer) {
-      const index = items.indexOf(item);
-      items.splice(index, 1);
+      items.splice(i, 1);
       continue;
     }
     if (!item.tileRenderer) continue;
@@ -509,6 +527,7 @@ function hideVideo(items: any[]) {
     if (!item.tileRenderer) return true;
     const progressBar = item.tileRenderer.header?.tileHeaderRenderer?.thumbnailOverlays?.find((overlay: any) => overlay.thumbnailOverlayResumePlaybackRenderer)?.thumbnailOverlayResumePlaybackRenderer;
     if (!progressBar) return true;
+    if (!configRead('enableHideWatchedVideos')) return true;
     const pages = configRead('hideWatchedVideosPages');
     if (!pages.length) return true;
     const hash = location.hash.substring(1);
@@ -518,4 +537,27 @@ function hideVideo(items: any[]) {
     const percentWatched = (progressBar.percentDurationWatched || 0);
     return percentWatched <= configRead('hideWatchedVideosThreshold');
   });
+}
+
+// hideVideo now honours enableHideWatchedVideos, which nothing read before --
+// the feature was gated on the page list alone. Anyone who picked pages while
+// the master toggle sat at its default `false` had a working feature, and the
+// new gate would switch it off underneath them, so adopt their existing state.
+//
+// Genuinely once, hence the marker: the condition "pages set, toggle off" is
+// also exactly the state of a user who has since turned the toggle off on
+// purpose, and re-running would flip it back on every launch and make the
+// switch impossible to use.
+const HIDE_WATCHED_MIGRATION_KEY = 'tizentube.hideWatchedVideosMigrated';
+try {
+  if (!localStorage.getItem(HIDE_WATCHED_MIGRATION_KEY)) {
+    if (configRead('hideWatchedVideosPages').length > 0 && !configRead('enableHideWatchedVideos')) {
+      configWrite('enableHideWatchedVideos', true);
+    }
+    localStorage.setItem(HIDE_WATCHED_MIGRATION_KEY, '1');
+  }
+} catch (e) {
+  // Storage disabled or over quota. Skipping the migration only means the
+  // feature stays off until the user toggles it; failing here would abort
+  // every module imported after this one.
 }

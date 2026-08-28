@@ -231,12 +231,23 @@ function customAction(action: string, parameters?: any): void {
         case 'SHOW_TOAST':
             showToast('TizenTube', parameters);
             break;
-        case 'ADD_TO_QUEUE':
-            window.queuedVideos.videos.push(parameters);
+        case 'ADD_TO_QUEUE': {
+            // videoQueuing advances by findIndex on contentId, which always
+            // finds the FIRST match -- so the same video queued twice trapped
+            // playback in a loop between the two copies. Position is inferred
+            // from identity, so identity has to be unique.
+            const contentId = parameters?.tileRenderer?.contentId;
+            if (!contentId || !window.queuedVideos.videos.some(v => v.tileRenderer?.contentId === contentId)) {
+                window.queuedVideos.videos.push(parameters);
+            }
             showToast('TizenTube', t('toasts.videoAddedToQueue'));
             break;
+        }
         case 'CLEAR_QUEUE':
             window.queuedVideos.videos = [];
+            // Cleared with the queue: a surviving id from the previous queue
+            // resolves against the new one and silently skips or destroys it.
+            window.queuedVideos.lastVideoId = null;
             showToast('TizenTube', t('toasts.videoQueueCleared'));
             break;
         case 'CHECK_FOR_UPDATES':

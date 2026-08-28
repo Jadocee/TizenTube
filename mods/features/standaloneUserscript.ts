@@ -71,7 +71,13 @@ export default function (): void {
                     return originalFetch(targetUrl, modifiedOptions);
                 }
 
-                input = new Request(targetUrl, input as Request);
+                // Pass the rebuilt request through. This used to be assigned to
+                // `input` and then dropped: the call below took the plain URL
+                // string plus `init`, which is undefined for fetch(requestObject),
+                // so method, headers, body, mode, credentials, referrer, signal
+                // and cache were all discarded and every such fetch went out as a
+                // bare GET.
+                return originalFetch.call(this, new Request(targetUrl, input as Request), init);
             }
 
             return originalFetch.apply(this, [targetUrl, init]);
