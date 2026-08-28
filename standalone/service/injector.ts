@@ -6,10 +6,19 @@ import nodeFetch from 'node-fetch';
 import * as userScript from './userScript.js';
 
 let isConnecting = false;
+// Bumped on every attach attempt so a watchdog armed by an earlier one cannot
+// clear a later one's flag.
+let connectGeneration = 0;
 const isTizen3: boolean = tizen.systeminfo.getCapability('http://tizen.org/feature/platform.version').startsWith('3.0');
 
 const watchUrl = (args: string): string =>
-    `https://youtube.com/tv?additionalDataUrl=http%3A%2F%2Flocalhost%3A8085%2Fdial%2Fapps%2FYouTube${args ? `&${args}` : ''}`;
+    // 8095, not 8085: index.ts sets global.isTizenTube before requiring the DIAL
+    // service, and service.ts binds 8095 in that case. standalone/index.html's
+    // proxy branch already uses 8095 -- this path disagreed with it and pointed
+    // the cast payload at a port nothing listens on inside the standalone app.
+    // package.json's websiteURL stays 8085: that drives the TizenBrew module,
+    // where isTizenTube is falsy and the DIAL server really does bind 8085.
+    `https://youtube.com/tv?additionalDataUrl=http%3A%2F%2Flocalhost%3A8095%2Fdial%2Fapps%2FYouTube${args ? `&${args}` : ''}`;
 
 // Packaged into the build, so this resolves immediately. Only a source
 // checkout that has not been built has to download it, and starting that here
@@ -31,7 +40,7 @@ function registerOnNewDocument(client: CDPClient, source: string): Promise<strin
 
 function connectToDebugger(host: string, port: number, args: string, attempt: number = 0): void {
     nodeFetch(`http://${host}:${port}`).then(() => {
-        CDP({ host, port, local: true }, (client: CDPClient) => {
+        const notifier = CDP({ host, port, local: true }, (client: CDPClient) => {
             isConnecting = false;
 
             Promise.all([client.Runtime.enable(), client.Page.enable()])
@@ -58,7 +67,23 @@ function connectToDebugger(host: string, port: number, args: string, attempt: nu
                     // Still show YouTube rather than leaving a blank app.
                     client.Page.navigate({ url: watchUrl(args) }).catch(() => { });
                 });
-        })
+        });
+
+        // chrome-remote-interface's callback form returns a bare EventEmitter and
+        // ends every failure in emit('error'). With no listener, that emit THROWS,
+        // from inside a .catch on a promise nobody holds -- an unhandled rejection
+        // that either kills the service or vanishes silently, and either way the
+        // client callback above never runs and isConnecting stays latched.
+        // 'No inspectable targets' is a real case here: the app was relaunched
+        // microseconds ago and may not have registered a target yet.
+        notifier.on('error', (e: Error) => {
+            console.error('[TizenTube] CDP attach failed:', e && e.message);
+            if (attempt >= 300) {
+                isConnecting = false;
+                return;
+            }
+            setTimeout(() => connectToDebugger(host, port, args, attempt + 1), 100);
+        });
     }).catch(() => {
         // The debugger port takes a moment to come up. Bounded at ~30s, rather
         // than retrying every 100ms for the life of the service.
@@ -77,16 +102,30 @@ export interface DaemonState {
     isConnecting: boolean;
 }
 
-function canConnectToDaemon(): Promise<DaemonState> {
+function canConnectToDaemon(attempt: number = 0): Promise<DaemonState> {
     return nodeFetch('http://127.0.0.1:8001/api/v2/').then(res => res.json())
         .then((json: any) => {
-            return { canConnectToDaemon: (json.device.developerIP === '127.0.0.1' || json.device.developerIP === '1.0.0.127') && json.device.developerMode === '1', ip: json.device.ip, isConnecting }
+            // Validated before reading: a payload without `device` used to throw
+            // into the catch below, which retried forever rather than reporting a
+            // result.
+            const device = json && json.device;
+            if (!device) throw new Error('no device in /api/v2/ payload');
+            return { canConnectToDaemon: (device.developerIP === '127.0.0.1' || device.developerIP === '1.0.0.127') && device.developerMode === '1', ip: device.ip, isConnecting }
         }).catch(() => {
             // Retried on a timer. Recursing straight from the catch made this a
             // hot loop hammering the daemon as fast as the network stack allowed
             // whenever it was unreachable.
+            //
+            // Bounded at ~10s, because /tizentube/getState awaits this promise:
+            // retrying forever meant that endpoint never responded at all, and the
+            // splash waits on it. Reporting "no daemon" instead lets the page fall
+            // back to the 8099 proxy, which needs no sdb.
+            if (attempt >= 20) {
+                console.error('[TizenTube] sdb daemon never answered; reporting no daemon');
+                return { canConnectToDaemon: false, ip: '', isConnecting };
+            }
             return new Promise<DaemonState>((resolve) => {
-                setTimeout(() => resolve(canConnectToDaemon()), 500);
+                setTimeout(() => resolve(canConnectToDaemon(attempt + 1)), 500);
             });
         });
 }
@@ -96,17 +135,51 @@ function startDebugger(args: string): Promise<boolean> {
         if (!res.canConnectToDaemon) return false;
         const client = adbhost.createConnection({ host: '127.0.0.1', port: 26101 });
 
+        // adbhost attaches no 'error' handler of its own, and an unhandled 'error'
+        // on a net.Socket is thrown by EventEmitter -- from an I/O callback, with
+        // nothing above it to catch.
+        client._stream.on('error', (e: Error) => {
+            isConnecting = false;
+            console.error('[TizenTube] sdb connection failed:', e && e.message);
+        });
+
         client._stream.on('connect', () => {
             const packageId = tizen.application.getAppInfo().packageId;
+            const gen = ++connectGeneration;
             isConnecting = true;
-            const shellCmd = client.createStream(`shell:0 debug ${packageId}.TizenTubeStandalone${isTizen3 ? ' 0' : ''}`);
-            shellCmd.on('data', (data: Buffer) => {
-                const dataString = data.toString();
-                if (dataString.includes('debug')) {
-                    const port = Number(dataString.substr(dataString.indexOf(':') + 1, 6).replace(' ', ''));
-                    connectToDebugger(res.ip, port, args);
-                    setTimeout(() => client._stream.end(), 1000);
+            // Nothing clears this on the paths where sdbd never replies with a
+            // port, and the splash polls getState until something does. Longer
+            // than connectToDebugger's own ~30s budget so it cannot pre-empt a
+            // live attach, and generation-checked so it only ever clears its own.
+            setTimeout(() => {
+                if (connectGeneration === gen) {
+                    isConnecting = false;
+                    console.error('[TizenTube] debugger attach timed out');
                 }
+            }, 45000);
+
+            const shellCmd = client.createStream(`shell:0 debug ${packageId}.TizenTubeStandalone${isTizen3 ? ' 0' : ''}`);
+            shellCmd.on('error', () => { isConnecting = false; });
+
+            // Accumulated, because 'data' is not line-buffered: sdbd's reply can
+            // arrive split across chunks ('debug_por' then 't:34567'), and only the
+            // first would have matched. Anchored on the colon AFTER 'debug' rather
+            // than the first colon in the chunk, and range-checked -- the old
+            // fixed-width substr produced NaN whenever any of that varied.
+            let buf = '';
+            shellCmd.on('data', (data: Buffer) => {
+                buf += data.toString();
+                const m = /debug[^:]*:\s*(\d{1,5})/.exec(buf);
+                if (!m) return;
+                const port = Number(m[1]);
+                buf = '';
+                if (!port || port > 65535) {
+                    isConnecting = false;
+                    console.error('[TizenTube] Could not parse the debug port from sdbd');
+                    return;
+                }
+                connectToDebugger(res.ip, port, args);
+                setTimeout(() => client._stream.end(), 1000);
             });
         });
 
