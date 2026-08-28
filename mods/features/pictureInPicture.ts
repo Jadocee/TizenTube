@@ -4,11 +4,11 @@ import resolveCommand from "../resolveCommand.js";
 import { whenBodyReady } from "../utils/domReady.js";
 
 window.isPipPlaying = false;
-let PlayerService = null;
+let PlayerService: any = null;
 
 let pipLoadAttempts = 0;
 
-function pipLoad() {
+function pipLoad(): void {
     // window._yttv is published by YouTube's own bundle. Every other feature in
     // the mod retries for it; this one assumed it was already there, which threw
     // "Cannot convert undefined or null to object" out of the load handler and
@@ -26,12 +26,12 @@ function pipLoad() {
     const PlaybackPreviewServiceStop = PlaybackPreviewService.stop;
 
 
-    PlaybackPreviewService.start = function (...args) {
+    PlaybackPreviewService.start = function (this: any, ...args: any[]) {
         if (window.isPipPlaying) return;
         return PlaybackPreviewServiceStart.apply(this, args);
     }
 
-    PlaybackPreviewService.stop = function (...args) {
+    PlaybackPreviewService.stop = function (this: any, ...args: any[]) {
         if (window.isPipPlaying) return;
         return PlaybackPreviewServiceStop.apply(this, args);
     }
@@ -41,13 +41,13 @@ if (document.readyState === 'complete') {
     pipLoad();
 } else window.addEventListener('load', pipLoad);
 
-function enablePip() {
+function enablePip(): void {
     if (!PlayerService) return;
-    const timestamp = Math.floor(document.querySelector('video').currentTime);
-    const videoElement = document.querySelector('video');
+    const timestamp = Math.floor(document.querySelector('video')!.currentTime);
+    const videoElement = document.querySelector('video')!;
 
-    const ytlrPlayer = document.querySelector('ytlr-player');
-    const ytlrPlayerContainer = document.querySelector('ytlr-player-container');
+    const ytlrPlayer = document.querySelector<HTMLElement>('ytlr-player')!;
+    const ytlrPlayerContainer = document.querySelector<HTMLElement>('ytlr-player-container')!;
 
     const observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
@@ -97,9 +97,9 @@ function enablePip() {
     });
 }
 
-function pipToFullscreen() {
+function pipToFullscreen(): void {
     const { clickTrackingParams, commandMetadata, watchEndpoint } = PlayerService.loadedPlaybackConfig;
-    watchEndpoint.startTimeSeconds = Math.floor(document.querySelector('video').currentTime);
+    watchEndpoint.startTimeSeconds = Math.floor(document.querySelector('video')!.currentTime);
     const command = {
         clickTrackingParams,
         commandMetadata,
@@ -112,11 +112,11 @@ function pipToFullscreen() {
 const originalClasses = {
     ytlrSearchVoice: {
         length: 0,
-        classes: []
+        classes: [] as string[]
     },
     ytlrSearchVoiceMicButton: {
         length: 0,
-        classes: []
+        classes: [] as string[]
     }
 }
 

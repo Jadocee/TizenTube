@@ -3,8 +3,38 @@ import { configRead } from '../config.js';
 import { showToast } from '../ui/ytUI.js';
 import { t } from 'i18next';
 
+/** A segment as SponsorBlock's public API returns it. Only the three fields
+ *  this file reads are declared. */
+interface SponsorBlockSegment {
+  segment: [number, number];
+  category: string;
+  UUID: string;
+}
+
+/** One video's worth of results from `/api/skipSegments/<hash>`, which answers
+ *  with every video whose ID starts with that hash prefix. */
+interface SponsorBlockVideo {
+  videoID: string;
+  segments: SponsorBlockSegment[];
+}
+
+/** How often a segment has been skipped, for the repeat-skip toast. */
+interface SkipRecord {
+  count: number;
+  firstSkipped: number;
+  lastSkipped: number;
+  hasShownToast: boolean;
+}
+
+/** How one category is drawn on the progress bar. */
+interface BarType {
+  color: string;
+  opacity: string;
+  name: string;
+}
+
 // Copied from https://github.com/ajayyy/SponsorBlock/blob/da1a535de784540ee10166a75a3eb8537073838c/src/config.ts#L113-L134
-const barTypes = {
+const barTypes: Record<string, BarType> = {
   sponsor: {
     color: '#00d400',
     opacity: '0.7',
@@ -61,31 +91,34 @@ const sponsorblockAPI = 'https://sponsor.ajay.app/api';
 const DEBUG_SKIP_SCHEDULING = false;
 
 class SponsorBlockHandler {
-  video = null;
+  videoID: string;
+  video: HTMLVideoElement | null = null;
   active = true;
 
-  attachVideoTimeout = null;
-  nextSkipTimeout = null;
-  sliderInterval = null;
-  buildOverlayTimeout = null;
+  attachVideoTimeout: ReturnType<typeof setTimeout> | null = null;
+  nextSkipTimeout: ReturnType<typeof setTimeout> | null = null;
+  sliderInterval: ReturnType<typeof setInterval> | null = null;
+  buildOverlayTimeout: ReturnType<typeof setTimeout> | null = null;
   buildOverlayAttempts = 0;
-  segmentsoverlay = null;
-  segmentsoverlayDisplay = null;
+  segmentsoverlay: HTMLDivElement | null = null;
+  segmentsoverlayDisplay: string | null = null;
+  // Assigned in buildOverlay(); the JavaScript never declared it.
+  slider: Element | null = null;
 
-  observer = null;
-  scheduleSkipHandler = null;
-  durationChangeHandler = null;
-  segments = null;
-  skippableCategories = [];
-  manualSkippableCategories = [];
-  skippedCategories = new Map();
+  observer: MutationObserver | null = null;
+  scheduleSkipHandler: (() => void) | null = null;
+  durationChangeHandler: (() => void) | null = null;
+  segments: SponsorBlockSegment[] | null = null;
+  skippableCategories: string[] = [];
+  manualSkippableCategories: string[] = [];
+  skippedCategories = new Map<string, SkipRecord>();
 
-  constructor(videoID) {
+  constructor(videoID: string) {
     this.videoID = videoID;
   }
 
-  async init() {
-    const videoHash = sha256(this.videoID).substring(0, 4);
+  async init(): Promise<void> {
+    const videoHash = sha256(this.videoID)!.substring(0, 4);
     const categories = [
       'sponsor',
       'intro',
@@ -102,7 +135,7 @@ class SponsorBlockHandler {
         JSON.stringify(categories)
       )}`
     );
-    const results = await resp.json();
+    const results: SponsorBlockVideo[] = await resp.json();
 
     const result = results.find((v) => v.videoID === this.videoID);
     console.info(this.videoID, 'Got it:', result);
@@ -121,7 +154,7 @@ class SponsorBlockHandler {
       const sliderRect = slider?.getBoundingClientRect();
       const isOldUI = !document.querySelector('div[idomkey="Metadata-Section"]');
       if (isOldUI && sliderRect) {
-        this.segmentsoverlay.style.setProperty('top', `${sliderRect.top}px`, 'important');
+        this.segmentsoverlay!.style.setProperty('top', `${sliderRect.top}px`, 'important');
       }
       this.scheduleSkip();
     }
@@ -131,8 +164,8 @@ class SponsorBlockHandler {
     this.buildOverlay();
   }
 
-  getSkippableCategories() {
-    const skippableCategories = [];
+  getSkippableCategories(): string[] {
+    const skippableCategories: string[] = [];
     if (configRead('enableSponsorBlockSponsor')) {
       skippableCategories.push('sponsor');
     }
@@ -160,8 +193,8 @@ class SponsorBlockHandler {
     return skippableCategories;
   }
 
-  attachVideo() {
-    clearTimeout(this.attachVideoTimeout);
+  attachVideo(): void {
+    clearTimeout(this.attachVideoTimeout!);
     this.attachVideoTimeout = null;
 
     this.video = document.querySelector('video');
@@ -173,13 +206,13 @@ class SponsorBlockHandler {
 
     console.info(this.videoID, 'Video found, binding...');
 
-    this.video.addEventListener('play', this.scheduleSkipHandler);
-    this.video.addEventListener('pause', this.scheduleSkipHandler);
-    this.video.addEventListener('timeupdate', this.scheduleSkipHandler);
-    this.video.addEventListener('durationchange', this.durationChangeHandler);
+    this.video.addEventListener('play', this.scheduleSkipHandler!);
+    this.video.addEventListener('pause', this.scheduleSkipHandler!);
+    this.video.addEventListener('timeupdate', this.scheduleSkipHandler!);
+    this.video.addEventListener('durationchange', this.durationChangeHandler!);
   }
 
-  buildOverlay() {
+  buildOverlay(): void {
     // A retry scheduled before destroy() must not rebuild against dead state.
     if (!this.active) return;
     if (this.segmentsoverlay) {
@@ -221,9 +254,11 @@ class SponsorBlockHandler {
       this.segmentsoverlay.style.setProperty('height', `${sliderRect.height}px`, 'important');
       this.segmentsoverlay.style.setProperty('bottom', `${sliderRect.bottom - sliderRect.top}px`, 'important');      
     }
-    this.segments.forEach((segment) => {
+    this.segments!.forEach((segment) => {
       const [start, end] = segment.segment;
-      const barType = barTypes[segment.category] || {
+      // The fallback's opacity is a number where a BarType's is a string; the
+      // DOM stringifies either, so the cast keeps the call as it was.
+      const barType: { color: string; opacity: string | number } = barTypes[segment.category] || {
         color: 'blue',
         opacity: 0.7
       };
@@ -233,13 +268,13 @@ class SponsorBlockHandler {
 
       const elm = document.createElement('div');
       elm.style.setProperty('background-color', barType.color, 'important');
-      elm.style.setProperty('opacity', barType.opacity, 'important');
+      elm.style.setProperty('opacity', barType.opacity as string, 'important');
       elm.style.setProperty('height', '100%', 'important');
       elm.style.setProperty('width', `${segment.category === 'poi_highlight' ? 1 : widthPercent}%`, 'important');
       elm.style.setProperty('left', `${leftPercent}%`, 'important');
       elm.style.setProperty('position', 'absolute', 'important');
       console.info('Generated element', elm, 'from', segment);
-      this.segmentsoverlay.appendChild(elm);
+      this.segmentsoverlay!.appendChild(elm);
     });
 
     this.observer = new MutationObserver((mutations) => {
@@ -271,19 +306,19 @@ class SponsorBlockHandler {
     this.sliderInterval = setInterval(() => {
       this.slider = document.querySelector('ytlr-redux-connect-ytlr-progress-bar');
       if (this.slider) {
-        clearInterval(this.sliderInterval);
+        clearInterval(this.sliderInterval!);
         this.sliderInterval = null;
-        this.observer.observe(this.slider, {
+        this.observer!.observe(this.slider, {
           childList: true,
           subtree: true
         });
-        this.slider.appendChild(this.segmentsoverlay);
+        this.slider.appendChild(this.segmentsoverlay!);
       }
     }, 500);
   }
 
-  scheduleSkip() {
-    clearTimeout(this.nextSkipTimeout);
+  scheduleSkip(): void {
+    clearTimeout(this.nextSkipTimeout!);
     this.nextSkipTimeout = null;
 
     if (!this.active) {
@@ -291,7 +326,7 @@ class SponsorBlockHandler {
       return;
     }
 
-    if (this.video.paused) {
+    if (this.video!.paused) {
       if (DEBUG_SKIP_SCHEDULING) console.info(this.videoID, 'Currently paused, ignoring...');
       return;
     }
@@ -299,10 +334,10 @@ class SponsorBlockHandler {
     // Sometimes timeupdate event (that calls scheduleSkip) gets fired right before
     // already scheduled skip routine below. Let's just look back a little bit
     // and, in worst case, perform a skip at negative interval (immediately)...
-    const nextSegments = this.segments.filter(
+    const nextSegments = this.segments!.filter(
       (seg) =>
-        seg.segment[0] > this.video.currentTime - 0.3 &&
-        seg.segment[1] > this.video.currentTime - 0.3
+        seg.segment[0] > this.video!.currentTime - 0.3 &&
+        seg.segment[1] > this.video!.currentTime - 0.3
     );
     nextSegments.sort((s1, s2) => s1.segment[0] - s2.segment[0]);
 
@@ -319,12 +354,12 @@ class SponsorBlockHandler {
         'Scheduling skip of',
         segment,
         'in',
-        start - this.video.currentTime
+        start - this.video!.currentTime
       );
     }
 
     this.nextSkipTimeout = setTimeout(() => {
-      if (this.video.paused) {
+      if (this.video!.paused) {
         console.info(this.videoID, 'Currently paused, ignoring...');
         return;
       }
@@ -368,15 +403,15 @@ class SponsorBlockHandler {
         if (configRead('enableSponsorBlockToasts')) {
           showToast('SponsorBlock', t('sponsorblock.toasts.skipping', { segment: skipName }));
         }
-        if (this.video.duration - end < 1) {
-          this.video.currentTime = end - 1;
-        } else this.video.currentTime = end;
+        if (this.video!.duration - end < 1) {
+          this.video!.currentTime = end - 1;
+        } else this.video!.currentTime = end;
         this.scheduleSkip();
       }
-    }, (start - this.video.currentTime) * 1000);
+    }, (start - this.video!.currentTime) * 1000);
   }
 
-  destroy() {
+  destroy(): void {
     console.info(this.videoID, 'Destroying');
 
     this.active = false;
@@ -412,12 +447,12 @@ class SponsorBlockHandler {
     }
 
     if (this.video) {
-      this.video.removeEventListener('play', this.scheduleSkipHandler);
-      this.video.removeEventListener('pause', this.scheduleSkipHandler);
-      this.video.removeEventListener('timeupdate', this.scheduleSkipHandler);
+      this.video.removeEventListener('play', this.scheduleSkipHandler!);
+      this.video.removeEventListener('pause', this.scheduleSkipHandler!);
+      this.video.removeEventListener('timeupdate', this.scheduleSkipHandler!);
       this.video.removeEventListener(
         'durationchange',
-        this.durationChangeHandler
+        this.durationChangeHandler!
       );
     }
 

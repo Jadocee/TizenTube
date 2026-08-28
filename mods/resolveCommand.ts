@@ -1,12 +1,27 @@
-import { configWrite, configRead } from './config.js';
+import { configWrite, configRead, isConfigKey } from './config.js';
 import { enablePip } from './features/pictureInPicture.js';
 import modernUI, { optionShow } from './ui/settings.js';
 import { speedSettings } from './ui/speedUI.js';
 import { showToast, buttonItem } from './ui/ytUI.js';
 import checkForUpdates from './features/updater.js';
 import { t } from 'i18next';
+import type { Command, SettingData } from './types/youtube';
 
-export default function resolveCommand(cmd, _) {
+/** A `settingDatas` entry as it arrives from YouTube. The value sits under
+ *  whichever `*Value` key the payload happened to use, so it is read by name
+ *  rather than by a declared property. */
+interface SettingDataPayload extends SettingData {
+    [key: string]: any;
+}
+
+/** The legacy key fields the TV app's own handlers read off a synthesised
+ *  keydown. Neither is on `Event` in lib.dom. */
+interface LegacyKeyEvent extends Event {
+    keyCode: number;
+    which: number;
+}
+
+export default function resolveCommand(cmd: Command, _?: any): any {
     // resolveCommand function is pretty OP, it can do from opening modals, changing client settings and way more.
     // Because the client might change, we should find it first.
 
@@ -17,7 +32,7 @@ export default function resolveCommand(cmd, _) {
     }
 }
 
-export function findFunction(funcName) {
+export function findFunction(funcName: string): any {
     for (const key in window._yttv) {
         if (window._yttv[key] && window._yttv[key][funcName] && typeof window._yttv[key][funcName] === 'function') {
             return window._yttv[key][funcName];
@@ -27,28 +42,34 @@ export function findFunction(funcName) {
 
 // Patch resolveCommand to be able to change TizenTube settings
 
-export function patchResolveCommand() {
+export function patchResolveCommand(): void {
     for (const key in window._yttv) {
         if (window._yttv[key] && window._yttv[key].instance && window._yttv[key].instance.resolveCommand) {
 
             const ogResolve = window._yttv[key].instance.resolveCommand;
-            window._yttv[key].instance.resolveCommand = function (cmd, _) {
+            window._yttv[key].instance.resolveCommand = function (this: any, cmd: Command, _?: any): any {
                 if (cmd.setClientSettingEndpoint) {
                     // Command to change client settings. Use TizenTube configuration to change settings.
                     for (const settings of cmd.setClientSettingEndpoint.settingDatas) {
                         if (!settings.clientSettingEnum.item.includes('_')) {
-                            for (const setting of cmd.setClientSettingEndpoint.settingDatas) {
+                            for (const setting of cmd.setClientSettingEndpoint.settingDatas as SettingDataPayload[]) {
                                 const valName = Object.keys(setting).find(key => key.includes('Value'));
-                                const value = valName === 'intValue' ? Number(setting[valName]) : setting[valName];
+                                const value = valName === 'intValue' ? Number(setting[valName]) : setting[valName!];
+                                // The item comes straight out of the command payload, so it is
+                                // only a setting name if it actually names one.
+                                const item = setting.clientSettingEnum.item;
+                                if (!isConfigKey(item)) continue;
                                 if (valName === 'arrayValue') {
-                                    const arr = configRead(setting.clientSettingEnum.item);
-                                    if (arr.includes(value)) {
-                                        arr.splice(arr.indexOf(value), 1);
-                                    } else {
-                                        arr.push(value);
+                                    const arr = configRead(item);
+                                    if (Array.isArray(arr)) {
+                                        if (arr.includes(value)) {
+                                            arr.splice(arr.indexOf(value), 1);
+                                        } else {
+                                            arr.push(value);
+                                        }
+                                        configWrite(item, arr);
                                     }
-                                    configWrite(setting.clientSettingEnum.item, arr);
-                                } else configWrite(setting.clientSettingEnum.item, value);
+                                } else configWrite(item, value);
                             }
                         } else if (settings.clientSettingEnum.item === 'I18N_LANGUAGE') {
                             const lang = settings.stringValue;
@@ -105,7 +126,7 @@ export function patchResolveCommand() {
                         ])
                     );
 
-                    if (window.h5vcc && window.h5vcc.tizentube && window.h5vcc.tizentube.HasSystemFeature && 
+                    if (window.h5vcc && window.h5vcc.tizentube && window.h5vcc.tizentube.HasSystemFeature &&
                         window.h5vcc.tizentube.HasSystemFeature('android.software.picture_in_picture')) {
                         cmd.openPopupAction.popup.overlaySectionRenderer.overlay.overlayTwoPanelRenderer.actionPanel.overlayPanelRenderer.content.overlayPanelItemListRenderer.items.splice(3, 0,
                             buttonItem(
@@ -126,11 +147,11 @@ export function patchResolveCommand() {
                     }
                 } else if (cmd?.watchEndpoint?.videoId) {
                     window.isPipPlaying = false;
-                    const ytlrPlayerContainer = document.querySelector('ytlr-player-container');
-                    ytlrPlayerContainer.style.removeProperty('z-index');
+                    const ytlrPlayerContainer = document.querySelector<HTMLElement>('ytlr-player-container');
+                    ytlrPlayerContainer!.style.removeProperty('z-index');
                 }
 
-                if (cmd.customAction) return window._yttv[key].instance.resolveCommand(cmd, _);
+                if (cmd.customAction) return window._yttv![key].instance.resolveCommand(cmd, _);
 
                 if (cmd.commandExecutorCommand && cmd.commandExecutorCommand.commands) {
                     for (const command of cmd.commandExecutorCommand.commands) {
@@ -143,7 +164,7 @@ export function patchResolveCommand() {
                         } else if (command.playlistEditEndpoint?.customAction) {
                             customAction(command.playlistEditEndpoint.customAction.action, command.playlistEditEndpoint.customAction.parameters);
                         } else {
-                            window._yttv[key].instance.resolveCommand(command, _);
+                            window._yttv![key].instance.resolveCommand(command, _);
                         }
                     }
                     return true;
@@ -167,7 +188,7 @@ export function patchResolveCommand() {
     }
 }
 
-function customAction(action, parameters) {
+function customAction(action: string, parameters?: any): void {
     switch (action) {
         case 'SETTINGS_UPDATE':
             modernUI(true, parameters);
@@ -176,13 +197,13 @@ function customAction(action, parameters) {
             optionShow(parameters, parameters.update);
             break;
         case 'SKIP':
-            const kE = document.createEvent('Event');
+            const kE = document.createEvent('Event') as LegacyKeyEvent;
             kE.initEvent('keydown', true, true);
             kE.keyCode = 27;
             kE.which = 27;
             document.dispatchEvent(kE);
 
-            document.querySelector('video').currentTime = parameters.time;
+            document.querySelector('video')!.currentTime = parameters.time;
             break;
         case 'TT_SETTINGS_SHOW':
             modernUI();
@@ -194,18 +215,18 @@ function customAction(action, parameters) {
             configWrite('dontCheckUpdateUntil', parameters);
             break;
         case 'UPDATE_DOWNLOAD':
-            window.h5vcc.tizentube.InstallAppFromURL(parameters);
+            window.h5vcc!.tizentube!.InstallAppFromURL(parameters);
             showToast(t('settings.options.updater.downloading.title'), t('settings.options.updater.downloading.subtitle'));
             break;
         case 'SET_PLAYER_SPEED':
             const speed = Number(parameters);
-            document.querySelector('video').playbackRate = speed;
+            document.querySelector('video')!.playbackRate = speed;
             break;
         case 'ENTER_MP':
             enablePip();
             break;
         case 'ENTER_PIP':
-            window.h5vcc.tizentube.EnterPIP();
+            window.h5vcc!.tizentube!.EnterPIP();
             break;
         case 'SHOW_TOAST':
             showToast('TizenTube', parameters);

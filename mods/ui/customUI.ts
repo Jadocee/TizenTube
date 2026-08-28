@@ -4,12 +4,13 @@ import { extractAssignedFunctions } from "../utils/ASTParser.js";
 import { configRead } from "../config.js";
 import { ButtonRenderer } from "./ytUI.js";
 import { t } from 'i18next';
+import type { AssignedFunction } from "../utils/ASTParser.js";
 
 function applyPatches() {
     if (!window._yttv) return setTimeout(applyPatches, 250);
     if (!document.querySelector('video')) return setTimeout(applyPatches, 250);
     const methods = Object.keys(window._yttv).filter(key => {
-        return typeof window._yttv[key] === 'function' && window._yttv[key].toString().includes('TRANSPORT_CONTROLS_BUTTON_TYPE_FEATURED_ACTION');
+        return typeof window._yttv![key] === 'function' && window._yttv![key].toString().includes('TRANSPORT_CONTROLS_BUTTON_TYPE_FEATURED_ACTION');
     });
 
     if (methods.length === 0) {
@@ -26,9 +27,9 @@ function applyPatches() {
     // throw straight out of the constructor, which leaves the transport control
     // row unrenderable -- so they are resolved once, up front, and every use is
     // gated on having found something.
-    const nameOf = (predicate) => {
+    const nameOf = (predicate: (func: AssignedFunction) => boolean) => {
         const match = functions.find(predicate);
-        return match ? match.left.split('.')[1] : undefined;
+        return match ? match.left!.split('.')[1] : undefined;
     };
 
     const settingActionGroup = nameOf((func) => func.rhs.includes('TRANSPORT_CONTROLS_BUTTON_TYPE_PLAYBACK_SETTINGS'));
@@ -45,10 +46,10 @@ function applyPatches() {
 
     const engagementActionButton = nameOf((func) => func.rhs.includes('props.data.engagementActions'));
 
-    function YtlrPlayerActionsContainer() {
+    function YtlrPlayerActionsContainer(this: any) {
         const args = Array.prototype.slice.call(arguments);
 
-        function constructAsNew(ctor, argsList) {
+        function constructAsNew(ctor: any, argsList: any[]) {
             if (typeof Reflect !== 'undefined' && typeof Reflect.construct === 'function') {
                 return Reflect.construct(ctor, argsList, YtlrPlayerActionsContainer);
             }
@@ -90,19 +91,19 @@ function applyPatches() {
 
             if (settingActionGroup && configRead('enableMPButton')) {
                 const origSettingActionGroup = inst[settingActionGroup];
-                inst[settingActionGroup] = function () {
+                inst[settingActionGroup] = function (this: any) {
                     const res = origSettingActionGroup.apply(this, arguments);
-                    const idx = res.findIndex(item => item.type === 'TRANSPORT_CONTROLS_BUTTON_TYPE_PLAYBACK_SETTINGS');
-                    res.find(item => item.type === 'TRANSPORT_CONTROLS_BUTTON_TYPE_PIP') || res.splice(idx, 0, pipCommand);
+                    const idx = res.findIndex((item: any) => item.type === 'TRANSPORT_CONTROLS_BUTTON_TYPE_PLAYBACK_SETTINGS');
+                    res.find((item: any) => item.type === 'TRANSPORT_CONTROLS_BUTTON_TYPE_PIP') || res.splice(idx, 0, pipCommand);
                     return res;
                 };
             }
 
             if (engagementActionButton && configRead('enableSpeedControlsButton')) {
                 const origEngagementActionButton = inst[engagementActionButton];
-                inst[engagementActionButton] = function () {
+                inst[engagementActionButton] = function (this: any) {
                     const res = origEngagementActionButton.apply(this, arguments);
-                    res.find(item => item.type === 'TRANSPORT_CONTROLS_BUTTON_TYPE_SPEED') || res.push({
+                    res.find((item: any) => item.type === 'TRANSPORT_CONTROLS_BUTTON_TYPE_SPEED') || res.push({
                         type: 'TRANSPORT_CONTROLS_BUTTON_TYPE_SPEED',
                         button: {
                             buttonRenderer: ButtonRenderer(
@@ -124,20 +125,20 @@ function applyPatches() {
 
             if (engagementActionButton && !configRead('enableSuperThanksButton')) {
                 const origEngagementActionButton = inst[engagementActionButton];
-                inst[engagementActionButton] = function () {
+                inst[engagementActionButton] = function (this: any) {
                     const res = origEngagementActionButton.apply(this, arguments);
-                    const superThanksFiltered = res.filter(item => item.type !== 'TRANSPORT_CONTROLS_BUTTON_TYPE_SUPER_THANKS');
-                    const shoppingFiltered = superThanksFiltered.filter(item => item.type !== 'TRANSPORT_CONTROLS_BUTTON_TYPE_SHOPPING');
+                    const superThanksFiltered = res.filter((item: any) => item.type !== 'TRANSPORT_CONTROLS_BUTTON_TYPE_SUPER_THANKS');
+                    const shoppingFiltered = superThanksFiltered.filter((item: any) => item.type !== 'TRANSPORT_CONTROLS_BUTTON_TYPE_SHOPPING');
                     return shoppingFiltered;
                 }
             }
-        
+
             if (engagementActionButton && !configRead('enableAIAskButton')) {
                 const origEngagementActionButton = inst[engagementActionButton];
-                inst[engagementActionButton] = function () {
+                inst[engagementActionButton] = function (this: any) {
                     const res = origEngagementActionButton.apply(this, arguments);
-                    const superThanksFiltered = res.filter(item => item.type !== 'TRANSPORT_CONTROLS_BUTTON_TYPE_YOUCHAT_BUTTON');
-                    const shoppingFiltered = superThanksFiltered.filter(item => item.type !== 'TRANSPORT_CONTROLS_BUTTON_TYPE_YOUCHAT_BUTTON');
+                    const superThanksFiltered = res.filter((item: any) => item.type !== 'TRANSPORT_CONTROLS_BUTTON_TYPE_YOUCHAT_BUTTON');
+                    const shoppingFiltered = superThanksFiltered.filter((item: any) => item.type !== 'TRANSPORT_CONTROLS_BUTTON_TYPE_YOUCHAT_BUTTON');
                     return shoppingFiltered;
                 }
             }

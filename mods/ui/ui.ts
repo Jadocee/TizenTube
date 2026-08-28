@@ -12,6 +12,27 @@ import { recordStartupError, clearStartupError } from './startupError.js';
 import { setStyleBlock } from './styleSheet.js';
 import { t } from 'i18next';
 
+/**
+ * Whatever the TV app currently has focused. The panel's own controls are all
+ * `<input>`, and the checks below read those fields off anything else too --
+ * on a non-input they simply come back undefined, which is what the code
+ * relies on.
+ */
+type FocusedElement = HTMLElement & Partial<HTMLInputElement>;
+
+/**
+ * A key event as it reaches the panel. `Uc` is a minified field YouTube's own
+ * event plumbing hangs the original key on; it is not part of the DOM.
+ */
+interface TvKeyboardEvent extends KeyboardEvent {
+  Uc?: { key?: string };
+}
+
+/** YouTube's player element. Its state API is the app's own, not the DOM's. */
+interface Html5VideoPlayer extends Element {
+  getPlayerStateObject?: () => { isPlaying?: boolean };
+}
+
 // It just works, okay?
 const interval = setInterval(() => {
   const videoElement = document.querySelector('video');
@@ -40,13 +61,13 @@ const interval = setInterval(() => {
   }
 }, 250);
 
-let keyTimeout = null;
+let keyTimeout: ReturnType<typeof setTimeout> | null = null;
 
 /**
  * Returns true only when the value is something CSS will actually paint, so a
  * half-typed hex code from the on-screen keyboard can never blank the theme.
  */
-function isValidColor(value) {
+function isValidColor(value: string): boolean {
   if (!value) return false;
   const probe = document.createElement('div');
   probe.style.backgroundColor = '';
@@ -54,7 +75,7 @@ function isValidColor(value) {
   return probe.style.backgroundColor !== '';
 }
 
-function setIdleOpacity(value) {
+function setIdleOpacity(value: string): void {
   const container = document.getElementById('container');
   if (container) container.style.setProperty('opacity', value, 'important');
   // The clock is a sibling of #container, so dimming would otherwise skip the
@@ -63,8 +84,8 @@ function setIdleOpacity(value) {
   if (clock) clock.style.setProperty('opacity', value, 'important');
 }
 
-function isVideoPlaying() {
-  const videoPlayer = document.querySelector('.html5-video-player');
+function isVideoPlaying(): boolean {
+  const videoPlayer = document.querySelector<Html5VideoPlayer>('.html5-video-player');
   if (!videoPlayer || typeof videoPlayer.getPlayerStateObject !== 'function') return false;
   try {
     return !!videoPlayer.getPlayerStateObject().isPlaying;
@@ -74,7 +95,7 @@ function isVideoPlaying() {
 }
 
 /** Wakes the screen back up and re-arms the idle dimming timer. */
-function resetScreenDimming() {
+function resetScreenDimming(): void {
   if (keyTimeout) {
     clearTimeout(keyTimeout);
     keyTimeout = null;
@@ -103,7 +124,7 @@ configChangeEmitter.addEventListener('configChange', (evt) => {
   }
 });
 
-function execute_once_dom_loaded() {
+function execute_once_dom_loaded(): void {
 
   // Add CSS to head.
 
@@ -113,46 +134,46 @@ function execute_once_dom_loaded() {
   const ui = configRead('enableFixedUI');
   if (ui) {
     try {
-      window.tectonicConfig.featureSwitches.isLimitedMemory = false;
-      window.tectonicConfig.clientData.legacyApplicationQuality = 'full-animation';
-      window.tectonicConfig.featureSwitches.enableAnimations = true;
-      window.tectonicConfig.featureSwitches.enableOnScrollLinearAnimation = true;
-      window.tectonicConfig.featureSwitches.enableListAnimations = true;
-      window.tectonicConfig.featureSwitches.supportsLongPress = true;
+      window.tectonicConfig!.featureSwitches.isLimitedMemory = false;
+      window.tectonicConfig!.clientData.legacyApplicationQuality = 'full-animation';
+      window.tectonicConfig!.featureSwitches.enableAnimations = true;
+      window.tectonicConfig!.featureSwitches.enableOnScrollLinearAnimation = true;
+      window.tectonicConfig!.featureSwitches.enableListAnimations = true;
+      window.tectonicConfig!.featureSwitches.supportsLongPress = true;
     } catch (e) { }
   }
 
   // We handle key events ourselves.
   window.__spatialNavigation__.keyMode = 'NONE';
 
-  var ARROW_KEY_CODE = { 37: 'left', 38: 'up', 39: 'right', 40: 'down' };
+  var ARROW_KEY_CODE: Record<number, 'left' | 'up' | 'right' | 'down'> = { 37: 'left', 38: 'up', 39: 'right', 40: 'down' };
 
   var uiContainer = document.createElement('div');
   uiContainer.classList.add('ytaf-ui-container');
   uiContainer.style['display'] = 'none';
-  uiContainer.setAttribute('tabindex', 0);
+  uiContainer.setAttribute('tabindex', '0');
   // What had focus before the panel opened, so it can be handed back on close.
-  let previouslyFocused = null;
+  let previouslyFocused: FocusedElement | null = null;
 
   function firstControl() {
     return uiContainer.querySelector('input');
   }
 
   function showPanel() {
-    const active = document.activeElement;
+    const active = document.activeElement as FocusedElement | null;
     previouslyFocused = active && active !== document.body ? active : null;
 
     // Re-read the stored colours: they can have been changed from the
     // TizenTube settings menu since the panel was last opened.
-    const barColor = uiContainer.querySelector('#__barColor');
-    const routeColor = uiContainer.querySelector('#__routeColor');
+    const barColor = uiContainer.querySelector<HTMLInputElement>('#__barColor');
+    const routeColor = uiContainer.querySelector<HTMLInputElement>('#__routeColor');
     if (barColor) {
       barColor.value = configRead('focusContainerColor');
-      uiContainer.querySelector('#__barColorSwatch').style.backgroundColor = configRead('focusContainerColor');
+      uiContainer.querySelector<HTMLElement>('#__barColorSwatch')!.style.backgroundColor = configRead('focusContainerColor');
     }
     if (routeColor) {
       routeColor.value = configRead('routeColor');
-      uiContainer.querySelector('#__routeColorSwatch').style.backgroundColor = configRead('routeColor');
+      uiContainer.querySelector<HTMLElement>('#__routeColorSwatch')!.style.backgroundColor = configRead('routeColor');
     }
 
     uiContainer.style.display = 'block';
@@ -180,7 +201,7 @@ function execute_once_dom_loaded() {
     // currently showing rather than leaving it on <body>.
     const active = document.activeElement;
     if (!active || active === document.body) {
-      const fallback = document.querySelector('[hybridnavfocusable="true"], .zylon-focus');
+      const fallback = document.querySelector<HTMLElement>('[hybridnavfocusable="true"], .zylon-focus');
       if (fallback) {
         try {
           fallback.focus();
@@ -195,7 +216,7 @@ function execute_once_dom_loaded() {
       if (evt.keyCode !== 404 && evt.keyCode !== 172) {
         // Nothing is guaranteed to be focused, so every branch below works off
         // this one nullable lookup instead of dereferencing it blind.
-        const focusedElement = document.activeElement;
+        const focusedElement = document.activeElement as FocusedElement | null;
         const isTextInput = !!focusedElement && focusedElement.type === 'text';
 
         if (evt.keyCode in ARROW_KEY_CODE) {
@@ -252,10 +273,10 @@ function execute_once_dom_loaded() {
         }
 
 
-        if (evt.key === 'Enter' || evt.Uc?.key === 'Enter') {
+        if (evt.key === 'Enter' || (evt as TvKeyboardEvent).Uc?.key === 'Enter') {
           // If the focused element is a text input, emit a change event.
           if (isTextInput) {
-            focusedElement.dispatchEvent(new Event('change'));
+            focusedElement!.dispatchEvent(new Event('change'));
           }
         }
       }
@@ -283,21 +304,21 @@ function execute_once_dom_loaded() {
 </label>
 <div class="ytaf-ui-hint">${t('themePanel.hint')}</div>
 `;
-    document.querySelector('body').appendChild(uiContainer);
+    document.querySelector('body')!.appendChild(uiContainer);
 
-    const bindColorInput = (inputId, swatchId, configKey) => {
-      const input = uiContainer.querySelector(inputId);
-      const swatch = uiContainer.querySelector(swatchId);
+    const bindColorInput = (inputId: string, swatchId: string, configKey: 'focusContainerColor' | 'routeColor') => {
+      const input = uiContainer.querySelector<HTMLInputElement>(inputId)!;
+      const swatch = uiContainer.querySelector<HTMLElement>(swatchId)!;
 
       input.value = configRead(configKey);
       swatch.style.backgroundColor = configRead(configKey);
 
       input.addEventListener('change', (evt) => {
-        const value = evt.target.value.trim();
+        const value = (evt.target as HTMLInputElement).value.trim();
         if (!isValidColor(value)) {
           // Put the stored colour back rather than writing something the TV
           // would render as transparent.
-          evt.target.value = configRead(configKey);
+          (evt.target as HTMLInputElement).value = configRead(configKey);
           return;
         }
         configWrite(configKey, value);
@@ -310,7 +331,7 @@ function execute_once_dom_loaded() {
     bindColorInput('#__routeColor', '#__routeColorSwatch', 'routeColor');
   } catch (e) { }
 
-  var eventHandler = (evt) => {
+  var eventHandler = (evt: KeyboardEvent) => {
     // Deliberately not logging every event here: this handler is registered for
     // keydown, keypress and keyup, and speedUI.js registers three more, so a
     // single press used to produce six logs before any keyCode was even tested.
@@ -354,7 +375,7 @@ function execute_once_dom_loaded() {
         // Checked first: this runs on every right press, and the flag is far
         // cheaper than a DOM query.
         if (window.isPipPlaying && document.querySelector('ytlr-search-text-box > .zylon-focus')) {
-          const ytlrPlayer = document.querySelector('ytlr-player');
+          const ytlrPlayer = document.querySelector<HTMLElement>('ytlr-player');
           if (ytlrPlayer) ytlrPlayer.style.setProperty('background-color', 'rgb(0, 0, 0)');
           pipToFullscreen();
           // Only consumed once the branch has decided to act, so an ordinary

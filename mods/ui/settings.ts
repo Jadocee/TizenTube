@@ -3,8 +3,111 @@ import { showModal, buttonItem, overlayPanelItemListRenderer, scrollPaneRenderer
 import qrcode from 'qrcode-npm';
 import { t } from 'i18next';
 import { readStartupError } from './startupError.js';
+import type { Config, ConfigKey } from '../config.js';
+import type { CompactLinkRenderer, Command, Renderer } from '../types/youtube';
 
-const qrcodes = {};
+/** A setting that holds a list of values rather than a single one. Those are
+ *  edited by toggling members on and off, not by writing the setting whole. */
+type ArrayConfigKey = { [K in ConfigKey]: Config[K] extends string[] ? K : never }[ConfigKey];
+
+/** The title and subtitle a submenu opens with. */
+interface MenuHeader {
+    title: string;
+    subtitle: string;
+}
+
+/** What a row opens when it shows content rather than a list of rows. */
+interface ContentPanel {
+    title: string;
+    subtitle: string;
+    content: Renderer;
+}
+
+/** What every row of the settings tree carries. */
+interface RowBase {
+    name: string;
+    icon?: string;
+    subtitle?: string;
+    menuId?: string;
+    menuHeader?: MenuHeader;
+}
+
+/** A row that toggles one setting on and off. Its `value` is the setting's
+ *  name, so a row pointing at a setting that does not exist will not compile. */
+interface ToggleRow extends RowBase {
+    value: ConfigKey;
+    key?: undefined;
+    arrayToEdit?: undefined;
+    options?: undefined;
+}
+
+/** A row that opens either more rows or a panel of content. */
+interface SubmenuRow extends RowBase {
+    value: null;
+    key?: undefined;
+    arrayToEdit?: undefined;
+    options: (SettingsEntry | null)[] | ContentPanel;
+}
+
+/** One of a set of mutually exclusive choices: selecting it writes `value` to
+ *  the setting named by `key`. */
+interface ChoiceRow extends RowBase {
+    key: ConfigKey;
+    value: string | number;
+    arrayToEdit?: undefined;
+    options?: undefined;
+}
+
+/** A row that opens the members of an array setting. */
+interface ArrayEditRow extends RowBase {
+    value: null;
+    key?: undefined;
+    arrayToEdit: ArrayConfigKey;
+    options: ArrayMemberRow[];
+}
+
+/** One member of an array setting. Its `value` is stored in that array, so it
+ *  is an arbitrary string rather than the name of a setting. */
+interface ArrayMemberRow {
+    name: string;
+    icon?: string;
+    subtitle?: string;
+    value: string;
+}
+
+type SettingsRow = ToggleRow | SubmenuRow | ChoiceRow | ArrayEditRow;
+
+/** An entry of a rendered menu: one of the mod's rows, or a button built up
+ *  front by ytUI. */
+type SettingsEntry = SettingsRow | CompactLinkRenderer;
+
+/** Everything a row can open. */
+type RowOptions = (SettingsEntry | null)[] | ArrayMemberRow[] | ContentPanel;
+
+interface MenuParametersBase {
+    selectedIndex?: number;
+    update?: boolean | 'customUI';
+    menuId?: string;
+    menuHeader?: MenuHeader;
+    parent?: OptionsParameters;
+}
+
+/** The parameters of a menu that toggles the members of an array setting. */
+interface ArrayMenuParameters extends MenuParametersBase {
+    arrayToEdit: ArrayConfigKey;
+    options: ArrayMemberRow[];
+}
+
+/** The parameters of a menu of rows, or of a single panel of content. */
+interface RowMenuParameters extends MenuParametersBase {
+    arrayToEdit?: undefined;
+    options: (SettingsEntry | null)[] | ContentPanel;
+}
+
+/** What an OPTIONS_SHOW command hands back to `optionShow`. */
+export type OptionsParameters = ArrayMenuParameters | RowMenuParameters;
+
+const qrcodes: Record<string, string> = {};
 
 // TV-friendly presets: every one is dark enough to sit behind white text and to
 // keep an OLED panel from driving a full-brightness background for hours.
@@ -24,15 +127,15 @@ const CLOCK_POSITIONS = ['top-left', 'top-right', 'bottom-left', 'bottom-right']
  * The options of a row that opens a list of mutually exclusive choices, i.e.
  * every entry carries the config key it writes to.
  */
-function isChoiceList(options) {
-    return Array.isArray(options) && options.some((option) => option && option.key !== undefined && option.key !== null);
+function isChoiceList(options: RowOptions | undefined): options is (SettingsRow | null)[] {
+    return Array.isArray(options) && options.some((option) => option && (option as SettingsRow).key !== undefined && (option as SettingsRow).key !== null);
 }
 
 /**
  * The label of whichever choice is stored right now, so a row can show its
  * value inline instead of making the user open it to find out.
  */
-function currentChoiceLabel(options) {
+function currentChoiceLabel(options: RowOptions | undefined): string | undefined {
     if (!isChoiceList(options)) return undefined;
     for (const option of options) {
         if (!option || option.key === undefined || option.key === null) continue;
@@ -42,7 +145,7 @@ function currentChoiceLabel(options) {
 }
 
 /** The same choice's position, so the list opens on it rather than at the top. */
-function currentChoiceIndex(options) {
+function currentChoiceIndex(options: RowOptions | undefined): number {
     if (!isChoiceList(options)) return 0;
     for (let index = 0; index < options.length; index++) {
         const option = options[index];
@@ -52,8 +155,8 @@ function currentChoiceIndex(options) {
     return 0;
 }
 
-function themeColorOptions(configKey) {
-    return THEME_COLORS.map((color) => {
+function themeColorOptions(configKey: ConfigKey): ChoiceRow[] {
+    return THEME_COLORS.map((color): ChoiceRow => {
         return {
             name: t(`settings.options.uiSettings.options.theme.colors.${color.key}`),
             key: configKey,
@@ -62,12 +165,14 @@ function themeColorOptions(configKey) {
     });
 }
 
-export default function modernUI(update, parameters) {
+export default function modernUI(update?: boolean, parameters?: number[]): void {
     // Only present when this launch's startup threw. Nothing to read means
     // TizenTube started cleanly.
     const startupError = readStartupError();
 
-    const settings = [
+    // Nothing at the top level writes a radio value, so every row here either
+    // toggles a setting or opens a submenu.
+    const settings: (ToggleRow | SubmenuRow | null)[] = [
         startupError ? {
             name: t('settings.options.startupError.title'),
             icon: 'INFO',
@@ -143,14 +248,14 @@ export default function modernUI(update, parameters) {
                     name: t('settings.options.socialMedia.githubSponsors'),
                     link: 'https://github.com/sponsors/reisxd',
                 }
-            ].map((option) => {
+            ].map((option): SubmenuRow => {
                 if (!qrcodes[option.name]) {
                     const qr = qrcode.qrcode(6, 'H');
                     qr.addData(option.link);
                     qr.make();
 
                     const qrDataImgTag = qr.createImgTag(8, 8);
-                    const qrDataUrl = qrDataImgTag.match(/src="([^"]+)"/)[1];
+                    const qrDataUrl = qrDataImgTag.match(/src="([^"]+)"/)![1];
                     qrcodes[option.name] = qrDataUrl;
                 }
                 return {
@@ -511,7 +616,7 @@ export default function modernUI(update, parameters) {
                         subtitle: t('settings.options.videoPlayer.options.preferredVideoQuality.subtitle')
                     },
                     options:
-                        ['Auto', '2160p', '1440p', '1080p', '720p', '480p', '360p', '240p', '144p'].map((quality) => {
+                        ['Auto', '2160p', '1440p', '1080p', '720p', '480p', '360p', '240p', '144p'].map((quality): ChoiceRow => {
                             return {
                                 name: quality === 'Auto' ? t('settings.options.videoPlayer.options.qualityAuto') : quality,
                                 key: 'preferredVideoQuality',
@@ -529,7 +634,7 @@ export default function modernUI(update, parameters) {
                         title: t('settings.options.videoPlayer.options.speedSettings.title'),
                         subtitle: t('settings.options.videoPlayer.options.speedSettings.subtitle')
                     },
-                    options: [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5].map((increment) => {
+                    options: [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5].map((increment): ChoiceRow => {
                         return {
                             name: `${increment}x`,
                             key: 'speedSettingsIncrement',
@@ -546,7 +651,7 @@ export default function modernUI(update, parameters) {
                         title: t('settings.options.videoPlayer.options.preferredVideoCodec.title'),
                         subtitle: t('settings.options.videoPlayer.options.preferredVideoCodec.subtitle'),
                     },
-                    options: ['any', 'vp9', 'av01', 'avc1'].map((codec) => {
+                    options: ['any', 'vp9', 'av01', 'avc1'].map((codec): ChoiceRow => {
                         return {
                             name: codec === 'any' ? t('settings.options.videoPlayer.options.codecAny') : codec.toUpperCase(),
                             key: 'videoPreferredCodec',
@@ -568,7 +673,7 @@ export default function modernUI(update, parameters) {
                         title: t('settings.options.videoPlayer.options.afrPauseDuration.title'),
                         subtitle: t('settings.options.videoPlayer.options.afrPauseDuration.subtitle')
                     },
-                    options: [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5].map((seconds) => {
+                    options: [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5].map((seconds): ChoiceRow => {
                         return {
                             name: t(seconds === 1 ? 'settings.options.time.second' : 'settings.options.time.seconds', { count: seconds }),                            
                             key: 'autoFrameRatePauseVideoFor',
@@ -611,7 +716,7 @@ export default function modernUI(update, parameters) {
                                 title: t('settings.options.uiSettings.options.hideWatchedVideos.options.watchedVideosThreshold.title'),
                                 subtitle: t('settings.options.uiSettings.options.hideWatchedVideos.options.watchedVideosThreshold.subtitle')
                             },
-                            options: [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map((percent) => {
+                            options: [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map((percent): ChoiceRow => {
                                 return {
                                     name: `${percent}%`,
                                     key: 'hideWatchedVideosThreshold',
@@ -685,7 +790,7 @@ export default function modernUI(update, parameters) {
                                 title: t('settings.options.uiSettings.options.screenDimming.options.dimmingTimeout.title'),
                                 subtitle: t('settings.options.uiSettings.options.screenDimming.options.dimmingTimeout.subtitle')
                             },
-                            options: [10, 20, 30, 60, 120, 180, 240, 300].map((seconds) => {
+                            options: [10, 20, 30, 60, 120, 180, 240, 300].map((seconds): ChoiceRow => {
                                 const title = seconds >= 60 ? t(`settings.options.time.minute${seconds / 60 > 1 ? 's' : ''}`, { count: seconds / 60 }) : t('settings.options.time.seconds', { count: seconds });
                                 return {
                                     name: title,
@@ -703,7 +808,7 @@ export default function modernUI(update, parameters) {
                                 title: t('settings.options.uiSettings.options.screenDimming.options.dimmingOpacity.title'),
                                 subtitle: t('settings.options.uiSettings.options.screenDimming.options.dimmingOpacity.subtitle')
                             },
-                            options: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0].map((opacity) => {
+                            options: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0].map((opacity): ChoiceRow => {
                                 return {
                                     name: `${Math.round(opacity * 100)}%`,
                                     key: 'dimmingOpacity',
@@ -983,7 +1088,7 @@ export default function modernUI(update, parameters) {
                                 title: t('settings.options.uiSettings.options.clock.options.clockPosition.title'),
                                 subtitle: t('settings.options.uiSettings.options.clock.options.clockPosition.subtitle')
                             },
-                            options: CLOCK_POSITIONS.map((position) => {
+                            options: CLOCK_POSITIONS.map((position): ChoiceRow => {
                                 return {
                                     name: t(`settings.options.uiSettings.options.clock.options.clockPosition.options.${position}`),
                                     key: 'clockPosition',
@@ -1027,7 +1132,7 @@ export default function modernUI(update, parameters) {
             } : null
     ];
 
-    const buttons = [];
+    const buttons: CompactLinkRenderer[] = [];
 
     let index = 0;
     for (const setting of settings) {
@@ -1048,9 +1153,9 @@ export default function modernUI(update, parameters) {
                                 settingDatas: [
                                     {
                                         clientSettingEnum: {
-                                            item: setting.value
+                                            item: setting.value!
                                         },
-                                        boolValue: !configRead(setting.value)
+                                        boolValue: !configRead(setting.value!)
                                     }
                                 ]
                             }
@@ -1069,7 +1174,7 @@ export default function modernUI(update, parameters) {
                                 parameters: {
                                     options: setting.options,
                                     selectedIndex: currentChoiceIndex(setting.options),
-                                    update: setting.options?.title ? 'customUI' : false,
+                                    update: (setting.options as ContentPanel | undefined)?.title ? 'customUI' : false,
                                     menuId: setting.menuId,
                                     arrayToEdit: setting.arrayToEdit,
                                     menuHeader: setting.menuHeader
@@ -1093,9 +1198,9 @@ export default function modernUI(update, parameters) {
     );
 }
 
-export function optionShow(parameters, update) {
+export function optionShow(parameters: OptionsParameters, update?: boolean | 'customUI'): void {
     if (update === 'customUI') {
-        const option = parameters.options;
+        const option = parameters.options as ContentPanel;
         showModal(
             {
                 title: option.title,
@@ -1107,7 +1212,7 @@ export function optionShow(parameters, update) {
         );
         return;
     }
-    const buttons = [];
+    const buttons: CompactLinkRenderer[] = [];
 
     // Check if this is the legacy sponsorBlockManualSkips (array-based) or new boolean-based options
     const isArrayBasedOptions = parameters.arrayToEdit !== undefined;
@@ -1156,9 +1261,9 @@ export function optionShow(parameters, update) {
     } else {
         // New handling for boolean-based options (like subtitle localization)
         let index = 0;
-        for (const option of parameters.options) {
+        for (const option of parameters.options as (SettingsEntry | null)[]) {
             if (!option) continue;
-            if (option.compactLinkRenderer) {
+            if ('compactLinkRenderer' in option) {
                 buttons.push(option);
                 index++;
                 continue;
@@ -1179,7 +1284,7 @@ export function optionShow(parameters, update) {
                                 parameters: {
                                     options: option.options,
                                     selectedIndex: currentChoiceIndex(option.options),
-                                    update: option.options?.title ? 'customUI' : false,
+                                    update: (option.options as ContentPanel | undefined)?.title ? 'customUI' : false,
                                     menuId: option.menuId,
                                     arrayToEdit: option.arrayToEdit,
                                     menuHeader: option.menuHeader,
@@ -1196,7 +1301,7 @@ export function optionShow(parameters, update) {
                                 }
                             }
                         }
-                    ] : option.key !== null && option.key !== undefined ? [
+                    ] : option.key !== null && option.key !== undefined ? ([
                         {
                             setClientSettingEndpoint: {
                                 settingDatas: [
@@ -1221,7 +1326,7 @@ export function optionShow(parameters, update) {
                                     parameters: {
                                         options: parameters.options,
                                         selectedIndex: index,
-                                        update: parameters.options?.title ? 'customUI' : true,
+                                        update: (parameters.options as ContentPanel | undefined)?.title ? 'customUI' : true,
                                         menuId: parameters.menuId,
                                         arrayToEdit: parameters.arrayToEdit,
                                         menuHeader: parameters.menuHeader
@@ -1236,7 +1341,7 @@ export function optionShow(parameters, update) {
                                 }
                             }
                             : null
-                    ].filter(Boolean) : [
+                    ] satisfies (Command | null)[]).filter(Boolean) as Command[] : [
                         {
                             setClientSettingEndpoint: {
                                 settingDatas: [
@@ -1255,7 +1360,7 @@ export function optionShow(parameters, update) {
                                 parameters: {
                                     options: parameters.options,
                                     selectedIndex: index,
-                                    update: parameters.options?.title ? 'customUI' : true,
+                                    update: (parameters.options as ContentPanel | undefined)?.title ? 'customUI' : true,
                                     menuId: parameters.menuId,
                                     arrayToEdit: parameters.arrayToEdit,
                                     menuHeader: parameters.menuHeader

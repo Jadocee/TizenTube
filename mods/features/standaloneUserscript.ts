@@ -1,4 +1,8 @@
-function redirectUrl(originalUrl) {
+// A URL that needs no rewriting is handed straight back, so a string in gives
+// a string out and callers that go on to do string work still typecheck.
+function redirectUrl(originalUrl: string): string;
+function redirectUrl(originalUrl: string | URL): string | URL;
+function redirectUrl(originalUrl: string | URL): string | URL {
     if (!originalUrl) return originalUrl;
 
     try {
@@ -25,7 +29,7 @@ function redirectUrl(originalUrl) {
     return originalUrl;
 }
 
-export default function () {
+export default function (): void {
     const originalFetch = window.fetch;
     if (originalFetch) {
         window.fetch = function (input, init) {
@@ -42,18 +46,21 @@ export default function () {
                 targetUrl = redirectUrl(input.url);
             }
 
+            // The flag is only ever set on the `instanceof Request` branch
+            // above, which is a narrowing the compiler cannot follow through a
+            // boolean, hence the casts.
             if (isRequestObject) {
-                if (input.method === 'POST' && targetUrl.indexOf('localhost') !== -1) {
-                    const modifiedOptions = {
-                        method: input.method,
-                        headers: new Headers(input.headers),
-                        mode: input.mode,
-                        credentials: input.credentials,
+                if ((input as Request).method === 'POST' && targetUrl.indexOf('localhost') !== -1) {
+                    const modifiedOptions: RequestInit = {
+                        method: (input as Request).method,
+                        headers: new Headers((input as Request).headers),
+                        mode: (input as Request).mode,
+                        credentials: (input as Request).credentials,
                     };
 
-                    if (input.body && !input.bodyUsed) {
-                        const requestClone = input.clone();
-                        return input.clone().arrayBuffer().then(function (buffer) {
+                    if ((input as Request).body && !(input as Request).bodyUsed) {
+                        const requestClone = (input as Request).clone();
+                        return (input as Request).clone().arrayBuffer().then(function (buffer) {
                             modifiedOptions.body = buffer;
 
                             return originalFetch(targetUrl, modifiedOptions);
@@ -63,7 +70,7 @@ export default function () {
                     return originalFetch(targetUrl, modifiedOptions);
                 }
 
-                input = new Request(targetUrl, input);
+                input = new Request(targetUrl, input as Request);
             }
 
             return originalFetch.apply(this, [targetUrl, init]);
@@ -71,7 +78,7 @@ export default function () {
     }
 
     const originalOpen = XMLHttpRequest.prototype.open;
-    XMLHttpRequest.prototype.open = function (method, url, async, user, password) {
+    XMLHttpRequest.prototype.open = function (method: string, url: string | URL, async?: boolean, user?: string | null, password?: string | null) {
         const redirectedUrl = redirectUrl(url);
         if (redirectedUrl !== url) {
             async = true;
@@ -95,13 +102,13 @@ export default function () {
     Object.defineProperty(HTMLImageElement.prototype, 'src', {
         set: function(value) {
             const descriptor = Object.getOwnPropertyDescriptor(Element.prototype, 'setAttribute');
-            descriptor.value.call(this, 'src', redirectUrl(value));
+            descriptor!.value.call(this, 'src', redirectUrl(value));
         }
     });
     Object.defineProperty(HTMLScriptElement.prototype, 'src', {
         set: function(value) {
             const descriptor = Object.getOwnPropertyDescriptor(Element.prototype, 'setAttribute');
-            descriptor.value.call(this, 'src', redirectUrl(value));
+            descriptor!.value.call(this, 'src', redirectUrl(value));
         }
     });
 }

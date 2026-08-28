@@ -1,7 +1,8 @@
 import { configRead } from "../config.js";
+import type { YouTubePlayer } from "../types/youtube";
 
 function attachToVideoPlayer() {
-    const player = document.querySelector('.html5-video-player');
+    const player = document.querySelector<YouTubePlayer>('.html5-video-player');
     const video = document.querySelector('video');
     if (!player) return setTimeout(attachToVideoPlayer, 500);
 
@@ -17,9 +18,9 @@ function attachToVideoPlayer() {
                 const fps = resolutionMatch[3];
                 if (configRead('autoFrameRate') && window.h5vcc && window.h5vcc.tizentube && window.h5vcc.tizentube.SetFrameRate) {
                     if (pauseFor > 0) {
-                        video.pause();
+                        video!.pause();
                         setTimeout(() => {
-                            video.play();
+                            video!.play();
                         }, pauseFor);
                     }
                     window.h5vcc.tizentube.SetFrameRate(parseFloat(fps));
