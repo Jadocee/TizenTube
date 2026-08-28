@@ -38,30 +38,43 @@ export function getComprehensiveLanguageList(): Record<string, string> {
     }
 }
 
+// Subtags CLDR answers with that YouTube's menu does not use. Norwegian is the
+// one that actually comes up: maximize() says "nb", the menu offers "no".
+const LANGUAGE_ALIASES: Record<string, string> = { nb: "no", nn: "no" };
+
 // Infer the most likely language for a given ISO 3166-1 alpha-2 country code using Intl.Locale.
 // Returns { code, name } or null if unknown.
 export function getCountryLanguage(countryCode: string | null): { code: string; name: string } | null {
     if (!countryCode) return null;
     try {
         const region = String(countryCode).toUpperCase();
+        // Named via the comprehensive list rather than languages.language.standard.long:
+        // that map is keyed by bare language codes, so a hyphenated code misses
+        // it and the menu row ends up titled "zh-CN".
+        const names = getComprehensiveLanguageList();
 
-        const zhRegionMap: Record<string, string> = { CN: "zh-CN", TW: "zh-TW", HK: "zh-HK", SG: "zh-CN" };
+        const zhRegionMap: Record<string, string> = { CN: "zh-CN", TW: "zh-TW", HK: "zh-HK", MO: "zh-HK", SG: "zh-CN" };
         if (zhRegionMap[region]) {
             const code = zhRegionMap[region];
-            const name = languages.language.standard.long[code] || code;
-            return { code, name };
+            return { code, name: names[code] || code };
         }
 
-        // Intl.Locale landed in Chrome 74; the pinned lib does not have it
-        // because the Chrome 47 target does not either, so this reaches for it
-        // through `any` and the catch below is what runs on an older engine.
-        const base = new (Intl as any).Locale("und", { region });
-        const maximized = base.maximize ? base.maximize() : base;
-        const lang = maximized.language || "en";
+        // Intl.Locale is native on the Chromium M120 target and typed by the
+        // ES2023 lib. Note this path is LIVE only since that retarget: the old
+        // Chrome 47 build had no Intl.Locale, so the constructor always threw
+        // and every region outside zhRegionMap fell to the catch below.
+        const maximized = new Intl.Locale("und", { region }).maximize();
+        const inferred = maximized.language || "en";
+        const lang = LANGUAGE_ALIASES[inferred] || inferred;
 
-        const name = languages.language.standard.long[lang] || lang;
+        // CLDR happily answers with a language YouTube's auto-translate menu
+        // does not offer -- GH gives "ak", TJ "tg", BT "dz", MV "dv". Adding a
+        // row for one builds a command asking YouTube to translate into a
+        // language it will refuse, so decline instead, which is exactly what
+        // the old target did for every region.
+        if (!LANGUAGE_CODES.includes(lang)) return null;
 
-        return { code: lang, name };
+        return { code: lang, name: names[lang] || lang };
     } catch (e) {
         console.warn("TizenTube Subtitle Localization: Could not infer language for country", countryCode, e);
         return null;
@@ -268,45 +281,27 @@ function patchSubtitleMenu() {
                             userLanguage.name
                         );
 
-                        // Find the "Recommended languages" section and insert after it
-                        const recommendedIndex = items.findIndex(
-                            (item: any) =>
-                                item.overlayMessageRenderer?.subtitle
-                                    ?.simpleText === "Recommended languages"
+                        // Insert under the menu's first section heading. This
+                        // used to match the heading text against the English
+                        // literals "Recommended languages" / "Other languages",
+                        // but YouTube renders those in the account's language --
+                        // so for exactly the non-English users this feature
+                        // exists for, both searches missed and the row was
+                        // unshifted above YouTube's own heading. Anchor on the
+                        // renderer instead, which is language independent.
+                        const headerIndex = items.findIndex(
+                            (item: any) => item.overlayMessageRenderer
                         );
 
-                        if (recommendedIndex > -1) {
-                            // Insert user's language as the first recommendation
-                            items.splice(
-                                recommendedIndex + 1,
-                                0,
-                                userLanguageOption
-                            );
-                            // Update existing languages set
-                            existingLanguages.add(userLanguage.code);
-                            existingLanguages.add(userLanguage.name);
+                        if (headerIndex > -1) {
+                            items.splice(headerIndex + 1, 0, userLanguageOption);
                         } else {
-                            // Find "Other languages" section and insert before it
-                            const otherLanguagesIndex = items.findIndex(
-                                (item: any) =>
-                                    item.overlayMessageRenderer?.subtitle
-                                        ?.simpleText === "Other languages"
-                            );
-
-                            if (otherLanguagesIndex > -1) {
-                                items.splice(
-                                    otherLanguagesIndex,
-                                    0,
-                                    userLanguageOption
-                                );
-                            } else {
-                                // As a fallback, add it at the beginning
-                                items.unshift(userLanguageOption);
-                            }
-                            // Update existing languages set
-                            existingLanguages.add(userLanguage.code);
-                            existingLanguages.add(userLanguage.name);
+                            // A flat list with no headings at all: first is right.
+                            items.unshift(userLanguageOption);
                         }
+                        // Update existing languages set
+                        existingLanguages.add(userLanguage.code);
+                        existingLanguages.add(userLanguage.name);
                     } else {
                         console.log(
                             `%c[TizenTube Subtitle Localization] User's language ${userLanguage.name} already exists in menu`,

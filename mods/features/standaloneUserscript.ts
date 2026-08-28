@@ -59,7 +59,8 @@ export default function (): void {
                     };
 
                     if ((input as Request).body && !(input as Request).bodyUsed) {
-                        const requestClone = (input as Request).clone();
+                        // One clone, not two: each clone() tees the body stream,
+                        // and the second was never read.
                         return (input as Request).clone().arrayBuffer().then(function (buffer) {
                             modifiedOptions.body = buffer;
 
