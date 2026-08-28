@@ -9,6 +9,9 @@
   "author": "Reis Can",
   "serviceFile": "dist/service.js",
   "keys": [
+    "ColorF0Red",
+    "ColorF1Green",
+    "ColorF3Blue",
     "MediaPlayPause",
     "MediaPlay",
     "MediaPause",

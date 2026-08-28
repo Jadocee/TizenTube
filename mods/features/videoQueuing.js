@@ -44,8 +44,9 @@ function addListener() {
                 setTimeout(() => resolveCommand(videoWatchEndpoint), 500);
             }
         } else if (playerStateObject.isPlaying) {
-            document.getElementById('container').style.setProperty('opacity', '1', 'important');
-            if (window.queuedVideos.videos.find(v => v.contentId === videoData.video_id)) {
+            const container = document.getElementById('container');
+            if (container) container.style.setProperty('opacity', '1', 'important');
+            if (window.queuedVideos.videos.find(v => v.tileRenderer && v.tileRenderer.contentId === videoData.video_id)) {
                 window.queuedVideos.lastVideoId = videoData.video_id;
             }
         }
