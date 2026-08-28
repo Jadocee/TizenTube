@@ -1,5 +1,6 @@
 // Packages the built userscript into the service so the .wgt is self-contained.
-// Run before ncc; the output is required by userScript.js and inlined by ncc.
+// Run before rolldown; the output is required by userScript.ts and inlined
+// into dist/index.js by the bundler.
 
 const fs = require('fs');
 const path = require('path');

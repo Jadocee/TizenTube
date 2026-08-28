@@ -186,10 +186,8 @@ function buttonItem(title: ButtonItemTitle, icon: ButtonItemIcon | null | undefi
         }
     }
 
-    if (title) {
-        button.compactLinkRenderer.title = {
-            simpleText: title.title
-        }
+    button.compactLinkRenderer.title = {
+        simpleText: title.title
     }
 
     if (title.subtitle) {

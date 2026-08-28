@@ -115,7 +115,11 @@ app.all('*', (req: Request, res: Response) => {
         const parsedUrl = URL.parse(targetUrl);
         headers['host'] = parsedUrl.host || 'www.youtube.com';
     } catch (e) {
-        headers['host'] = isCorsBypass ? 'www.youtube.com' : 'www.youtube.com';
+        // Both arms of the ternary that used to be here were the same literal,
+        // so isCorsBypass was never consulted. Collapsed rather than guessed at:
+        // on the cors-bypass path the real target is an arbitrary Google host and
+        // this default is probably wrong, but deriving it needs a device to test.
+        headers['host'] = 'www.youtube.com';
     }
 
     headers['origin'] = 'https://www.youtube.com';

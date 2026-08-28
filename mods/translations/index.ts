@@ -5,7 +5,12 @@ function youtubeLanguage(): string | undefined {
   return window?.yt?.config_?.HL;
 }
 
-InitI18next(youtubeLanguage() || navigator.language.replace(/(\-.*)/g, ''));
+// The tag goes through whole. Stripping the region here sent every
+// region-qualified locale we ship -- pt-BR, pt-PT, es-419, zh-TW, sr-Latn --
+// to English instead, because i18next does not widen a bare code back out to a
+// qualified resource. Its own resolve hierarchy does the narrowing, so de-DE
+// still lands on de.
+InitI18next(youtubeLanguage() || navigator.language);
 
 // The userscript is injected ahead of YouTube's own bundle, so yt.config_ does
 // not exist yet and the line above falls back to the device language. That is

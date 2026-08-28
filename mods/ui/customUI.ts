@@ -169,9 +169,11 @@ function applyPatches() {
                 const origEngagementActionButton = inst[engagementActionButton];
                 inst[engagementActionButton] = function (this: any) {
                     const res = origEngagementActionButton.apply(this, arguments);
-                    const superThanksFiltered = res.filter((item: any) => item.type !== 'TRANSPORT_CONTROLS_BUTTON_TYPE_YOUCHAT_BUTTON');
-                    const shoppingFiltered = superThanksFiltered.filter((item: any) => item.type !== 'TRANSPORT_CONTROLS_BUTTON_TYPE_YOUCHAT_BUTTON');
-                    return shoppingFiltered;
+                    // One pass. The second filter tested the same literal as the
+                    // first, so nothing could match it and it only allocated a
+                    // copy. Whatever second button type was meant here was never
+                    // named, so it is not guessed at.
+                    return res.filter((item: any) => item.type !== 'TRANSPORT_CONTROLS_BUTTON_TYPE_YOUCHAT_BUTTON');
                 }
             }
 
