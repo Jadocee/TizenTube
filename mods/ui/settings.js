@@ -2,6 +2,7 @@ import { configRead } from '../config.js';
 import { showModal, buttonItem, overlayPanelItemListRenderer, scrollPaneRenderer, overlayMessageRenderer, QrCodeRenderer } from './ytUI.js';
 import qrcode from 'qrcode-npm';
 import { t } from 'i18next';
+import { readStartupError } from './startupError.js';
 
 const qrcodes = {};
 
@@ -62,7 +63,26 @@ function themeColorOptions(configKey) {
 }
 
 export default function modernUI(update, parameters) {
+    // Only present when this launch's startup threw. Nothing to read means
+    // TizenTube started cleanly.
+    const startupError = readStartupError();
+
     const settings = [
+        startupError ? {
+            name: t('settings.options.startupError.title'),
+            icon: 'INFO',
+            value: null,
+            menuId: 'tt-startup-error',
+            options: {
+                title: t('settings.options.startupError.title'),
+                subtitle: t('settings.options.startupError.subtitle'),
+                content: scrollPaneRenderer([
+                    overlayMessageRenderer(t('settings.options.startupError.occurrences', { count: startupError.count })),
+                    overlayMessageRenderer(startupError.at),
+                    overlayMessageRenderer(startupError.message)
+                ])
+            }
+        } : null,
         {
             name: t('settings.supportTT.title'),
             icon: 'MONEY_HEART',

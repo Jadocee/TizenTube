@@ -8,6 +8,7 @@ import modernUI from './settings.js';
 import resolveCommand, { patchResolveCommand } from '../resolveCommand.js';
 import { pipToFullscreen } from '../features/pictureInPicture.js';
 import getCommandExecutor from './customCommandExecution.js';
+import { recordStartupError, clearStartupError } from './startupError.js';
 import { t } from 'i18next';
 
 // It just works, okay?
@@ -24,8 +25,11 @@ const interval = setInterval(() => {
 
   try {
     execute_once_dom_loaded();
+    clearStartupError();
   } catch (e) {
     console.error('TizenTube: startup failed', e);
+    // Readable afterwards under TizenTube Settings, since a TV has no console.
+    recordStartupError(e);
   }
 
   try {

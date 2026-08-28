@@ -251,6 +251,11 @@
                     "3": "BLUE — Open the playback speed controls.",
                     "4": "TizenTube Settings is also the first entry in YouTube's own Settings screen."
                 }
+            },
+            "startupError": {
+                "title": "Startup Error",
+                "subtitle": "TizenTube did not start cleanly on this launch. Please report this text.",
+                "occurrences": "Occurred {{count}} time(s)"
             }
         },
         "ttSettings": {
