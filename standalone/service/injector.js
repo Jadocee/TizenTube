@@ -8,29 +8,12 @@ const fetch = require('node-fetch');
 var isConnecting = false;
 const isTizen3 = tizen.systeminfo.getCapability('http://tizen.org/feature/platform.version').startsWith('3.0');
 
-const USERSCRIPT_URL = 'https://cdn.jsdelivr.net/npm/@foxreis/tizentube/dist/userScript.js';
+const userScript = require('./userScript.js');
 
-// Fetched once and reused. This used to be re-downloaded on every execution
-// context, which put a network round trip between the page appearing and the
-// mod running.
-let userScript = null;
-
-function fetchUserScript() {
-    if (userScript) return Promise.resolve(userScript);
-    return fetch(USERSCRIPT_URL)
-        .then((res) => {
-            if (!res.ok) throw new Error('HTTP ' + res.status);
-            return res.text();
-        })
-        .then((text) => {
-            if (text && text.length) userScript = text;
-            return userScript;
-        });
-}
-
-// Warmed at startup so the download overlaps the debugger handshake instead of
-// being serial with it.
-fetchUserScript().catch(() => { });
+// Packaged into the build, so this resolves immediately. Only a source
+// checkout that has not been built has to download it, and starting that here
+// overlaps it with the debugger handshake instead of being serial with it.
+userScript.get().catch(() => { });
 
 /**
  * Registers the userscript so it runs before any of the page's own scripts, on
@@ -55,7 +38,7 @@ function connectToDebugger(host, port, args, attempt) {
             Promise.all([client.Runtime.enable(), client.Page.enable()])
                 // Before navigating, so the very first document is covered.
                 .then(() => client.Page.setBypassCSP({ enabled: true }).catch(() => { }))
-                .then(() => fetchUserScript())
+                .then(() => userScript.get())
                 .then((source) => {
                     if (!source) throw new Error('empty userscript');
                     return registerOnNewDocument(client, source).then((method) => {

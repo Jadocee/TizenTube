@@ -11,54 +11,30 @@ const https = require('https');
 const URL = require('url');
 const injector = require('./injector.js');
 
-const USERSCRIPT_URL = 'https://cdn.jsdelivr.net/npm/@foxreis/tizentube/dist/userScript.js';
+const userScript = require('./userScript.js');
+
 const USERSCRIPT_PATH = '/tizentube/userScript.js';
 
-// The userscript used to be pulled straight from the CDN by the page, with a
-// cache-busting query string, as the last tag in the document. That put a
-// network round trip on the critical path of every launch, meant a CDN hiccup
-// silently produced a session with no mod at all, and guaranteed the script ran
-// after all of YouTube's own. It is now fetched once here, kept in memory, and
-// served from this proxy so the page gets it from localhost, immediately.
-let userScript = null;
-let userScriptPending = null;
-
-function fetchUserScript() {
-    if (userScriptPending) return userScriptPending;
-
-    userScriptPending = fetch(USERSCRIPT_URL)
-        .then((res) => {
-            if (!res.ok) throw new Error('HTTP ' + res.status);
-            return res.text();
-        })
-        .then((text) => {
-            if (text && text.length) userScript = text;
-            userScriptPending = null;
-            return userScript;
-        })
-        .catch((err) => {
-            console.error('[TizenTube] Could not fetch the userscript:', err.message);
-            userScriptPending = null;
-            // Whatever was fetched earlier this session beats nothing.
-            return userScript;
-        });
-
-    return userScriptPending;
+// Packaged into the build, so the page gets it from localhost instantly and the
+// app works with no network at all. A newer published release is picked up in
+// the background and takes effect from the next page load.
+if (userScript.isPackaged()) {
+    console.log('[TizenTube] Serving packaged userScript v' + userScript.currentVersion());
+    userScript.refresh();
+} else {
+    userScript.get();
 }
 
-// Warm the cache at startup so the first page load does not wait on the CDN.
-fetchUserScript();
-
 app.get(USERSCRIPT_PATH, (req, res) => {
-    Promise.resolve(userScript || fetchUserScript()).then((body) => {
+    userScript.get().then((body) => {
         res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
         res.setHeader('Cache-Control', 'no-cache');
         if (body) return res.send(body);
 
         // Never fail the request: an empty script tag is invisible, and a
         // session silently running without the mod is the thing being fixed.
-        res.send('console.error("[TizenTube] The userscript could not be downloaded. '
-            + 'Check the TV\'s network connection and restart the app.");');
+        res.send('console.error("[TizenTube] The userscript is unavailable. '
+            + 'Reinstall the app or check the TV\'s network connection.");');
     });
 });
 
