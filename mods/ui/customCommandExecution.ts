@@ -13,7 +13,18 @@ function getCommandExecutor(): CommandExecutor | undefined {
             if (window._yttv[key].toString().includes('ytlrActionRouter')) instance = window._yttv[key].getInstance();
             else {
                 let isInstance = false;
-                const tempInstance = window._yttv[key].getInstance();
+                // This probes every registered module that exposes getInstance,
+                // so one that returns nothing, or throws, must not abort the
+                // search for the rest -- getPrototypeOf(undefined) throws, and
+                // nothing above catches.
+                let tempInstance;
+                try {
+                    tempInstance = window._yttv[key].getInstance();
+                } catch (e) {
+                    continue;
+                }
+                if (!tempInstance) continue;
+
                 const keys = Object.getOwnPropertyNames(Object.getPrototypeOf(tempInstance));
                 for (const key of keys) {
                     if (typeof tempInstance[key] === 'function' && tempInstance[key].toString().includes('ytlrActionRouter')) {
@@ -22,7 +33,9 @@ function getCommandExecutor(): CommandExecutor | undefined {
                     }
                 }
 
-                if (isInstance) instance = window._yttv[key].getInstance();
+                // Reuses the instance already in hand rather than calling
+                // getInstance() a second time for the same module.
+                if (isInstance) instance = tempInstance;
             }
         }
     }
