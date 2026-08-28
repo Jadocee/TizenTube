@@ -1,5 +1,6 @@
 import { configChangeEmitter, configRead } from '../config.js';
 import { t } from 'i18next';
+import { whenBodyReady } from '../utils/domReady.js';
 
 configChangeEmitter.addEventListener('configChange', (e) => {
     if (e.detail.key === 'enableClock') {
@@ -130,7 +131,10 @@ function toggleClock(value) {
     actualClock.style.pointerEvents = 'none';
 
     placeClock();
-    document.body.appendChild(actualClock);
+    // Deferred: at injection time the parser has not reached <body> yet.
+    whenBodyReady(() => {
+        if (actualClock) document.body.appendChild(actualClock);
+    });
 
     lastText = null;
     updateClock();

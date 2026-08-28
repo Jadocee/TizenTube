@@ -1,7 +1,29 @@
 import i18n from 'i18next';
 import resources from './i18nResources.js';
 
-InitI18next(window?.yt?.config_?.HL || navigator.language.replace(/(\-.*)/g, ''));
+function youtubeLanguage() {
+  return window?.yt?.config_?.HL;
+}
+
+InitI18next(youtubeLanguage() || navigator.language.replace(/(\-.*)/g, ''));
+
+// The userscript is injected ahead of YouTube's own bundle, so yt.config_ does
+// not exist yet and the line above falls back to the device language. That is
+// not always the same as the account language the rest of the interface is in,
+// so adopt YouTube's once it publishes one. Menus are built on demand, long
+// after this resolves.
+if (!youtubeLanguage()) {
+  let tries = 0;
+  const timer = setInterval(() => {
+    const hl = youtubeLanguage();
+    if (!hl) {
+      if (++tries > 120) clearInterval(timer);
+      return;
+    }
+    clearInterval(timer);
+    if (hl !== i18n.language) i18n.changeLanguage(hl);
+  }, 250);
+}
 
 function InitI18next(lng) {
   i18n

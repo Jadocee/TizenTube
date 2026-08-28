@@ -1,14 +1,27 @@
 // Picture in Picture Mode for TizenTube
 
 import resolveCommand from "../resolveCommand.js";
+import { whenBodyReady } from "../utils/domReady.js";
 
 window.isPipPlaying = false;
 let PlayerService = null;
 
+let pipLoadAttempts = 0;
+
 function pipLoad() {
-    const mappings = Object.values(window._yttv).find(a => a && a.mappings);
+    // window._yttv is published by YouTube's own bundle. Every other feature in
+    // the mod retries for it; this one assumed it was already there, which threw
+    // "Cannot convert undefined or null to object" out of the load handler and
+    // took the rest of this module's setup with it.
+    const mappings = window._yttv && Object.values(window._yttv).find(a => a && a.mappings);
+    if (!mappings) {
+        if (++pipLoadAttempts <= 240) setTimeout(pipLoad, 250);
+        return;
+    }
+
     PlayerService = mappings.get('PlayerService');
     const PlaybackPreviewService = mappings.get('PlaybackPreviewService');
+    if (!PlaybackPreviewService) return;
     const PlaybackPreviewServiceStart = PlaybackPreviewService.start;
     const PlaybackPreviewServiceStop = PlaybackPreviewService.stop;
 
@@ -115,7 +128,8 @@ const observerPipEnter = new MutationObserver(() => {
         if (!pipButtonExists) {
             const voiceButton = searchBar.querySelector('ytlr-search-voice');
             if (voiceButton) {
-                const iconClassNames = Object.values(window._yttv).find(a => a instanceof Map && a.has("CLEAR_COOKIES"));
+                const iconClassNames = window._yttv && Object.values(window._yttv).find(a => a instanceof Map && a.has("CLEAR_COOKIES"));
+                if (!iconClassNames) return;
                 const iconClassToBeRemoved = iconClassNames.get('MICROPHONE_ON');
                 const iconClearCookiesClass = iconClassNames.get('CLEAR_COOKIES');
                 const pipButton = document.createElement('ytlr-search-voice');
@@ -190,7 +204,7 @@ const observerPipEnter = new MutationObserver(() => {
     }
 });
 
-observerPipEnter.observe(document.body, { childList: true, subtree: true });
+whenBodyReady(() => observerPipEnter.observe(document.body, { childList: true, subtree: true }));
 
 export {
     enablePip,
