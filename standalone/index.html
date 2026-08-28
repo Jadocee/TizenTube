@@ -79,7 +79,23 @@
                     if (res.canConnectToDaemon && !res.isConnecting) {
                         fetch(`http://localhost:8099/tizentube/debugger${args ? `?${args}` : ''}`);
                         tizen.application.getCurrentApplication().exit();
-                    } else if (!res.canConnectToDaemon) location.href = `http://localhost:8099/tv?additionalDataUrl=http%3A%2F%2Flocalhost%3A8095%2Fdial%2Fapps%2FYouTube${args ? `&${args}` : ''}`
+                    } else if (!res.canConnectToDaemon) {
+                        location.href = `http://localhost:8099/tv?additionalDataUrl=http%3A%2F%2Flocalhost%3A8095%2Fdial%2Fapps%2FYouTube${args ? `&${args}` : ''}`
+                    } else {
+                        // canConnectToDaemon && isConnecting: an attach is already
+                        // in flight. This case matched neither branch above, so the
+                        // splash sat here forever -- and it is reachable in normal
+                        // use, because the debugger branch exits the app and a
+                        // relaunch can land here while the previous attach is still
+                        // running. Wait for it instead.
+                        //
+                        // Terminates either way: the service clears isConnecting on
+                        // a successful CDP connect, and gives up after ~30s if the
+                        // debugger port never comes up. Both outcomes lead to one of
+                        // the branches above on a later poll. 500ms matches the
+                        // service's own retry cadence.
+                        setTimeout(useInjectorOrProxy, 500);
+                    }
                 }).catch(() => window.location.reload());
         }
 
