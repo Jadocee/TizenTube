@@ -3,7 +3,7 @@ const defaultConfig = {
   enableAdBlock: true,
   enableSponsorBlock: true,
   enableSponsorBlockToasts: true,
-  sponsorBlockManualSkips: ['intro', 'outro', 'filler'],
+  sponsorBlockManualSkips: ['intro', 'outro', 'filler'] as string[],
   enableSponsorBlockSponsor: true,
   enableSponsorBlockIntro: true,
   enableSponsorBlockOutro: true,
@@ -14,11 +14,11 @@ const defaultConfig = {
   enableSponsorBlockFiller: false,
   enableSponsorBlockHighlight: true,
   videoSpeed: 1,
-  preferredVideoQuality: 'auto',
+  preferredVideoQuality: 'auto' as string,
   enableDeArrow: true,
   enableDeArrowThumbnails: false,
-  focusContainerColor: '#0f0f0f',
-  routeColor: '#0f0f0f',
+  focusContainerColor: '#0f0f0f' as string,
+  routeColor: '#0f0f0f' as string,
   enableFixedUI: (window.h5vcc && window.h5vcc.tizentube) ? false : true,
   enableHqThumbnails: false,
   enableChapters: true,
@@ -41,7 +41,7 @@ const defaultConfig = {
   enablePreviews: true,
   enableHideWatchedVideos: false,
   hideWatchedVideosThreshold: 80,
-  hideWatchedVideosPages: [],
+  hideWatchedVideosPages: [] as string[],
   enableHideEndScreenCards: false,
   enableYouThereRenderer: true,
   lastAnnouncementCheck: 0,
@@ -50,10 +50,10 @@ const defaultConfig = {
   dimmingOpacity: 0.5,
   enablePaidPromotionOverlay: true,
   speedSettingsIncrement: 0.25,
-  videoPreferredCodec: 'any',
-  launchToOnStartup: '',
+  videoPreferredCodec: 'any' as string,
+  launchToOnStartup: '' as string,
   reloadHomeOnStartup: true,
-  disabledSidebarContents: [],
+  disabledSidebarContents: [] as string[],
   disableChannelsOnSidebar: false,
   enableUpdater: true,
   autoFrameRate: false,
@@ -63,10 +63,25 @@ const defaultConfig = {
   enableClock: false,
   isClock12HourFormat: false,
   clockShowSeconds: false,
-  clockPosition: 'top-right',
+  clockPosition: 'top-right' as string,
 };
 
-let localConfig;
+/** Every setting the mod has, and the type each one holds. */
+export type Config = typeof defaultConfig;
+
+/** The name of a setting. A typo is now a compile error rather than a
+ *  silently-ignored write -- which is exactly how the "Preferred Video Codec"
+ *  menu spent its life writing to a key nothing read. */
+export type ConfigKey = keyof Config;
+
+export interface ConfigChangeDetail {
+  key: ConfigKey;
+  value: Config[ConfigKey];
+}
+
+type ConfigChangeListener = (event: { type: string; detail: ConfigChangeDetail }) => void;
+
+let localConfig: Config;
 
 try {
   localConfig = JSON.parse(window.localStorage[CONFIG_KEY]);
@@ -75,7 +90,13 @@ try {
   localConfig = defaultConfig;
 }
 
-export function configRead(key) {
+/** True when `key` names a real setting. Use before writing anything that came
+ *  from outside the mod, such as a command payload. */
+export function isConfigKey(key: string): key is ConfigKey {
+  return Object.prototype.hasOwnProperty.call(defaultConfig, key);
+}
+
+export function configRead<K extends ConfigKey>(key: K): Config[K] {
   if (localConfig[key] === undefined) {
     console.warn('Populating key', key, 'with default value', defaultConfig[key]);
     localConfig[key] = defaultConfig[key];
@@ -84,7 +105,7 @@ export function configRead(key) {
   return localConfig[key];
 }
 
-export function configWrite(key, value) {
+export function configWrite<K extends ConfigKey>(key: K, value: Config[K]): void {
   console.info('Setting key', key, 'to', value);
   localConfig[key] = value;
   window.localStorage[CONFIG_KEY] = JSON.stringify(localConfig);
@@ -92,16 +113,16 @@ export function configWrite(key, value) {
 }
 
 export const configChangeEmitter = {
-  listeners: {},
-  addEventListener(type, callback) {
+  listeners: {} as Record<string, ConfigChangeListener[]>,
+  addEventListener(type: string, callback: ConfigChangeListener) {
     if (!this.listeners[type]) this.listeners[type] = [];
     this.listeners[type].push(callback);
   },
-  removeEventListener(type, callback) {
+  removeEventListener(type: string, callback: ConfigChangeListener) {
     if (!this.listeners[type]) return;
     this.listeners[type] = this.listeners[type].filter(cb => cb !== callback);
   },
-  dispatchEvent(event) {
+  dispatchEvent(event: { type: string; detail: ConfigChangeDetail }) {
     const type = event.type;
     if (!this.listeners[type]) return;
     this.listeners[type].forEach(cb => {

@@ -1,6 +1,12 @@
 import { t } from 'i18next';
 
-function parseTimestamps(input) {
+/** One chapter parsed out of a video description. */
+interface Chapter {
+    time: number;
+    name: string;
+}
+
+function parseTimestamps(input: string): Chapter[] {
     var lines = input.trim().split('\n');
     var result = [];
     var timestampRegex = /^\d+:\d{2}/;
@@ -23,7 +29,7 @@ function parseTimestamps(input) {
     return result;
 }
 
-function marker(title, start, duration, videoID, i) {
+function marker(title: string, start: string, duration: string, videoID: string, i: number) {
     return {
         title: {
             simpleText: title
@@ -65,7 +71,7 @@ function marker(title, start, duration, videoID, i) {
     }
 }
 
-function markerEntity(videoID, markers) {
+function markerEntity(videoID: string, markers: ReturnType<typeof marker>[]) {
     return {
         entityKey: `${videoID}-key`,
         type: 'ENTITY_MUTATION_TYPE_REPLACE',
@@ -120,12 +126,12 @@ function markerEntity(videoID, markers) {
     }
 }
 
-export default function Chapters(video) {
+export default function Chapters(video: any) {
     const videoID = video.contents.singleColumnWatchNextResults.results.results.contents[0].itemSectionRenderer.contents[0].videoMetadataRenderer.videoId;
     const videoDescription = video.contents.singleColumnWatchNextResults.results.results.contents[0].itemSectionRenderer.contents[0].videoMetadataRenderer.description.runs[0].text;
     const chapters = parseTimestamps(videoDescription);
     const videoDuration = document.getElementsByTagName('video')[0].duration * 1000;
-    let markers = [];
+    let markers: ReturnType<typeof marker>[] = [];
 
     for (let i = 0; i < chapters.length; i++) {
         const chapter = chapters[i];

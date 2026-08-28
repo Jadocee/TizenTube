@@ -1,7 +1,15 @@
 // This is only used for more subtitles feature, as adding polyfill for Intl.DisplayNames makes the user script way too big and slow to load.
 // Taken from @formatjs/intl-displaynames/locale-data/en.js
 
-export default {
+/** Display names keyed by BCP 47 subtag. */
+type DisplayNames = Record<string, string>;
+
+export interface LanguageNames {
+    language: { standard: { long: DisplayNames } };
+    region: { long: DisplayNames };
+}
+
+const languageNames: LanguageNames = {
     "language": {
         "standard": {
             "long": {
@@ -721,7 +729,7 @@ export default {
             "AW": "Aruba",
             "AX": "Åland Islands",
             "AZ": "Azerbaijan",
-            "BA": "Bosnia & Herzegovina",
+            "BA": "Bosnia",
             "BB": "Barbados",
             "BD": "Bangladesh",
             "BE": "Belgium",
@@ -787,7 +795,7 @@ export default {
             "FO": "Faroe Islands",
             "FR": "France",
             "GA": "Gabon",
-            "GB": "United Kingdom",
+            "GB": "UK",
             "GD": "Grenada",
             "GE": "Georgia",
             "GF": "French Guiana",
@@ -805,7 +813,7 @@ export default {
             "GU": "Guam",
             "GW": "Guinea-Bissau",
             "GY": "Guyana",
-            "HK": "Hong Kong SAR China",
+            "HK": "Hong Kong",
             "HM": "Heard & McDonald Islands",
             "HN": "Honduras",
             "HR": "Croatia",
@@ -857,9 +865,9 @@ export default {
             "MH": "Marshall Islands",
             "MK": "North Macedonia",
             "ML": "Mali",
-            "MM": "Myanmar (Burma)",
+            "MM": "Myanmar",
             "MN": "Mongolia",
-            "MO": "Macao SAR China",
+            "MO": "Macao",
             "MP": "Northern Mariana Islands",
             "MQ": "Martinique",
             "MR": "Mauritania",
@@ -894,7 +902,7 @@ export default {
             "PM": "St. Pierre & Miquelon",
             "PN": "Pitcairn Islands",
             "PR": "Puerto Rico",
-            "PS": "Palestinian Territories",
+            "PS": "Palestine",
             "PT": "Portugal",
             "PW": "Palau",
             "PY": "Paraguay",
@@ -946,8 +954,8 @@ export default {
             "UA": "Ukraine",
             "UG": "Uganda",
             "UM": "U.S. Outlying Islands",
-            "UN": "United Nations",
-            "US": "United States",
+            "UN": "UN",
+            "US": "US",
             "UY": "Uruguay",
             "UZ": "Uzbekistan",
             "VA": "Vatican City",
@@ -967,15 +975,9 @@ export default {
             "ZA": "South Africa",
             "ZM": "Zambia",
             "ZW": "Zimbabwe",
-            "ZZ": "Unknown Region",
-            "BA": "Bosnia",
-            "GB": "UK",
-            "HK": "Hong Kong",
-            "MM": "Myanmar",
-            "MO": "Macao",
-            "PS": "Palestine",
-            "UN": "UN",
-            "US": "US"
+            "ZZ": "Unknown Region"
         }
     }
 };
+
+export default languageNames;

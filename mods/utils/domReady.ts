@@ -6,7 +6,7 @@
  * the parser has reached <body>. Anything that touches document.body at module
  * scope has to wait for it rather than assume it.
  */
-export function whenBodyReady(callback) {
+export function whenBodyReady(callback: () => void): void {
     if (document.body) {
         callback();
         return;

@@ -1,7 +1,7 @@
 import { configChangeEmitter, configRead } from '../config.js';
 import { setStyleBlock } from './styleSheet.js';
 
-function updateStyle() {
+function updateStyle(): void {
     setStyleBlock('theme', `
     ytlr-guide-response yt-focus-container {
         background-color: ${configRead('focusContainerColor')};

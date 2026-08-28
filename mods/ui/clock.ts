@@ -15,7 +15,10 @@ configChangeEmitter.addEventListener('configChange', (e) => {
 // (its own progress bar spans 4rem + 72rem + 4rem), so rem offsets land in the
 // same place whatever resolution the set reports. 3rem/4rem clears the 5%
 // title-safe line on TVs that still overscan.
-const POSITIONS = {
+type ClockSide = 'top' | 'right' | 'bottom' | 'left';
+type ClockOffsets = Partial<Record<ClockSide, string>>;
+
+const POSITIONS: Record<string, ClockOffsets> = {
     'top-left': { top: '3rem', left: '4rem' },
     'top-right': { top: '3rem', right: '4rem' },
     'bottom-left': { bottom: '3rem', left: '4rem' },
@@ -24,17 +27,17 @@ const POSITIONS = {
 
 const CLOCK_ID = 'tizentube-clock';
 
-let actualClock;
-let clockTimeout;
-let lastText;
+let actualClock: HTMLDivElement | null | undefined;
+let clockTimeout: ReturnType<typeof setTimeout> | null | undefined;
+let lastText: string | null | undefined;
 
 // String.prototype.padStart only landed in Chrome 57 and nothing polyfills it
 // here, so the build's Chrome 47 target has to pad by hand.
-function pad2(value) {
+function pad2(value: number): string {
     return value < 10 ? `0${value}` : `${value}`;
 }
 
-function placeClock() {
+function placeClock(): void {
     if (!actualClock) return;
     const position = POSITIONS[configRead('clockPosition')] || POSITIONS['top-right'];
     actualClock.style.top = '';
@@ -42,11 +45,11 @@ function placeClock() {
     actualClock.style.bottom = '';
     actualClock.style.left = '';
     for (const side in position) {
-        actualClock.style[side] = position[side];
+        actualClock.style[side as ClockSide] = position[side as ClockSide]!;
     }
 }
 
-function updateClock() {
+function updateClock(): void {
     if (!actualClock) return;
     const now = new Date();
     const is12HourFormat = configRead('isClock12HourFormat');
@@ -75,7 +78,7 @@ function updateClock() {
     actualClock.textContent = text;
 }
 
-function scheduleTick() {
+function scheduleTick(): void {
     // Re-armed against the wall clock rather than a fixed 1000ms period, so a
     // busy TV CPU cannot make the displayed minute drift behind the real one.
     clockTimeout = setTimeout(() => {
@@ -84,21 +87,21 @@ function scheduleTick() {
     }, 1000 - (Date.now() % 1000));
 }
 
-function stopClock() {
+function stopClock(): void {
     if (clockTimeout) {
         clearTimeout(clockTimeout);
         clockTimeout = null;
     }
 }
 
-function toggleClock(value) {
+function toggleClock(value: unknown): void {
     const existingClock = document.getElementById(CLOCK_ID);
     // Both states are already what was asked for; nothing to do.
     if (Boolean(value) === Boolean(existingClock)) return;
 
     if (!value) {
         stopClock();
-        existingClock.remove();
+        existingClock!.remove();
         actualClock = null;
         lastText = null;
         return;

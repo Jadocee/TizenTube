@@ -3,12 +3,20 @@
 
 import esprima from 'esprima';
 import estraverse from 'estraverse';
+import type { Program } from 'esprima';
+
+/** One assignment found in the parsed source, as raw source text. */
+export interface AssignedFunction {
+    left: string | null;
+    rhs: string;
+    returned: string | null;
+}
 
 // Extract assignment RHS sources and inner returned functions (IIFEs)
-export function extractAssignedFunctions(code) {
+export function extractAssignedFunctions(code: string): AssignedFunction[] {
     const original = code;
     let wrapOffset = 0;
-    let ast;
+    let ast: Program;
 
     try {
         ast = esprima.parse(code, { range: true, tolerant: true, sourceType: 'script' });
@@ -32,7 +40,7 @@ export function extractAssignedFunctions(code) {
         }
     }
 
-    const out = [];
+    const out: AssignedFunction[] = [];
 
     estraverse.traverse(ast, {
         enter: function (node) {
@@ -40,7 +48,7 @@ export function extractAssignedFunctions(code) {
             const rhs = node.right;
             if (!rhs || !rhs.range) return;
             const rhsSrc = original.slice(rhs.range[0] - wrapOffset, rhs.range[1] - wrapOffset);
-            let inner = null;
+            let inner: string | null = null;
 
             if (rhs.type === 'CallExpression' && rhs.callee && rhs.callee.type === 'FunctionExpression' && rhs.callee.body) {
                 let stm = rhs.callee.body.body || [];

@@ -3,6 +3,7 @@ import commonjs from '@rollup/plugin-commonjs';
 import babel from '@rollup/plugin-babel';
 import replace from '@rollup/plugin-replace';
 import json from '@rollup/plugin-json';
+import typescript from '@rollup/plugin-typescript';
 import fs from 'fs';
 
 // Custom Rollup plugin to inject XML content
@@ -24,7 +25,7 @@ function injectXmlContent() {
 }
 
 export default {
-    input: 'service.js',
+    input: 'service.ts',
     output: {
         file: '../dist/service.js',
         format: 'cjs'
@@ -35,6 +36,14 @@ export default {
             'Gate.prototype.await = function await(callback)': 'Gate.prototype.await = function(callback)',
             'Async.prototype.await = function await(callback)': 'Async.prototype.await = function (callback)',
             delimiters: ['', ''],
+        }),
+        typescript({
+            tsconfig: './tsconfig.json',
+            include: ['**/*.ts'],
+            noEmit: false,
+            declaration: false,
+            sourceMap: false,
+            outDir: '../dist',
         }),
         resolve(),
         json(),

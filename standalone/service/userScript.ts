@@ -9,7 +9,7 @@
 // only consulted afterwards, in the background, and only to pick up a release
 // newer than the packaged one.
 
-const fetch = require('node-fetch');
+import fetch from 'node-fetch';
 
 const PACKAGE_NAME = '@foxreis/tizentube';
 const USERSCRIPT_URL = `https://cdn.jsdelivr.net/npm/${PACKAGE_NAME}/dist/userScript.js`;
@@ -18,7 +18,9 @@ const MANIFEST_URL = `https://cdn.jsdelivr.net/npm/${PACKAGE_NAME}/package.json`
 // Set to false to pin the app to the packaged copy and never touch the network.
 const ALLOW_CDN_UPDATES = true;
 
-let packaged = null;
+interface PackagedUserScript { version: string; source: string }
+
+let packaged: PackagedUserScript | null = null;
 try {
     // Written by embed-userscript.js. Absent in a source checkout that has not
     // been built, in which case we fall back to downloading.
@@ -27,11 +29,11 @@ try {
     console.warn('[TizenTube] No packaged userscript in this build; will download it instead.');
 }
 
-let source = packaged ? packaged.source : null;
-let version = packaged ? packaged.version : null;
-let pending = null;
+let source: string | null = packaged ? packaged.source : null;
+let version: string | null = packaged ? packaged.version : null;
+let pending: Promise<string | null> | null = null;
 
-function isNewer(candidate, current) {
+function isNewer(candidate: string, current: string | null): boolean {
     if (!current) return true;
     const a = String(candidate).split('.');
     const b = String(current).split('.');
@@ -43,7 +45,7 @@ function isNewer(candidate, current) {
     return false;
 }
 
-function download() {
+function download(): Promise<string | null> {
     if (pending) return pending;
 
     pending = fetch(USERSCRIPT_URL)
@@ -51,12 +53,12 @@ function download() {
             if (!res.ok) throw new Error('HTTP ' + res.status);
             return res.text();
         })
-        .then((text) => {
+        .then((text: string) => {
             if (text && text.length) source = text;
             pending = null;
             return source;
         })
-        .catch((err) => {
+        .catch((err: Error) => {
             console.error('[TizenTube] Could not download the userscript:', err.message);
             pending = null;
             // Whatever we already have beats nothing.
@@ -67,7 +69,7 @@ function download() {
 }
 
 /** The userscript, from the package if it is there and the network if it is not. */
-function get() {
+function get(): Promise<string | null> {
     if (source) return Promise.resolve(source);
     return download();
 }
@@ -76,7 +78,7 @@ function get() {
  * Looks for a newer published release. Never blocks a page load: whatever it
  * finds is used from the next load onwards.
  */
-function refresh() {
+function refresh(): Promise<boolean> {
     if (!ALLOW_CDN_UPDATES) return Promise.resolve(false);
 
     return fetch(MANIFEST_URL)
@@ -84,24 +86,22 @@ function refresh() {
             if (!res.ok) throw new Error('HTTP ' + res.status);
             return res.json();
         })
-        .then((manifest) => {
-            if (!manifest || !isNewer(manifest.version, version)) return false;
+        .then((manifest: { version?: string } | null) => {
+            if (!manifest || !manifest.version || !isNewer(manifest.version, version)) return false;
             console.log(`[TizenTube] Newer userscript published (${manifest.version} > ${version}); fetching.`);
+            const published = manifest.version;
             return download().then((text) => {
                 if (!text) return false;
-                version = manifest.version;
+                version = published;
                 return true;
             });
         })
-        .catch((err) => {
+        .catch((err: Error) => {
             console.warn('[TizenTube] Update check failed:', err.message);
             return false;
         });
 }
 
-module.exports = {
-    get,
-    refresh,
-    isPackaged: () => !!packaged,
-    currentVersion: () => version
-};
+export { get, refresh };
+export const isPackaged = (): boolean => !!packaged;
+export const currentVersion = (): string | null => version;

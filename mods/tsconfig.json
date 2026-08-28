@@ -1,0 +1,36 @@
+{
+  "compilerOptions": {
+    // Rollup + Babel do the downlevelling, so emit modern and let them target
+    // Chrome 47.
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+
+    // The whole point of this setting: `lib` describes the built-ins the
+    // runtime actually has, so using one it does not becomes a compile error.
+    // Chrome 47 is ES2016-shaped -- it has Array.prototype.includes but not
+    // Object.values (Chrome 54), String.prototype.padStart (57) or
+    // Array.prototype.flat (69). Every one of those has been a real bug here.
+    // types/polyfills.d.ts adds back exactly the ones userScript.js polyfills.
+    "lib": ["ES2016", "DOM", "DOM.Iterable"],
+
+    "strict": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
+
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+
+    // The vendored polyfills stay JavaScript: they are third-party spec
+    // implementations and converting them buys nothing.
+    "allowJs": true,
+    "checkJs": false,
+
+    "noEmit": true,
+    "skipLibCheck": true
+  },
+  "include": ["**/*.ts", "types/**/*.d.ts"],
+  "exclude": ["node_modules", "dist"]
+}

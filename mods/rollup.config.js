@@ -5,14 +5,27 @@ import { nodeResolve } from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
 import replace from '@rollup/plugin-replace';
 import json from '@rollup/plugin-json';
+import typescript from '@rollup/plugin-typescript';
 
 export default {
-    input: "userScript.js",
+    input: "userScript.ts",
     output: { file: "../dist/userScript.js", format: "iife" },
     plugins: [
         json(),
         string({
             include: "**/*.css",
+        }),
+        // Only our own sources: the vendored polyfills stay plain JavaScript and
+        // skip the compiler entirely.
+        typescript({
+            tsconfig: './tsconfig.json',
+            include: ['**/*.ts'],
+            noEmit: false,
+            declaration: false,
+            sourceMap: false,
+            // Must sit inside the rollup output directory; nothing is actually
+            // written there, the plugin only needs somewhere to resolve against.
+            outDir: '../dist',
         }),
         nodeResolve({
             browser: true,

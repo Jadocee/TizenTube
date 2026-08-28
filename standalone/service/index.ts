@@ -2,16 +2,15 @@
 
 // TizenTube Standalone service
 
-const express = require('express');
+import express from 'express';
+import type { Request, Response, NextFunction } from 'express';
+import nodeFetch from 'node-fetch';
+import * as URL from 'url';
+import * as injector from './injector.js';
+import * as userScript from './userScript.js';
+
 const app = express();
 const PORT = 8099;
-const fetch = require('node-fetch');
-const http = require('http');
-const https = require('https');
-const URL = require('url');
-const injector = require('./injector.js');
-
-const userScript = require('./userScript.js');
 
 const USERSCRIPT_PATH = '/tizentube/userScript.js';
 
@@ -25,8 +24,8 @@ if (userScript.isPackaged()) {
     userScript.get();
 }
 
-app.get(USERSCRIPT_PATH, (req, res) => {
-    userScript.get().then((body) => {
+app.get(USERSCRIPT_PATH, (_req: Request, res: Response) => {
+    userScript.get().then((body: string | null) => {
         res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
         res.setHeader('Cache-Control', 'no-cache');
         if (body) return res.send(body);
@@ -38,7 +37,7 @@ app.get(USERSCRIPT_PATH, (req, res) => {
     });
 });
 
-app.use((req, res, next) => {
+app.use((req: Request, res: Response, next: NextFunction) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
     res.setHeader('Access-Control-Allow-Headers', '*');
@@ -48,18 +47,18 @@ app.use((req, res, next) => {
     next();
 });
 
-app.get('/tizentube/getState', (req, res) => {
-    injector.canConnectToDaemon().then(r => {
+app.get('/tizentube/getState', (_req: Request, res: Response) => {
+    injector.canConnectToDaemon().then((r) => {
         res.json(r);
     });
 });
 
-app.get('/tizentube/debugger', (req, res) => {
+app.get('/tizentube/debugger', (req: Request, _res: Response) => {
     const args = req.originalUrl.split('?')[1] || '';
     const interval = setInterval(() => {
-        tizen.application.getAppsContext((appsContext) => {
+        tizen.application.getAppsContext((appsContext: any[]) => {
             const packageId = tizen.application.getAppInfo().packageId;
-            const app = appsContext.find(app => app.appId === `${packageId}.TizenTubeStandalone`);
+            const app = appsContext.find((entry: any) => entry.appId === `${packageId}.TizenTubeStandalone`);
             if (!app) {
                 injector.startDebugger(args);
                 clearInterval(interval)
@@ -68,10 +67,10 @@ app.get('/tizentube/debugger', (req, res) => {
     }, 50);
 });
 
-app.all('*', (req, res) => {
+app.all('*', (req: Request, res: Response) => {
     const isCorsBypass = req.path.indexOf('/cors-bypass/') === 0;
 
-    let targetUrl;
+    let targetUrl: string;
     if (isCorsBypass) {
         const rawTarget = req.url.substring('/cors-bypass/'.length);
         targetUrl = rawTarget.indexOf('http') === 0 ? rawTarget : `https://${rawTarget}`;
@@ -79,22 +78,22 @@ app.all('*', (req, res) => {
         targetUrl = `https://www.youtube.com${req.url}`;
     }
 
-    const headers = {};
+    const headers: Record<string, string> = {};
     for (const key in req.headers) {
         if (Object.prototype.hasOwnProperty.call(req.headers, key)) {
             if (key === 'cookie') {
-                headers[key] = req.headers[key]
+                headers[key] = String(req.headers[key])
                     .replace(/__LocalSecure-/g, '__Secure-')
                     .replace(/__LocalHost-/g, '__Host-');
                 continue;
             }
-            headers[key] = req.headers[key]
+            headers[key] = String(req.headers[key]);
         }
     }
 
     try {
         const parsedUrl = URL.parse(targetUrl);
-        headers['host'] = parsedUrl.host;
+        headers['host'] = parsedUrl.host || 'www.youtube.com';
     } catch (e) {
         headers['host'] = isCorsBypass ? 'www.youtube.com' : 'www.youtube.com';
     }
@@ -111,10 +110,10 @@ app.all('*', (req, res) => {
         method: req.method,
         headers: headers,
         body: hasBody ? req : undefined,
-        redirect: 'manual'
+        redirect: 'manual' as const
     };
 
-    fetch(targetUrl, fetchOptions)
+    nodeFetch(targetUrl, fetchOptions)
         .then((response) => {
             if (req.method === 'OPTIONS') {
                 res.status(200);
@@ -132,6 +131,7 @@ app.all('*', (req, res) => {
                     if (skipHeaders.indexOf(lowerKey) !== -1) continue;
 
                     const value = response.headers.get(key);
+                    if (value === null) continue;
                     if (lowerKey === 'set-cookie') {
                         const rawCookies = headerKeys[key];
                         if (Array.isArray(rawCookies)) {
@@ -234,5 +234,5 @@ app.all('*', (req, res) => {
 app.listen(PORT, "127.0.0.1");
 
 // Start the DIAL server
-global.isTizenTube = true;
+(global as typeof globalThis & { isTizenTube?: boolean }).isTizenTube = true;
 require('../../dist/service.js');

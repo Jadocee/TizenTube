@@ -1,4 +1,10 @@
-function getCommandExecutor() {
+/** The pieces of YouTube's action router the mod drives commands through. */
+interface CommandExecutor {
+    executeFunction: (...args: any[]) => any;
+    commandFunction: new (...args: any[]) => any;
+}
+
+function getCommandExecutor(): CommandExecutor | undefined {
     let instance;
     let executeFunction;
 

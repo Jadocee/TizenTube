@@ -1,5 +1,10 @@
 import { configChangeEmitter, configRead } from '../config.js';
 
+/** The slice of YouTube's `recurring_actions` entry that the mod rewrites. */
+interface RecurringActions {
+    data: { data: Record<string, { lastFired: number }> };
+}
+
 const RECURRING_ACTIONS_KEY = 'yt.leanback.default::recurring_actions';
 
 // The startup screens this feature schedules. YouTube only records an action
@@ -18,9 +23,9 @@ configChangeEmitter.addEventListener('configChange', (event) => {
     }
 });
 
-let interval;
+let interval: ReturnType<typeof setInterval> | null | undefined;
 
-function readRecurringActions() {
+function readRecurringActions(): RecurringActions | null {
     try {
         const stored = JSON.parse(localStorage[RECURRING_ACTIONS_KEY]);
         return stored?.data?.data ? stored : null;
@@ -31,7 +36,7 @@ function readRecurringActions() {
     }
 }
 
-function setLastFired(recurringActions, time) {
+function setLastFired(recurringActions: RecurringActions, time: number): void {
     for (const action of STARTUP_ACTIONS) {
         const entry = recurringActions.data.data[action];
         if (entry) entry.lastFired = time;
@@ -39,7 +44,7 @@ function setLastFired(recurringActions, time) {
     localStorage[RECURRING_ACTIONS_KEY] = JSON.stringify(recurringActions);
 }
 
-function disableWhosWatching(value) {
+function disableWhosWatching(value: unknown): void {
     // Everything below runs at module scope on launch. It used to throw on a
     // missing key or a missing action entry, and a throw there aborts every
     // module imported after this one in the bundle.

@@ -1,7 +1,8 @@
 import { SettingActionRenderer, SettingsCategory } from './ytUI.js';
 import { t } from 'i18next';
+import type { Renderer } from '../types/youtube';
 
-function PatchSettings(settingsObject) {
+function PatchSettings(settingsObject: { items: Renderer[] }): void {
     const tizentubeOpenAction = SettingActionRenderer(
         t('settings.ttSettings.title'),
         'tizentube_open_action',

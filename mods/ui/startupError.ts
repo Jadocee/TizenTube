@@ -5,15 +5,22 @@
 
 const STARTUP_ERROR_KEY = 'tizentube.startupError';
 
-export function recordStartupError(error) {
+/** What the mod stores about a startup failure. */
+export interface StartupError {
+    message: string;
+    count: number;
+    at: string;
+}
+
+export function recordStartupError(error: unknown): void {
     try {
-        let previous = {};
+        let previous: Partial<StartupError> = {};
         try {
             previous = JSON.parse(localStorage[STARTUP_ERROR_KEY]) || {};
         } catch (e) { }
 
         localStorage[STARTUP_ERROR_KEY] = JSON.stringify({
-            message: String((error && error.stack) || error).slice(0, 700),
+            message: String((error && (error as { stack?: unknown }).stack) || error).slice(0, 700),
             count: (previous.count || 0) + 1,
             at: new Date().toString()
         });
@@ -22,15 +29,15 @@ export function recordStartupError(error) {
     }
 }
 
-export function clearStartupError() {
+export function clearStartupError(): void {
     try {
         delete localStorage[STARTUP_ERROR_KEY];
     } catch (e) { }
 }
 
-export function readStartupError() {
+export function readStartupError(): StartupError | null {
     try {
-        const stored = JSON.parse(localStorage[STARTUP_ERROR_KEY]);
+        const stored: StartupError | null = JSON.parse(localStorage[STARTUP_ERROR_KEY]);
         return stored && stored.message ? stored : null;
     } catch (e) {
         return null;
