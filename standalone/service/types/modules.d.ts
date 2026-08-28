@@ -23,7 +23,7 @@ declare module 'chrome-remote-interface' {
     function CDP(
         options: { host: string; port: number; local?: boolean },
         callback: (client: CDPClient) => void
-    ): void;
+    ): { on(event: 'error', handler: (err: Error) => void): void };
     export = CDP;
 }
 
@@ -33,7 +33,11 @@ declare module 'adbhost' {
         end(): void;
     }
     export interface AdbConnection {
-        _stream: { on(event: 'connect', handler: () => void): void; end(): void };
+        _stream: {
+            on(event: 'connect', handler: () => void): void;
+            on(event: 'error', handler: (err: Error) => void): void;
+            end(): void;
+        };
         createStream(command: string): AdbStream;
     }
     export function createConnection(options: { host: string; port: number }): AdbConnection;
