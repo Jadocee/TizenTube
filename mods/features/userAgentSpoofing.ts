@@ -73,15 +73,14 @@ function generateUserAgent(profile: DeviceProfile): string {
 }
 
 if (document.querySelector('.content-container') && window.h5vcc && window.h5vcc.tizentube && window.h5vcc.tizentube.SetUserAgent) {
-    const ua = localStorage.getItem('userAgent');
-    if (ua) {
-        window.h5vcc.tizentube.SetUserAgent(ua);
-        location.reload();
-    }
-
-    const randomProfile = deviceProfiles[Math.floor(Math.random() * deviceProfiles.length)];
-    const spoofedUserAgent = generateUserAgent(randomProfile);
-    localStorage.setItem('userAgent', spoofedUserAgent);
-    window.h5vcc.tizentube.SetUserAgent(spoofedUserAgent);
+    // location.reload() queues a navigation, it does not stop the running
+    // script -- so with no `return` the stored agent was applied and then
+    // immediately overwritten by a freshly randomised one, SetUserAgent was
+    // called twice with two different strings, and the reload was armed twice.
+    // The persisted agent was therefore never actually reused.
+    const ua = localStorage.getItem('userAgent')
+        || generateUserAgent(deviceProfiles[Math.floor(Math.random() * deviceProfiles.length)]);
+    localStorage.setItem('userAgent', ua);
+    window.h5vcc.tizentube.SetUserAgent(ua);
     location.reload();
 }

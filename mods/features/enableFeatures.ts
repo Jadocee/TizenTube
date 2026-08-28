@@ -13,11 +13,24 @@ configChangeEmitter.addEventListener('configChange', (event) => {
 // The Map is one of _yttv's own, so its value type is whatever YouTube stores.
 let previewFlags: Map<string, any> | null = null;
 
+let attempts = 0;
+
 function enableFeatures() {
     if (!previewFlags) {
-        if (!window._yttv) return setTimeout(enableFeatures, 250);
-        previewFlags = Object.values(window._yttv).find(a => a instanceof Map && a.has("ENABLE_PREVIEWS_WITH_SOUND"));
-        if (!previewFlags) return;
+        previewFlags = window._yttv
+            ? Object.values(window._yttv).find(a => a instanceof Map && a.has("ENABLE_PREVIEWS_WITH_SOUND"))
+            : null;
+        if (!previewFlags) {
+            // The retry used to cover only the outer `!window._yttv` test, but
+            // _yttv is published early and filled in progressively as YouTube
+            // registers its modules -- so "the registry exists" and "the flag
+            // Map is in it" are two different moments, and a miss here means
+            // "not yet", not "never". Without this the flag was only ever
+            // applied if the user happened to toggle the setting by hand.
+            // Capped the same way pictureInPicture.ts caps its poll.
+            if (++attempts <= 240) setTimeout(enableFeatures, 250);
+            return;
+        }
     }
 
     // Enable preview mode

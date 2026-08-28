@@ -38,47 +38,47 @@ const barTypes: Record<string, BarType> = {
   sponsor: {
     color: '#00d400',
     opacity: '0.7',
-    name: t('sponsorblock.segments.sponsor') || 'sponsored segment'
+    name: 'sponsorblock.segments.sponsor'
   },
   intro: {
     color: '#00ffff',
     opacity: '0.7',
-    name: t('sponsorblock.segments.intro') || 'intro'
+    name: 'sponsorblock.segments.intro'
   },
   outro: {
     color: '#0202ed',
     opacity: '0.7',
-    name: t('sponsorblock.segments.outro') || 'outro'
+    name: 'sponsorblock.segments.outro'
   },
   interaction: {
     color: '#cc00ff',
     opacity: '0.7',
-    name: t('sponsorblock.segments.interaction') || 'interaction reminder'
+    name: 'sponsorblock.segments.interaction'
   },
   selfpromo: {
     color: '#ffff00',
     opacity: '0.7',
-    name: t('sponsorblock.segments.selfpromo') || 'self-promotion'
+    name: 'sponsorblock.segments.selfpromo'
   },
   preview: {
     color: '#008fd6',
     opacity: '0.7',
-    name: t('sponsorblock.segments.preview') || 'recap or preview'
+    name: 'sponsorblock.segments.preview'
   },
   filler: {
     color: "#7300FF",
     opacity: "0.9",
-    name: t('sponsorblock.segments.filler') || 'tangents'
+    name: 'sponsorblock.segments.filler'
   },
   music_offtopic: {
     color: '#ff9900',
     opacity: '0.7',
-    name: t('sponsorblock.segments.music_offtopic') || 'non-music part'
+    name: 'sponsorblock.segments.music_offtopic'
   },
   poi_highlight: {
     color: '#9b044c',
     opacity: '0.7',
-    name: t('sponsorblock.segments.poi_highlight') || 'highlight'
+    name: 'sponsorblock.segments.poi_highlight'
   }
 };
 
@@ -102,6 +102,8 @@ class SponsorBlockHandler {
   buildOverlayAttempts = 0;
   segmentsoverlay: HTMLDivElement | null = null;
   segmentsoverlayDisplay: string | null = null;
+  /** The duration the current overlay's geometry was computed from. */
+  overlayDuration: number | null = null;
   // Assigned in buildOverlay(); the JavaScript never declared it.
   slider: Element | null = null;
 
@@ -130,12 +132,26 @@ class SponsorBlockHandler {
       'music_offtopic',
       'poi_highlight'
     ];
-    const resp = await fetch(
-      `${sponsorblockAPI}/skipSegments/${videoHash}?categories=${encodeURIComponent(
-        JSON.stringify(categories)
-      )}`
-    );
-    const results: SponsorBlockVideo[] = await resp.json();
+    // The empty case below is handled explicitly, so a failed request leaving
+    // this rejection to escape was an oversight: init() is called bare and
+    // nothing catches it.
+    let results: SponsorBlockVideo[];
+    try {
+      const resp = await fetch(
+        `${sponsorblockAPI}/skipSegments/${videoHash}?categories=${encodeURIComponent(
+          JSON.stringify(categories)
+        )}`
+      );
+      if (!resp.ok) {
+        console.info(this.videoID, 'SponsorBlock:', resp.status);
+        return;
+      }
+      results = await resp.json();
+    } catch (err) {
+      console.warn(this.videoID, 'SponsorBlock request failed', err);
+      return;
+    }
+    if (!Array.isArray(results)) return;
 
     const result = results.find((v) => v.videoID === this.videoID);
     console.info(this.videoID, 'Got it:', result);
@@ -153,12 +169,32 @@ class SponsorBlockHandler {
       const slider = document.querySelector('div[idomkey="slider"]');
       const sliderRect = slider?.getBoundingClientRect();
       const isOldUI = !document.querySelector('div[idomkey="Metadata-Section"]');
-      if (isOldUI && sliderRect) {
-        this.segmentsoverlay!.style.setProperty('top', `${sliderRect.top}px`, 'important');
+      // buildOverlay() has four early returns that leave segmentsoverlay null,
+      // and this handler is bound before it ever runs, so the assertion here was
+      // false and the throw killed skipping entirely.
+      if (isOldUI && sliderRect && this.segmentsoverlay) {
+        this.segmentsoverlay.style.setProperty('top', `${sliderRect.top}px`, 'important');
       }
       this.scheduleSkip();
     }
-    this.durationChangeHandler = () => this.buildOverlay();
+    this.durationChangeHandler = () => {
+      // buildOverlay() returns early once an overlay exists, so without tearing
+      // the old one down this listener was a permanent no-op and bars stayed
+      // drawn against whatever duration was readable at build time.
+      if (this.segmentsoverlay && this.video && this.video.duration !== this.overlayDuration) {
+        this.segmentsoverlay.remove();
+        this.segmentsoverlay = null;
+        this.segmentsoverlayDisplay = null;
+        this.observer?.disconnect();
+        this.observer = null;
+        if (this.sliderInterval) {
+          clearInterval(this.sliderInterval);
+          this.sliderInterval = null;
+        }
+        this.buildOverlayAttempts = 0;
+      }
+      this.buildOverlay();
+    };
 
     this.attachVideo();
     this.buildOverlay();
@@ -194,6 +230,9 @@ class SponsorBlockHandler {
   }
 
   attachVideo(): void {
+    // A retry scheduled before destroy() must not re-bind against dead state:
+    // a timeout created after destroy has run can never be cleared by it.
+    if (!this.active) return;
     clearTimeout(this.attachVideoTimeout!);
     this.attachVideoTimeout = null;
 
@@ -226,6 +265,7 @@ class SponsorBlockHandler {
     }
 
     const videoDuration = this.video.duration;
+    this.overlayDuration = videoDuration;
     const slider = document.querySelector('div[idomkey="slider"]');
     if (!slider) {
       // ~5s at 10Hz. The progress bar turns up within a second or two or not at
@@ -393,7 +433,11 @@ class SponsorBlockHandler {
         return;
       }
 
-      const skipName = barTypes[segment.category]?.name || segment.category;
+      // Resolved here, not at module load: the surrounding toast is
+      // translated at call time, so eager names went stale the moment the
+      // user changed language.
+      const barTypeForName = barTypes[segment.category];
+      const skipName = barTypeForName ? t(barTypeForName.name) : segment.category;
       console.info(this.videoID, 'Skipping', segment);
       if (!this.manualSkippableCategories.includes(segment.category)) {
         const wasSkippedBefore = this.skippedCategories.get(segment.UUID)
@@ -493,6 +537,24 @@ window.addEventListener(
     const newURL = new URL(location.hash.substring(1), location.href);
     // A hack, but it works, so...
     const videoID = newURL.search.replace('?v=', '').split('&')[0];
+
+    // Leaving the player for the home screen gives an empty videoID, which made
+    // needsReload falsy -- so the handler was never destroyed. It kept its
+    // listeners on the shared <video>, kept polling for the slider, and kept
+    // skipping against the previous video's segments while the home screen
+    // played its inline previews.
+    if (!videoID) {
+      if (window.sponsorblock) {
+        try {
+          window.sponsorblock.destroy();
+        } catch (err) {
+          console.warn('window.sponsorblock.destroy() failed!', err);
+        }
+        window.sponsorblock = null;
+      }
+      return;
+    }
+
     const needsReload =
       videoID &&
       (!window.sponsorblock || window.sponsorblock.videoID != videoID);
@@ -517,7 +579,7 @@ window.addEventListener(
 
       if (configRead('enableSponsorBlock')) {
         window.sponsorblock = new SponsorBlockHandler(videoID);
-        window.sponsorblock.init();
+        window.sponsorblock.init().catch((err) => console.warn('SponsorBlock init failed', err));
       } else {
         console.info('SponsorBlock disabled, not loading');
       }

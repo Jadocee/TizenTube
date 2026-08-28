@@ -64,10 +64,16 @@ class PreferredQualityHandler {
             this.#hasAppliedQuality = false;
         }
 
-        const isShorts = Object.values(this.#player!.getVideoStats()).find(a => a && a === 'shortspage');
-        if (state?.isPlaying && !this.#hasAppliedQuality && !isShorts) {
-            this.#applyQuality();
-            this.#hasAppliedQuality = true;
+        if (state?.isPlaying && !this.#hasAppliedQuality) {
+            // Guarded the way its two neighbours above already are: this runs
+            // before the player API is attached, where the unguarded call threw
+            // and took the whole handler with it.
+            const stats = this.#player?.getVideoStats?.();
+            const isShorts = stats ? Object.values(stats).some(a => a === 'shortspage') : false;
+            if (!isShorts) {
+                this.#applyQuality();
+                this.#hasAppliedQuality = true;
+            }
         }
     };
 
@@ -86,16 +92,27 @@ class PreferredQualityHandler {
         }
     }
 
-    #determineQuality(preference: string): string {
+    #determineQuality(preference: string): string | null {
         const availableQualities = this.#player!.getAvailableQualityData();
-        if (!availableQualities?.length) return 'highres';
+        // Null rather than 'highres': the caller's `if (quality)` then does the
+        // work, and an idle player no longer gets pinned to maximum from the
+        // settings menu.
+        if (!availableQualities?.length) return null;
 
         const getQualityValue = (label: string) => parseInt(label, 10) || 0;
         const targetValue = getQualityValue(preference);
 
-        const match = availableQualities.find(q => getQualityValue(q.qualityLabel) === targetValue);
-
-        return match ? match.quality : 'highres';
+        // Copy before sorting: the array is YouTube's, not ours.
+        const sorted = [...availableQualities].sort(
+            (a, b) => getQualityValue(b.qualityLabel) - getQualityValue(a.qualityLabel)
+        );
+        // The preference is a cap, so take the best rendition at or below it.
+        // Matching the height exactly and falling back to 'highres' otherwise
+        // meant a stream without that exact label was pinned to the MAXIMUM --
+        // the opposite of what the setting asks for. Subsumes the exact match;
+        // when every rendition is above the request, lands on the lowest.
+        const atOrBelow = sorted.find(q => getQualityValue(q.qualityLabel) <= targetValue);
+        return (atOrBelow ?? sorted[sorted.length - 1]).quality;
     }
 }
 
