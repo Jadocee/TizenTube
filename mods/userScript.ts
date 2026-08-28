@@ -3,18 +3,17 @@ if (window.location.hostname === 'localhost') {
     initPatches();
 }
 import "./features/userAgentSpoofing.js";
-import "whatwg-fetch";
-import "core-js/proposals/object-getownpropertydescriptors";
-// The build targets Chrome 47 and preset-env transpiles syntax only, so
-// anything newer than ES6 has to be polyfilled by hand. Array.prototype.flat
-// is reached on every spatial-navigation search, i.e. every D-pad press
-// inside the theme panel.
-import "core-js/es/array/flat";
-import "core-js/es/object/values";
-import "core-js/es/object/entries";
+
+// No built-in polyfills. The target is Tizen 9.0, whose engine is Chromium
+// M120, and rolldown lowers syntax to chrome120 -- fetch, DOMRect,
+// Object.values/entries/getOwnPropertyDescriptors and Array.prototype.flat are
+// all native there. tsconfig.json pins `lib` to ES2023 so that using anything
+// M120 does NOT have is a compile error rather than a black screen on a TV.
+//
+// spatial-navigation-polyfill is not in this category: spatial navigation is a
+// draft spec that no Chromium ships, so it stays.
 
 import './translations/index.js'
-import "./domrect-polyfill";
 import "./features/adblock.js";
 import "./features/sponsorblock.js";
 import "./ui/ui.js";

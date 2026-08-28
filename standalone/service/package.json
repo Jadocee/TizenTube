@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "node embed-userscript.js && node build-service.js",
+    "build": "node embed-userscript.js && rolldown -c rolldown.config.mjs",
     "embed": "node embed-userscript.js",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
@@ -22,7 +22,7 @@
     "@types/express": "^5.0.6",
     "@types/node": "^26.4.0",
     "@types/node-fetch": "^2.6.13",
-    "@vercel/ncc": "^0.44.1",
-    "typescript": "^5.9.3"
+    "rolldown": "^1.2.6",
+    "typescript": "^7.0.2"
   }
 }

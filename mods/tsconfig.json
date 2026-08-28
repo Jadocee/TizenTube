@@ -1,18 +1,22 @@
 {
   "compilerOptions": {
-    // Rollup + Babel do the downlevelling, so emit modern and let them target
-    // Chrome 47.
+    // Rolldown does the downlevelling (transform.target in rolldown.config.js),
+    // so emit modern here and let the bundler lower it.
     "target": "ESNext",
     "module": "ESNext",
     "moduleResolution": "bundler",
 
     // The whole point of this setting: `lib` describes the built-ins the
     // runtime actually has, so using one it does not becomes a compile error.
-    // Chrome 47 is ES2016-shaped -- it has Array.prototype.includes but not
-    // Object.values (Chrome 54), String.prototype.padStart (57) or
-    // Array.prototype.flat (69). Every one of those has been a real bug here.
-    // types/polyfills.d.ts adds back exactly the ones userScript.js polyfills.
-    "lib": ["ES2016", "DOM", "DOM.Iterable"],
+    //
+    // The target is Tizen 9.0 (2025 TVs), whose web engine is Chromium M120.
+    // ES2023 is the newest language edition M120 implements in full -- the last
+    // of it, Array.prototype.toSorted and friends, landed in M110. ES2024 is
+    // NOT safe to claim: Promise.withResolvers only arrived in M119 and the
+    // rest of that edition straddles the boundary, so ES2023 is the honest
+    // line. Anything newer than this must be checked against caniuse by hand
+    // before it goes in.
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
 
     "strict": true,
     "noImplicitOverride": true,

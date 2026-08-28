@@ -1,10 +1,12 @@
 {
   "compilerOptions": {
-    // The Tizen web-service runtime is old, and ncc does not downlevel — so
-    // emit conservatively rather than assuming modern Node.
+    // The Tizen web-service runtime is old, so emit conservatively rather than
+    // assuming modern Node. rolldown.config.mjs lowers to the same line.
     "target": "ES2018",
-    "module": "CommonJS",
-    "moduleResolution": "node",
+    // Rolldown bundles this, so resolution is the bundler's -- and TypeScript 7
+    // removed the old node10 resolver, which is what this used to ask for.
+    "module": "preserve",
+    "moduleResolution": "bundler",
     "lib": ["ES2018"],
 
     "strict": true,
