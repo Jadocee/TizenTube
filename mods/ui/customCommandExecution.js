@@ -40,6 +40,13 @@ function getCommandExecutor() {
             commandFunction = window._yttv[key];
         }
     }
+    // Guarded like the two above it. Both callers do
+    // `new commandExecutor.commandFunction(...)` behind a plain truthiness check
+    // on the returned object, so handing back a half-built one throws in the
+    // caller. During app boot -- notably while the startup account picker is up
+    // -- the router exists before this class is registered.
+    if (!commandFunction) return;
+
     return {
         executeFunction: executeFunction.bind(instance),
         commandFunction
