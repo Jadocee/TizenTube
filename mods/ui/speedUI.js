@@ -20,6 +20,15 @@ function execute_once_dom_loaded_speed() {
             evt.preventDefault();
             evt.stopPropagation();
             if (evt.type === 'keydown') {
+                // The theme panel is a plain overlay rather than a YouTube popup,
+                // so opening a popup underneath it would strand it on screen with
+                // focus gone from it for good. Read the state off the DOM: a flag
+                // would desync the moment the panel closed by any other route.
+                const themePanel = document.querySelector('.ytaf-ui-container');
+                if (themePanel && themePanel.style.display !== 'none') {
+                    themePanel.style.display = 'none';
+                    themePanel.blur();
+                }
                 speedSettings();
                 return false;
             }
@@ -27,9 +36,9 @@ function execute_once_dom_loaded_speed() {
         };
     }
 
-    // Red, Green, Yellow, Blue
-    // 403, 404, 405, 406
-    // ---, 172, 170, 191
+    // Colour keys. Blue opens the speed menu; Red and Green are handled in ui.js.
+    // Yellow is deliberately unbound.
+    // Red 403 | Green 404 or 172 | Yellow 405 or 170 | Blue 406 or 191
     document.addEventListener('keydown', eventHandler, true);
     document.addEventListener('keypress', eventHandler, true);
     document.addEventListener('keyup', eventHandler, true);

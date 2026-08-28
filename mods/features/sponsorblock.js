@@ -61,6 +61,10 @@ class SponsorBlockHandler {
   attachVideoTimeout = null;
   nextSkipTimeout = null;
   sliderInterval = null;
+  buildOverlayTimeout = null;
+  buildOverlayAttempts = 0;
+  segmentsoverlay = null;
+  segmentsoverlayDisplay = null;
 
   observer = null;
   scheduleSkipHandler = null;
@@ -170,6 +174,8 @@ class SponsorBlockHandler {
   }
 
   buildOverlay() {
+    // A retry scheduled before destroy() must not rebuild against dead state.
+    if (!this.active) return;
     if (this.segmentsoverlay) {
       console.info('Overlay already built');
       return;
@@ -182,7 +188,17 @@ class SponsorBlockHandler {
 
     const videoDuration = this.video.duration;
     const slider = document.querySelector('div[idomkey="slider"]');
-    if (!slider) return setTimeout(() => this.buildOverlay(), 100);
+    if (!slider) {
+      // ~5s at 10Hz. The progress bar turns up within a second or two or not at
+      // all, and an uncapped chain here would poll for the life of the page.
+      if (++this.buildOverlayAttempts > 50) {
+        console.warn(this.videoID, 'progress bar never appeared; no segment overlay');
+        return;
+      }
+      this.buildOverlayTimeout = setTimeout(() => this.buildOverlay(), 100);
+      return;
+    }
+    this.buildOverlayTimeout = null;
 
     this.segmentsoverlay = document.createElement('div');
 
@@ -221,22 +237,29 @@ class SponsorBlockHandler {
     });
 
     this.observer = new MutationObserver((mutations) => {
+      if (!this.segmentsoverlay) return;
+
       mutations.forEach((m) => {
         if (m.removedNodes) {
           for (const node of m.removedNodes) {
-            if (node === this.segmentsoverlay) {
+            if (node === this.segmentsoverlay && this.slider) {
               console.info('bringing back segments overlay');
               this.slider.appendChild(this.segmentsoverlay);
             }
           }
         }
-
-        if (document.querySelector('ytlr-progress-bar').getAttribute('hybridnavfocusable') === 'false') {
-          this.segmentsoverlay.style.setProperty('display', 'none', 'important');
-        } else {
-          this.segmentsoverlay.style.setProperty('display', 'block', 'important');
-        }
       });
+
+      // Once per batch rather than once per mutation record, and guarded: an
+      // absent progress bar used to throw here on every batch for the life of
+      // the observer.
+      const progressBar = document.querySelector('ytlr-progress-bar');
+      if (!progressBar) return;
+      const display = progressBar.getAttribute('hybridnavfocusable') === 'false' ? 'none' : 'block';
+      if (display !== this.segmentsoverlayDisplay) {
+        this.segmentsoverlayDisplay = display;
+        this.segmentsoverlay.style.setProperty('display', display, 'important');
+      }
     });
 
     this.sliderInterval = setInterval(() => {
@@ -363,6 +386,11 @@ class SponsorBlockHandler {
     if (this.sliderInterval) {
       clearInterval(this.sliderInterval);
       this.sliderInterval = null;
+    }
+
+    if (this.buildOverlayTimeout) {
+      clearTimeout(this.buildOverlayTimeout);
+      this.buildOverlayTimeout = null;
     }
 
     if (this.observer) {

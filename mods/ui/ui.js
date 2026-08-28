@@ -161,29 +161,51 @@ function execute_once_dom_loaded() {
       } catch (e) { }
     }
     previouslyFocused = null;
+
+    // YouTube re-renders its shelves constantly, so the element captured when
+    // the panel opened may no longer exist. Hand focus to whatever the app is
+    // currently showing rather than leaving it on <body>.
+    const active = document.activeElement;
+    if (!active || active === document.body) {
+      const fallback = document.querySelector('[hybridnavfocusable="true"], .zylon-focus');
+      if (fallback) {
+        try {
+          fallback.focus();
+        } catch (e) { }
+      }
+    }
   }
 
   uiContainer.addEventListener(
     'keydown',
     (evt) => {
-      console.info('uiContainer key event:', evt.type, evt.keyCode);
       if (evt.keyCode !== 404 && evt.keyCode !== 172) {
         // Nothing is guaranteed to be focused, so every branch below works off
         // this one nullable lookup instead of dereferencing it blind.
-        const focusedElement = document.querySelector(':focus');
+        const focusedElement = document.activeElement;
         const isTextInput = !!focusedElement && focusedElement.type === 'text';
 
         if (evt.keyCode in ARROW_KEY_CODE) {
-          navigate(ARROW_KEY_CODE[evt.keyCode]);
-          // navigate() searches the whole page, so focus can walk out of the
-          // panel and onto the app behind it. Keep it inside.
-          if (!uiContainer.contains(document.activeElement)) {
-            const target = uiContainer.contains(focusedElement) ? focusedElement : firstControl();
-            if (target) target.focus();
-          }
-          // Without this the page behind the panel moves its focus too.
+          // Consumed before navigating: navigate() walks the live YouTube DOM,
+          // and a throw in there must not leak the arrow to the page behind the
+          // panel or skip the containment restore below.
           evt.preventDefault();
           evt.stopPropagation();
+          try {
+            navigate(ARROW_KEY_CODE[evt.keyCode]);
+          } catch (e) {
+            console.warn('spatial navigation failed:', e);
+          }
+          // navigate() searches the whole page, so focus can walk out of the
+          // panel. The container itself counts as outside: the focus style is a
+          // descendant selector, so resting there highlights no row.
+          const active = document.activeElement;
+          if (!active || active === uiContainer || !uiContainer.contains(active)) {
+            const target = focusedElement && focusedElement !== uiContainer && uiContainer.contains(focusedElement)
+              ? focusedElement
+              : firstControl();
+            if (target) target.focus();
+          }
           return;
         } else if (evt.keyCode === 13 || evt.keyCode === 32) {
           // "OK" button
@@ -204,14 +226,11 @@ function execute_once_dom_loaded() {
           // fall through to the Enter handling below.
           evt.stopPropagation();
         } else if (evt.keyCode === 27) {
-          if (isTextInput) {
-            // Back doubles as backspace while the keyboard is up. Its default
-            // action is left alone here: on a TV that is what dismisses the
-            // on-screen keyboard.
-            focusedElement.value = focusedElement.value.slice(0, -1);
-            evt.stopPropagation();
-            return;
-          }
+          // BACK closes, unconditionally. It used to double as a backspace
+          // whenever a text field had focus -- and every control this panel has
+          // is a text field, so once focus landed on one the panel could not be
+          // closed by the key its own hint names. Text is edited with the TV's
+          // on-screen keyboard, which OK now opens.
           hidePanel();
           // Closing the panel must not also navigate YouTube back a page.
           evt.preventDefault();
@@ -279,14 +298,11 @@ function execute_once_dom_loaded() {
   } catch (e) { }
 
   var eventHandler = (evt) => {
-    // We handle key events ourselves.
-    console.info(
-      'Key event:',
-      evt.type,
-      evt.keyCode,
-      evt.keyCode,
-      evt.defaultPrevented
-    );
+    // Deliberately not logging every event here: this handler is registered for
+    // keydown, keypress and keyup, and speedUI.js registers three more, so a
+    // single press used to produce six logs before any keyCode was even tested.
+    // The branches below log when they actually act.
+
     // A single press arrives as keydown, keypress and keyup; re-arming the idle
     // timer once per press is enough.
     if (evt.type === 'keydown') {
@@ -313,27 +329,35 @@ function execute_once_dom_loaded() {
       evt.preventDefault();
       evt.stopPropagation();
       if (evt.type === 'keydown') {
+        // The panel is not on YouTube's popup stack, so leaving it up would
+        // strand it over the settings menu with focus gone from it for good.
+        if (uiContainer.style.display !== 'none') hidePanel();
         modernUI();
       }
       return false;
     } else if (evt.keyCode == 39) {
       // Right key, for PiP
-      if (evt.type === 'keydown') {
+      if (evt.type === 'keydown' && uiContainer.style.display === 'none') {
         // Checked first: this runs on every right press, and the flag is far
         // cheaper than a DOM query.
         if (window.isPipPlaying && document.querySelector('ytlr-search-text-box > .zylon-focus')) {
           const ytlrPlayer = document.querySelector('ytlr-player');
           if (ytlrPlayer) ytlrPlayer.style.setProperty('background-color', 'rgb(0, 0, 0)');
           pipToFullscreen();
+          // Only consumed once the branch has decided to act, so an ordinary
+          // right press still moves YouTube's own selection.
+          evt.preventDefault();
+          evt.stopPropagation();
+          return false;
         }
       }
     };
     return true;
   }
 
-  // Red, Green, Yellow, Blue
-  // 403, 404, 405, 406
-  // ---, 172, 170, 191
+  // Colour keys. Red opens the theme panel, Green the settings menu; Blue is
+  // handled in speedUI.js. Yellow is deliberately unbound.
+  // Red 403 | Green 404 or 172 | Yellow 405 or 170 | Blue 406 or 191
   document.addEventListener('keydown', eventHandler, true);
   document.addEventListener('keypress', eventHandler, true);
   document.addEventListener('keyup', eventHandler, true);

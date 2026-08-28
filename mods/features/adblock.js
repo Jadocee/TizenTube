@@ -183,12 +183,17 @@ JSON.parse = function () {
               action: 'CLEAR_QUEUE'
             }
           }));
+        // The Clear tile is unshifted onto the front, so index 0 is destructive:
+        // focus has to land on the playing item when there is one. Reading
+        // contentId off the wrapper instead of its tileRenderer made the lookup
+        // always miss, so it always landed on Clear.
+        const playingIndex = queuedVideosClone.findIndex(
+          v => v.tileRenderer && v.tileRenderer.contentId === window.queuedVideos.lastVideoId
+        );
         r.contents.singleColumnWatchNextResults.pivot.sectionListRenderer.contents.unshift(ShelfRenderer(
           t('queue.shelfTitle'),
           queuedVideosClone,
-          queuedVideosClone.findIndex(v => v.contentId === window.queuedVideos.lastVideoId) !== -1 ?
-            queuedVideosClone.findIndex(v => v.contentId === window.queuedVideos.lastVideoId)
-            : 0
+          playingIndex !== -1 ? playingIndex : 0
         ));
       }
     }
