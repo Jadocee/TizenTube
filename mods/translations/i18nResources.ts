@@ -60,7 +60,10 @@ export default {
     id: {
         translation: IndonesianResource
     },
-    "fi-FI": {
+    // Keyed "fi", not "fi-FI": YouTube's hl for Finnish is "fi" and a device
+    // reporting fi-FI narrows to it, so the qualified key could never be
+    // selected from either entry path. The file keeps its name.
+    fi: {
         translation: FinnishResource
     },
     fr: {

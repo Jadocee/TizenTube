@@ -45,8 +45,13 @@ function isNewer(candidate: string, current: string | null): boolean {
     return false;
 }
 
+// Whether the most recent download() call actually fetched, as opposed to
+// falling back to the copy already in hand.
+let lastDownloadWasFresh = false;
+
 function download(): Promise<string | null> {
     if (pending) return pending;
+    lastDownloadWasFresh = false;
 
     pending = fetch(USERSCRIPT_URL)
         .then((res) => {
@@ -54,7 +59,10 @@ function download(): Promise<string | null> {
             return res.text();
         })
         .then((text: string) => {
-            if (text && text.length) source = text;
+            if (text && text.length) {
+                source = text;
+                lastDownloadWasFresh = true;
+            }
             pending = null;
             return source;
         })
@@ -91,7 +99,11 @@ function refresh(): Promise<boolean> {
             console.log(`[TizenTube] Newer userscript published (${manifest.version} > ${version}); fetching.`);
             const published = manifest.version;
             return download().then((text) => {
-                if (!text) return false;
+                // download() falls back to the packaged copy on failure, and that
+                // is non-empty -- so a truthy result alone did not mean the new
+                // version had been fetched. This used to record a version that
+                // was never downloaded while still serving the old script.
+                if (!text || !lastDownloadWasFresh) return false;
                 version = published;
                 return true;
             });

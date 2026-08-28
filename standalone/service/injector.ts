@@ -9,7 +9,6 @@ let isConnecting = false;
 // Bumped on every attach attempt so a watchdog armed by an earlier one cannot
 // clear a later one's flag.
 let connectGeneration = 0;
-const isTizen3: boolean = tizen.systeminfo.getCapability('http://tizen.org/feature/platform.version').startsWith('3.0');
 
 const watchUrl = (args: string): string =>
     // 8095, not 8085: index.ts sets global.isTizenTube before requiring the DIAL
@@ -158,7 +157,9 @@ function startDebugger(args: string): Promise<boolean> {
                 }
             }, 45000);
 
-            const shellCmd = client.createStream(`shell:0 debug ${packageId}.TizenTubeStandalone${isTizen3 ? ' 0' : ''}`);
+            // The trailing ' 0' argument was for Tizen 3.0, which config.xml's
+            // required_version="9.0" now excludes outright.
+            const shellCmd = client.createStream(`shell:0 debug ${packageId}.TizenTubeStandalone`);
             shellCmd.on('error', () => { isConnecting = false; });
 
             // Accumulated, because 'data' is not line-buffered: sdbd's reply can
