@@ -122,7 +122,10 @@ function toggleClock(value) {
     actualClock.style.borderRadius = '0.5rem';
     // A dark scrim plus a shadow: white text alone disappears over a snowy or
     // daylight frame, and TV gamma blooms the highlights on top of that.
-    actualClock.style.backgroundColor = 'rgba(0, 0, 0, 0.45)';
+    // 0.6 puts white-on-scrim at 5.7:1 over a white frame; 0.45 measured only
+    // 3.4:1, which is the large-text floor with nothing left for TV gamma. A
+    // darker scrim costs nothing over dark content, where it is invisible.
+    actualClock.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
     actualClock.style.textShadow = '0 2px 6px rgba(0, 0, 0, 0.9), 0 0 2px rgba(0, 0, 0, 0.9)';
     actualClock.style.pointerEvents = 'none';
 
