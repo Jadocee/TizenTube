@@ -54,6 +54,12 @@ const barTypes = {
 
 const sponsorblockAPI = 'https://sponsor.ajay.app/api';
 
+// scheduleSkip() runs on every timeupdate, so roughly four times a second for
+// the whole video. Its logging serialises a segment object each time, which is
+// not something to spend a TV's CPU on by default. One-shot logging elsewhere
+// in this file is left alone.
+const DEBUG_SKIP_SCHEDULING = false;
+
 class SponsorBlockHandler {
   video = null;
   active = true;
@@ -281,12 +287,12 @@ class SponsorBlockHandler {
     this.nextSkipTimeout = null;
 
     if (!this.active) {
-      console.info(this.videoID, 'No longer active, ignoring...');
+      if (DEBUG_SKIP_SCHEDULING) console.info(this.videoID, 'No longer active, ignoring...');
       return;
     }
 
     if (this.video.paused) {
-      console.info(this.videoID, 'Currently paused, ignoring...');
+      if (DEBUG_SKIP_SCHEDULING) console.info(this.videoID, 'Currently paused, ignoring...');
       return;
     }
 
@@ -301,19 +307,21 @@ class SponsorBlockHandler {
     nextSegments.sort((s1, s2) => s1.segment[0] - s2.segment[0]);
 
     if (!nextSegments.length) {
-      console.info(this.videoID, 'No more segments');
+      if (DEBUG_SKIP_SCHEDULING) console.info(this.videoID, 'No more segments');
       return;
     }
 
     const [segment] = nextSegments;
     const [start, end] = segment.segment;
-    console.info(
-      this.videoID,
-      'Scheduling skip of',
-      segment,
-      'in',
-      start - this.video.currentTime
-    );
+    if (DEBUG_SKIP_SCHEDULING) {
+      console.info(
+        this.videoID,
+        'Scheduling skip of',
+        segment,
+        'in',
+        start - this.video.currentTime
+      );
+    }
 
     this.nextSkipTimeout = setTimeout(() => {
       if (this.video.paused) {
