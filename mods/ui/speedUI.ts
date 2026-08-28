@@ -1,6 +1,7 @@
 import { configRead } from '../config.js';
 import { showModal, buttonItem, overlayPanelItemListRenderer } from './ytUI.js';
 import { t } from 'i18next';
+import type { CompactLinkRenderer } from '../types/youtube';
 
 const interval = setInterval(() => {
     const videoElement = document.querySelector('video');
@@ -10,12 +11,12 @@ const interval = setInterval(() => {
     }
 }, 1000);
 
-function execute_once_dom_loaded_speed() {
-    document.querySelector('video').addEventListener('canplay', () => {
+function execute_once_dom_loaded_speed(): void {
+    document.querySelector('video')!.addEventListener('canplay', () => {
         document.getElementsByTagName('video')[0].playbackRate = configRead('videoSpeed');;
     });
 
-    const eventHandler = (evt) => {
+    const eventHandler = (evt: KeyboardEvent) => {
         if (evt.keyCode == 406 || evt.keyCode == 191) {
             evt.preventDefault();
             evt.stopPropagation();
@@ -24,7 +25,7 @@ function execute_once_dom_loaded_speed() {
                 // so opening a popup underneath it would strand it on screen with
                 // focus gone from it for good. Read the state off the DOM: a flag
                 // would desync the moment the panel closed by any other route.
-                const themePanel = document.querySelector('.ytaf-ui-container');
+                const themePanel = document.querySelector<HTMLElement>('.ytaf-ui-container');
                 if (themePanel && themePanel.style.display !== 'none') {
                     themePanel.style.display = 'none';
                     themePanel.blur();
@@ -44,12 +45,12 @@ function execute_once_dom_loaded_speed() {
     document.addEventListener('keyup', eventHandler, true);
 }
 
-function speedSettings() {
+function speedSettings(): void {
     const currentSpeed = configRead('videoSpeed');
     let selectedIndex = 0;
     const maxSpeed = 5;
     const increment = configRead('speedSettingsIncrement') || 0.25;
-    const buttons = [];
+    const buttons: CompactLinkRenderer[] = [];
     for (let speed = increment; speed <= maxSpeed; speed += increment) {
         const fixedSpeed = Math.round(speed * 100) / 100;
         buttons.push(

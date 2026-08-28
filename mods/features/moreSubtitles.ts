@@ -3,6 +3,7 @@
 
 import { configRead } from "../config.js";
 import languages from "../translations/language-names.js";
+import type { CompactLinkRenderer } from "../types/youtube";
 
 const LANGUAGE_CODES = [
     "af", "sq", "am", "ar", "hy", "as", "az", "eu", "be", "bn", "bs", "bg",
@@ -15,9 +16,9 @@ const LANGUAGE_CODES = [
 ];
 
 // Return an object mapping language code -> localized language name.
-export function getComprehensiveLanguageList() {
+export function getComprehensiveLanguageList(): Record<string, string> {
     try {
-        const map = {};
+        const map: Record<string, string> = {};
         LANGUAGE_CODES.forEach((code) => {
             if (code.includes("-")) {
                 const [lang, region] = code.split("-");
@@ -31,7 +32,7 @@ export function getComprehensiveLanguageList() {
         });
         return map;
     } catch (e) {
-        const fallback = {};
+        const fallback: Record<string, string> = {};
         LANGUAGE_CODES.forEach((c) => (fallback[c] = c));
         return fallback;
     }
@@ -39,19 +40,22 @@ export function getComprehensiveLanguageList() {
 
 // Infer the most likely language for a given ISO 3166-1 alpha-2 country code using Intl.Locale.
 // Returns { code, name } or null if unknown.
-export function getCountryLanguage(countryCode) {
+export function getCountryLanguage(countryCode: string | null): { code: string; name: string } | null {
     if (!countryCode) return null;
     try {
         const region = String(countryCode).toUpperCase();
 
-        const zhRegionMap = { CN: "zh-CN", TW: "zh-TW", HK: "zh-HK", SG: "zh-CN" };
+        const zhRegionMap: Record<string, string> = { CN: "zh-CN", TW: "zh-TW", HK: "zh-HK", SG: "zh-CN" };
         if (zhRegionMap[region]) {
             const code = zhRegionMap[region];
             const name = languages.language.standard.long[code] || code;
             return { code, name };
         }
 
-        const base = new Intl.Locale("und", { region });
+        // Intl.Locale landed in Chrome 74; the pinned lib does not have it
+        // because the Chrome 47 target does not either, so this reaches for it
+        // through `any` and the catch below is what runs on an older engine.
+        const base = new (Intl as any).Locale("und", { region });
         const maximized = base.maximize ? base.maximize() : base;
         const lang = maximized.language || "en";
 
@@ -67,11 +71,11 @@ export function getCountryLanguage(countryCode) {
 let isPatched = false;
 
 // Function to get user's country code
-function getUserCountryCode() {
+function getUserCountryCode(): string | null {
     try {
         // Always use window.yt.config_.GL as primary source
-        if (window.yt && window.yt.config_ && window.yt.config_.GL) {
-            return window.yt.config_.GL;
+        if (window.yt && window.yt.config_ && (window.yt.config_ as { GL?: string }).GL) {
+            return (window.yt.config_ as { GL?: string }).GL!;
         }
 
         console.warn(
@@ -88,7 +92,7 @@ function getUserCountryCode() {
 }
 
 // Function to check if language already exists in the menu
-function languageExistsInMenu(items, languageCode, languageName) {
+function languageExistsInMenu(items: any[], languageCode: string, languageName: string): boolean {
     return items.some((item) => {
         if (
             item.compactLinkRenderer &&
@@ -116,7 +120,7 @@ function languageExistsInMenu(items, languageCode, languageName) {
 }
 
 // Function to create a language option
-function createLanguageOption(languageCode, languageName) {
+function createLanguageOption(languageCode: string, languageName: string): CompactLinkRenderer {
     return {
         compactLinkRenderer: {
             title: { simpleText: languageName },
@@ -149,8 +153,8 @@ function createLanguageOption(languageCode, languageName) {
 }
 
 // Function to get languages already present in menu
-function getExistingLanguages(items) {
-    const existingLanguages = new Set();
+function getExistingLanguages(items: any[]): Set<string> {
+    const existingLanguages = new Set<string>();
 
     items.forEach((item) => {
         if (
@@ -179,7 +183,7 @@ function getExistingLanguages(items) {
 }
 
 // Function to create section title
-function createSectionTitle(title) {
+function createSectionTitle(title: string) {
     return {
         overlayMessageRenderer: {
             title: { simpleText: "" },
@@ -221,7 +225,7 @@ function patchSubtitleMenu() {
 
     const originalResolveCommand = yttvInstance.instance.resolveCommand;
 
-    yttvInstance.instance.resolveCommand = function (cmd, _) {
+    yttvInstance.instance.resolveCommand = function (this: any, cmd: any, _?: any): any {
         // Identify the correct command using its uniqueId
         if (
             cmd?.openPopupAction?.uniqueId ===
@@ -266,7 +270,7 @@ function patchSubtitleMenu() {
 
                         // Find the "Recommended languages" section and insert after it
                         const recommendedIndex = items.findIndex(
-                            (item) =>
+                            (item: any) =>
                                 item.overlayMessageRenderer?.subtitle
                                     ?.simpleText === "Recommended languages"
                         );
@@ -284,7 +288,7 @@ function patchSubtitleMenu() {
                         } else {
                             // Find "Other languages" section and insert before it
                             const otherLanguagesIndex = items.findIndex(
-                                (item) =>
+                                (item: any) =>
                                     item.overlayMessageRenderer?.subtitle
                                         ?.simpleText === "Other languages"
                             );

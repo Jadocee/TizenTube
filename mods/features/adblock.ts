@@ -5,6 +5,19 @@ import { timelyAction, longPressData, MenuServiceItemRenderer, ShelfRenderer, Ti
 import { PatchSettings } from '../ui/customYTSettings.js';
 import { t } from 'i18next';
 
+/** A segment SponsorBlock's API returned. sponsorblock.js hangs these off
+ *  window.sponsorblock once the request answers; globals.d.ts describes only
+ *  that handler's lifecycle, so the extra field is narrowed at the read. */
+interface SponsorSegment {
+  category: string;
+  /** [start, end], in seconds. */
+  segment: [number, number];
+}
+
+interface SponsorBlockSegments {
+  segments?: SponsorSegment[] | null;
+}
+
 /**
  * This is a minimal reimplementation of the following uBlock Origin rule:
  * https://github.com/uBlockOrigin/uAssets/blob/3497eebd440f4871830b9b45af0afc406c6eb593/filters/filters.txt#L116
@@ -16,7 +29,7 @@ import { t } from 'i18next';
  */
 const origParse = JSON.parse;
 JSON.parse = function () {
-  const r = origParse.apply(this, arguments);
+  const r = origParse.apply(this, arguments as any);
   try {
     const adBlockEnabled = configRead('enableAdBlock');
     const signinReminderEnabled = configRead('enableSigninReminder');
@@ -46,9 +59,9 @@ JSON.parse = function () {
 
     if (r?.streamingData?.adaptiveFormats && configRead('videoPreferredCodec') !== 'any') {
       const preferredCodec = configRead('videoPreferredCodec');
-      const hasPreferredCodec = r.streamingData.adaptiveFormats.find(format => format.mimeType.includes(preferredCodec));
+      const hasPreferredCodec = r.streamingData.adaptiveFormats.find((format: any) => format.mimeType.includes(preferredCodec));
       if (hasPreferredCodec) {
-        r.streamingData.adaptiveFormats = r.streamingData.adaptiveFormats.filter(format => {
+        r.streamingData.adaptiveFormats = r.streamingData.adaptiveFormats.filter((format: any) => {
           if (format.mimeType.startsWith('audio/')) return true;
           return format.mimeType.includes(preferredCodec);
         });
@@ -63,21 +76,21 @@ JSON.parse = function () {
       if (!signinReminderEnabled) {
         r.contents.tvBrowseRenderer.content.tvSurfaceContentRenderer.content.sectionListRenderer.contents =
           r.contents.tvBrowseRenderer.content.tvSurfaceContentRenderer.content.sectionListRenderer.contents.filter(
-            (elm) => !elm.feedNudgeRenderer
+            (elm: any) => !elm.feedNudgeRenderer
           );
       }
 
       if (adBlockEnabled) {
         r.contents.tvBrowseRenderer.content.tvSurfaceContentRenderer.content.sectionListRenderer.contents =
           r.contents.tvBrowseRenderer.content.tvSurfaceContentRenderer.content.sectionListRenderer.contents.filter(
-            (elm) => !elm.adSlotRenderer
+            (elm: any) => !elm.adSlotRenderer
           );
 
         for (const shelve of r.contents.tvBrowseRenderer.content.tvSurfaceContentRenderer.content.sectionListRenderer.contents) {
           if (shelve.shelfRenderer && shelve.shelfRenderer.content?.horizontalListRenderer?.items) {
             shelve.shelfRenderer.content.horizontalListRenderer.items =
               shelve.shelfRenderer.content.horizontalListRenderer.items.filter(
-                (item) => !item.adSlotRenderer
+                (item: any) => !item.adSlotRenderer
               );
           }
         }
@@ -99,14 +112,14 @@ JSON.parse = function () {
 
     if (r.messages && Array.isArray(r.messages) && !configRead('enableYouThereRenderer')) {
       r.messages = r.messages.filter(
-        (msg) => !msg?.youThereRenderer
+        (msg: any) => !msg?.youThereRenderer
       );
     }
 
     // Remove shorts ads
     if (!Array.isArray(r) && r?.entries && adBlockEnabled) {
       r.entries = r.entries?.filter(
-        (elm) => !elm?.command?.reelWatchEndpoint?.adClientParams?.isAd
+        (elm: any) => !elm?.command?.reelWatchEndpoint?.adClientParams?.isAd
       );
     }
 
@@ -143,7 +156,7 @@ JSON.parse = function () {
         if (!section || !section.tabs) continue;
 
         if (configRead('sortSubscriptionsByAlphabet')) {
-          section.tabs.sort((a, b) => {
+          section.tabs.sort((a: any, b: any) => {
             if (a.tabRenderer.selected && !b.tabRenderer.selected) return -1;
             if (!a.tabRenderer.selected && b.tabRenderer.selected) return 1;
             return a.tabRenderer.title.localeCompare(b.tabRenderer.title);
@@ -170,7 +183,7 @@ JSON.parse = function () {
       if (!signinReminderEnabled) {
         r.contents.singleColumnWatchNextResults.pivot.sectionListRenderer.contents =
           r.contents.singleColumnWatchNextResults.pivot.sectionListRenderer.contents.filter(
-            (elm) => !elm.alertWithActionsRenderer
+            (elm: any) => !elm.alertWithActionsRenderer
           );
       }
       processShelves(r.contents.singleColumnWatchNextResults.pivot.sectionListRenderer.contents, false);
@@ -222,13 +235,13 @@ JSON.parse = function () {
     if (r?.playerOverlays?.playerOverlayRenderer) {
       if (r.playerOverlays.playerOverlayRenderer.timelyActionRenderers) {
         r.playerOverlays.playerOverlayRenderer.timelyActionRenderers = 
-        r.playerOverlays.playerOverlayRenderer.timelyActionRenderers.filter(a => a.timelyActionRenderer.type !== 'TIMELY_ACTION_TYPE_SHOPPING' ||
+        r.playerOverlays.playerOverlayRenderer.timelyActionRenderers.filter((a: any) => a.timelyActionRenderer.type !== 'TIMELY_ACTION_TYPE_SHOPPING' ||
                                                                                 a.timelyActionRenderer.type !== 'TIMELY_ACTION_TYPE_NFL_WATERMARK');
       } else r.playerOverlays.playerOverlayRenderer.timelyActionRenderers = [];
       if (configRead('sponsorBlockManualSkips').length > 0) {
         const manualSkippedSegments = configRead('sponsorBlockManualSkips');
-        if (window?.sponsorblock?.segments) {
-          for (const segment of window.sponsorblock.segments) {
+        if ((window?.sponsorblock as SponsorBlockSegments | null | undefined)?.segments) {
+          for (const segment of (window.sponsorblock as SponsorBlockSegments).segments!) {
             if (manualSkippedSegments.includes(segment.category)) {
               const timelyActionData = timelyAction(
                 t('sponsorblock.toasts.skip', { segment: t(`sponsorblock.segments.${segment.category}`) }),
@@ -255,8 +268,8 @@ JSON.parse = function () {
     }
 
     if (r?.transportControls?.transportControlsRenderer?.promotedActions && configRead('enableSponsorBlockHighlight')) {
-      if (window?.sponsorblock?.segments) {
-        const category = window.sponsorblock.segments.find(seg => seg.category === 'poi_highlight');
+      if ((window?.sponsorblock as SponsorBlockSegments | null | undefined)?.segments) {
+        const category = (window.sponsorblock as SponsorBlockSegments).segments!.find(seg => seg.category === 'poi_highlight');
         if (category) {
           r.transportControls.transportControlsRenderer.promotedActions.push({
             type: 'TRANSPORT_CONTROLS_BUTTON_TYPE_SPONSORBLOCK_HIGHLIGHT',
@@ -289,7 +302,7 @@ JSON.parse = function () {
 // Fix playback issues
 
 const origStringify = JSON.stringify;
-JSON.stringify = function (value, replacer, space) {
+JSON.stringify = function (value: any, replacer?: any, space?: any) {
   if (value?.playbackContext?.contentPlaybackContext) {
     const copiedValue = JSON.parse(origStringify(value));
     if (!copiedValue.playbackContext.contentPlaybackContext.isInlinePlaybackNoAd) {
@@ -352,7 +365,7 @@ function patchYttvJson() {
 patchYttvJson();
 
 
-function processShelves(shelves, shouldAddPreviews = true) {
+function processShelves(shelves: any[], shouldAddPreviews = true) {
   for (const shelve of shelves) {
     if (shelve.shelfRenderer) {
       if (!shelve.shelfRenderer.content?.horizontalListRenderer?.items) continue;
@@ -368,15 +381,15 @@ function processShelves(shelves, shouldAddPreviews = true) {
           shelves.splice(shelves.indexOf(shelve), 1);
           continue;
         }
-        shelve.shelfRenderer.content.horizontalListRenderer.items = shelve.shelfRenderer.content.horizontalListRenderer.items.filter(item => item.tileRenderer?.tvhtml5ShelfRendererType !== 'TVHTML5_TILE_RENDERER_TYPE_SHORTS');
+        shelve.shelfRenderer.content.horizontalListRenderer.items = shelve.shelfRenderer.content.horizontalListRenderer.items.filter((item: any) => item.tileRenderer?.tvhtml5ShelfRendererType !== 'TVHTML5_TILE_RENDERER_TYPE_SHORTS');
 
-        shelve.shelfRenderer.content.horizontalListRenderer.items = shelve.shelfRenderer.content.horizontalListRenderer.items.filter(item => !item.tileRenderer?.onSelectCommand?.reelWatchEndpoint);
+        shelve.shelfRenderer.content.horizontalListRenderer.items = shelve.shelfRenderer.content.horizontalListRenderer.items.filter((item: any) => !item.tileRenderer?.onSelectCommand?.reelWatchEndpoint);
       }
     }
   }
 }
 
-function addPreviews(items) {
+function addPreviews(items: any[]) {
   if (!configRead('enablePreviews')) return;
   for (const item of items) {
     if (item.tileRenderer) {
@@ -400,7 +413,7 @@ function addPreviews(items) {
   }
 }
 
-function deArrowify(items) {
+function deArrowify(items: any[]) {
   for (const item of items) {
     if (item.adSlotRenderer) {
       const index = items.indexOf(item);
@@ -412,12 +425,12 @@ function deArrowify(items) {
       const videoID = item.tileRenderer.contentId;
       fetch(`https://sponsor.ajay.app/api/branding?videoID=${videoID}`).then(res => res.json()).then(data => {
         if (data.titles.length > 0) {
-          const mostVoted = data.titles.reduce((max, title) => max.votes > title.votes ? max : title);
+          const mostVoted = data.titles.reduce((max: any, title: any) => max.votes > title.votes ? max : title);
           item.tileRenderer.metadata.tileMetadataRenderer.title.simpleText = mostVoted.title;
         }
 
         if (data.thumbnails.length > 0 && configRead('enableDeArrowThumbnails')) {
-          const mostVotedThumbnail = data.thumbnails.reduce((max, thumbnail) => max.votes > thumbnail.votes ? max : thumbnail);
+          const mostVotedThumbnail = data.thumbnails.reduce((max: any, thumbnail: any) => max.votes > thumbnail.votes ? max : thumbnail);
           if (mostVotedThumbnail.timestamp) {
             item.tileRenderer.header.tileHeaderRenderer.thumbnail.thumbnails = [
               {
@@ -434,7 +447,7 @@ function deArrowify(items) {
 }
 
 
-function hqify(items) {
+function hqify(items: any[]) {
   for (const item of items) {
     if (!item.tileRenderer) continue;
     if (item.tileRenderer.style !== 'TILE_STYLE_YTLR_DEFAULT') continue;
@@ -454,7 +467,7 @@ function hqify(items) {
   }
 }
 
-function addLongPress(items) {
+function addLongPress(items: any[]) {
   for (const item of items) {
     if (!item.tileRenderer) continue;
     if (item.tileRenderer.style !== 'TILE_STYLE_YTLR_DEFAULT') continue;
@@ -491,10 +504,10 @@ function addLongPress(items) {
   }
 }
 
-function hideVideo(items) {
+function hideVideo(items: any[]) {
   return items.filter(item => {
     if (!item.tileRenderer) return true;
-    const progressBar = item.tileRenderer.header?.tileHeaderRenderer?.thumbnailOverlays?.find(overlay => overlay.thumbnailOverlayResumePlaybackRenderer)?.thumbnailOverlayResumePlaybackRenderer;
+    const progressBar = item.tileRenderer.header?.tileHeaderRenderer?.thumbnailOverlays?.find((overlay: any) => overlay.thumbnailOverlayResumePlaybackRenderer)?.thumbnailOverlayResumePlaybackRenderer;
     if (!progressBar) return true;
     const pages = configRead('hideWatchedVideosPages');
     if (!pages.length) return true;

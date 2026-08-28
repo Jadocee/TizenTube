@@ -10,7 +10,8 @@ configChangeEmitter.addEventListener('configChange', (event) => {
 
 // Resolved once. _yttv is large, and finding the same Map again on every config
 // change is a linear scan with an instanceof per entry for no new information.
-let previewFlags = null;
+// The Map is one of _yttv's own, so its value type is whatever YouTube stores.
+let previewFlags: Map<string, any> | null = null;
 
 function enableFeatures() {
     if (!previewFlags) {

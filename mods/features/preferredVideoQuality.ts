@@ -1,4 +1,5 @@
 import { configRead, configChangeEmitter } from "../config.js";
+import type { YouTubePlayer } from "../types/youtube";
 
 const SELECTORS = {
     PLAYER: '.html5-video-player',
@@ -11,27 +12,27 @@ const EVENTS = {
 
 const CONFIG_KEYS = {
     QUALITY: 'preferredVideoQuality',
-};
+} as const;
 
 class PreferredQualityHandler {
-    #player = null;
-    #attachTimeout = null;
-    #lastVideoId = null;
+    #player: YouTubePlayer | null = null;
+    #attachTimeout: ReturnType<typeof setTimeout> | null = null;
+    #lastVideoId: string | null | undefined = null;
     #hasAppliedQuality = false;
 
     constructor() {
         this.init();
     }
 
-    init() {
+    init(): void {
         this.#pollForPlayer();
         this.#setupConfigListener();
     }
 
-    #pollForPlayer() {
-        clearTimeout(this.#attachTimeout);
+    #pollForPlayer(): void {
+        clearTimeout(this.#attachTimeout!);
 
-        const playerElement = document.querySelector(SELECTORS.PLAYER);
+        const playerElement = document.querySelector<YouTubePlayer>(SELECTORS.PLAYER);
 
         if (!playerElement) {
             this.#attachTimeout = setTimeout(() => this.#pollForPlayer(), 100);
@@ -45,7 +46,7 @@ class PreferredQualityHandler {
         this.#handleStateChange();
     }
 
-    #setupConfigListener() {
+    #setupConfigListener(): void {
         configChangeEmitter.addEventListener(EVENTS.CONFIG_CHANGE, (ev) => {
             if (ev.detail?.key === CONFIG_KEYS.QUALITY) {
                 this.#applyQuality();
@@ -63,14 +64,14 @@ class PreferredQualityHandler {
             this.#hasAppliedQuality = false;
         }
 
-        const isShorts = Object.values(this.#player.getVideoStats()).find(a => a && a === 'shortspage');
+        const isShorts = Object.values(this.#player!.getVideoStats()).find(a => a && a === 'shortspage');
         if (state?.isPlaying && !this.#hasAppliedQuality && !isShorts) {
             this.#applyQuality();
             this.#hasAppliedQuality = true;
         }
     };
 
-    #applyQuality() {
+    #applyQuality(): void {
         const preferredQuality = configRead(CONFIG_KEYS.QUALITY);
         if (!preferredQuality || preferredQuality === 'auto' || !this.#player) return;
 
@@ -85,11 +86,11 @@ class PreferredQualityHandler {
         }
     }
 
-    #determineQuality(preference) {
-        const availableQualities = this.#player.getAvailableQualityData();
+    #determineQuality(preference: string): string {
+        const availableQualities = this.#player!.getAvailableQualityData();
         if (!availableQualities?.length) return 'highres';
 
-        const getQualityValue = (label) => parseInt(label, 10) || 0;
+        const getQualityValue = (label: string) => parseInt(label, 10) || 0;
         const targetValue = getQualityValue(preference);
 
         const match = availableQualities.find(q => getQualityValue(q.qualityLabel) === targetValue);

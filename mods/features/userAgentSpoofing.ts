@@ -1,4 +1,18 @@
-const deviceProfiles = [
+/** One spoofed Cobalt device. */
+interface DeviceProfile {
+    architecture: string;
+    os: string;
+    rasterizer: string;
+    manufacturer: string;
+    deviceType: string;
+    chipsetModel: string;
+    modelYear: number;
+    firmwareVersion: string;
+    brand: string;
+    model: string;
+}
+
+const deviceProfiles: DeviceProfile[] = [
     {
         architecture: 'Linux arm64-v8a',
         os: 'Android 10',
@@ -54,7 +68,7 @@ const v8Version = 'v8/8.8.278.17-jit';
 const starboardVersion = '15';
 const auxField = 'com.google.android.youtube.tv/5.30.301';
 
-function generateUserAgent(profile) {
+function generateUserAgent(profile: DeviceProfile): string {
     return `Mozilla/5.0 (${profile.architecture}; ${profile.os}) Cobalt/${cobaltVersion} (unlike Gecko) ${v8Version} ${profile.rasterizer} Starboard/${starboardVersion}, ${profile.manufacturer}_${profile.deviceType}_${profile.chipsetModel}_${profile.modelYear}/${profile.firmwareVersion} (${profile.brand}, ${profile.model}) ${auxField}`;
 }
 
