@@ -39,6 +39,13 @@ jobs:
           fi
           echo "RELEASE_VERSION=$TAG" >> $GITHUB_ENV
 
+      - name: Typecheck
+        run: |
+          for dir in mods service standalone/service; do
+            echo "--- $dir ---"
+            (cd "$dir" && npm install --no-audit --no-fund && npm run typecheck)
+          done
+
       - name: Install modules, transpile service and build service for DIAL
         working-directory: service
         run: |

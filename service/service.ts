@@ -1,7 +1,9 @@
-const dial = require("@patrickkfkan/peer-dial");
-const express = require('express');
-const cors = require('cors');
-const uuid = require('uuid');
+import * as dial from '@patrickkfkan/peer-dial';
+import type { DialApp } from '@patrickkfkan/peer-dial';
+import express from 'express';
+import cors from 'cors';
+import * as uuid from 'uuid';
+
 const app = express();
 
 const corsOptions = {
@@ -14,14 +16,14 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 const PORT = global.isTizenTube ? 8095 : 8085;
-const apps = {
+const apps: Record<string, DialApp> = {
     "YouTube": {
         name: "YouTube",
         state: "stopped",
         allowStop: true,
         pid: null,
         additionalData: {},
-        launch(launchData) {
+        launch(launchData: string) {
             const tbPackageId = tizen.application.getAppInfo().packageId;
             tizen.application.launchAppControl(
                 new tizen.ApplicationControl(
@@ -52,14 +54,14 @@ const dialServer = new dial.Server({
     friendlyName: `TizenTube (${tizen.systeminfo.getCapability('http://tizen.org/system/model_name')})`,
     uuid: uuid.v5(tizen.systeminfo.getCapability('http://tizen.org/system/tizenid'), '4bcbc514-bdd6-4163-8215-316526fd1d9b'),
     delegate: {
-        getApp(appName) {
+        getApp(appName: string): DialApp | undefined {
             return apps[appName];
         },
-        launchApp(appName, launchData, callback) {
+        launchApp(appName: string, launchData: string, callback: (pid: string | null) => void) {
             console.log(`Got request to launch ${appName} with launch data: ${launchData}`);
             const app = apps[appName];
             if (app) {
-                const parsedData = launchData.split('&').reduce((acc, cur) => {
+                const parsedData = launchData.split('&').reduce((acc: Record<string, string>, cur: string) => {
                     const parts = cur.split('=');
                     const key = parts[0];
                     const value = parts[1];
@@ -71,7 +73,7 @@ const dialServer = new dial.Server({
                     }
                 
                     return acc;
-                }, {});
+                }, {} as Record<string, string>);
                 
                 if (parsedData.yumi) {
                     app.additionalData = parsedData;
@@ -84,9 +86,9 @@ const dialServer = new dial.Server({
                 app.launch(launchData);
                 app.state = "running";
             }
-            callback(app.pid);
+            callback(app!.pid);
         },
-        stopApp(appName, pid, callback) {
+        stopApp(appName: string, pid: string, callback: (stopped: boolean) => void) {
             console.log(`Got request to stop ${appName} with pid: ${pid}`);
             const app = apps[appName];
             if (app && app.pid === pid) {
@@ -102,9 +104,9 @@ const dialServer = new dial.Server({
 
 
 setInterval(() => {
-    tizen.application.getAppsContext((appsContext) => {
+    tizen.application.getAppsContext((appsContext: any[]) => {
         const tbPackageId = tizen.application.getAppInfo().packageId;
-        const app = appsContext.find(app => app.appId === `${tbPackageId}.${global.isTizenTube ? 'TizenTubeStandalone' : 'TizenBrewStandalone'}`);
+        const app = appsContext.find((entry: any) => entry.appId === `${tbPackageId}.${global.isTizenTube ? 'TizenTubeStandalone' : 'TizenBrewStandalone'}`);
         if (!app) {
             apps["YouTube"].state = "stopped";
             apps["YouTube"].pid = null;

@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    // The Tizen web-service runtime is old, and ncc does not downlevel — so
+    // emit conservatively rather than assuming modern Node.
+    "target": "ES2018",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "lib": ["ES2018"],
+
+    "strict": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+
+    "noEmit": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true
+  },
+  "include": ["*.ts", "types/*.d.ts"],
+  "exclude": ["node_modules", "dist"]
+}

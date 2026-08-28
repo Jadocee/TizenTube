@@ -3,7 +3,7 @@ import getCommandExecutor from "./customCommandExecution.js";
 
 const origParse = JSON.parse;
 JSON.parse = function () {
-    const r = origParse.apply(this, arguments);
+    const r = (origParse as Function).apply(this, arguments);
 
     try {
         const disabledSidebarContents = configRead('disabledSidebarContents');

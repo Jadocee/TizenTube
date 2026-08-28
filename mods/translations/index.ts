@@ -1,7 +1,7 @@
 import i18n from 'i18next';
 import resources from './i18nResources.js';
 
-function youtubeLanguage() {
+function youtubeLanguage(): string | undefined {
   return window?.yt?.config_?.HL;
 }
 
@@ -25,7 +25,7 @@ if (!youtubeLanguage()) {
   }, 250);
 }
 
-function InitI18next(lng) {
+function InitI18next(lng: string): void {
   i18n
     .init({
       lng,

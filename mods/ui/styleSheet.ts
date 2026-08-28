@@ -10,19 +10,19 @@
 // Our rules go in an element of our own instead, held as named blocks so a
 // block can be replaced without disturbing the others.
 
-const blocks = {};
-const order = [];
+const blocks: Record<string, string> = {};
+const order: string[] = [];
 
-let ownStyle = null;
-let ownStyleUsable;
+let ownStyle: HTMLStyleElement | null = null;
+let ownStyleUsable: boolean | undefined;
 // What we last wrote into the page's stylesheet, on the fallback path only.
 let fallbackCss = '';
 
-function pageStyle() {
+function pageStyle(): HTMLStyleElement | null {
     return document.querySelector('style[nonce]');
 }
 
-function readNonce(element) {
+function readNonce(element: HTMLStyleElement | null): string {
     if (!element) return '';
     // Chrome stopped exposing the nonce content attribute to getAttribute() in
     // 61 and moved it to the IDL property; Chrome 47, which this build targets,
@@ -30,7 +30,7 @@ function readNonce(element) {
     return element.nonce || element.getAttribute('nonce') || '';
 }
 
-function ensureOwnStyle() {
+function ensureOwnStyle(): HTMLStyleElement | null {
     if (ownStyle) return ownStyle;
 
     const parent = document.head || document.documentElement;
@@ -54,7 +54,7 @@ function ensureOwnStyle() {
     return ownStyle;
 }
 
-function render() {
+function render(): string {
     let css = '';
     for (const name of order) css += blocks[name];
     return css;
@@ -64,7 +64,7 @@ function render() {
  * Adds or replaces one named block of TizenTube's CSS. Blocks render in the
  * order they were first set.
  */
-export function setStyleBlock(name, css) {
+export function setStyleBlock(name: string, css: string): void {
     if (!(name in blocks)) order.push(name);
     blocks[name] = css;
 

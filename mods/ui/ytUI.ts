@@ -1,17 +1,64 @@
 import resolveCommand from '../resolveCommand.js';
 import { t } from 'i18next';
+import type {
+    Command,
+    CompactLinkRenderer,
+    ModalHeader,
+    QueuedTile,
+    Renderer,
+    TextRuns,
+    Thumbnail
+} from '../types/youtube';
+
+/** A command whose payload is one of YouTube's own untyped popup trees. */
+interface PopupCommand extends Command {
+    openPopupAction: Record<string, any>;
+}
+
+/** The text of a `buttonItem` row. */
+interface ButtonItemTitle {
+    title: string;
+    subtitle?: string;
+}
+
+/** The icons of a `buttonItem` row. */
+interface ButtonItemIcon {
+    icon?: string;
+    secondaryIcon?: string;
+}
+
+/** What `longPressData` needs off a tile to build its menu. */
+interface LongPressSource {
+    videoId: string;
+    thumbnails: Thumbnail[];
+    title: string;
+    subtitle: string;
+    watchEndpointData: { playlistId?: string; [key: string]: any };
+    item: any;
+}
+
+/** A category in YouTube's own settings list. */
+interface SettingCategory {
+    settingCategoryCollectionRenderer: {
+        items: Renderer[];
+        categoryId: string;
+        focused: boolean;
+        trackingParams: string;
+        title?: TextRuns;
+    };
+}
 
 // Chained SponsorBlock skips can fire the same toast twice in a second, which
 // on a TV means two overlapping banners across the subtitle area.
 let lastToast = { key: '', at: 0 };
 
-function showToast(title, subtitle, thumbnails) {
+function showToast(title: string, subtitle: string, thumbnails?: Thumbnail[] | null): void {
     const key = `${title}\u0000${subtitle}`;
     const now = Date.now();
     if (key === lastToast.key && now - lastToast.at < 3000) return;
     lastToast = { key, at: now };
 
-    const toastCmd = {
+    const toastCmd: PopupCommand = {
         openPopupAction: {
             popupType: 'TOAST',
             popup: {
@@ -33,7 +80,7 @@ function showToast(title, subtitle, thumbnails) {
     resolveCommand(toastCmd);
 }
 
-function OverlayPanelHeaderRenderer(title, subtitle, thumbnails) {
+function OverlayPanelHeaderRenderer(title: string, subtitle: string, thumbnails: Thumbnail[]) {
     return {
         overlayPanelHeaderRenderer: {
             title: {
@@ -50,14 +97,14 @@ function OverlayPanelHeaderRenderer(title, subtitle, thumbnails) {
     }
 }
 
-function Modal(header, content, id, update) {
+function Modal(header: ModalHeader, content: Renderer, id: string, update?: unknown): Command {
     const titleSubtitleObj = typeof header === 'string' ? { title: header, subtitle: '' } : header;
-    const overlayPanelHeaderRenderer = header.overlayPanelHeaderRenderer || {
+    const overlayPanelHeaderRenderer: Record<string, any> = (header as Exclude<ModalHeader, string>).overlayPanelHeaderRenderer || {
         title: {
             simpleText: titleSubtitleObj.title
         }
     };
-    const modalCmd = {
+    const modalCmd: PopupCommand = {
         openPopupAction: {
             popupType: 'MODAL',
             popup: {
@@ -113,13 +160,13 @@ function Modal(header, content, id, update) {
     return modalCmd;
 }
 
-function showModal(header, content, id, update) {
+function showModal(header: ModalHeader, content: Renderer, id: string, update?: unknown): void {
     const modalCmd = Modal(header, content, id, update);
 
     resolveCommand(modalCmd);
 }
 
-function overlayPanelItemListRenderer(items, selectedIndex) {
+function overlayPanelItemListRenderer(items: Renderer[], selectedIndex?: number) {
     return {
         overlayPanelItemListRenderer: {
             items,
@@ -128,8 +175,8 @@ function overlayPanelItemListRenderer(items, selectedIndex) {
     }
 };
 
-function buttonItem(title, icon, commands) {
-    const button = {
+function buttonItem(title: ButtonItemTitle, icon: ButtonItemIcon | null | undefined, commands: Command[]): CompactLinkRenderer {
+    const button: CompactLinkRenderer = {
         compactLinkRenderer: {
             serviceEndpoint: {
                 commandExecutorCommand: {
@@ -167,7 +214,7 @@ function buttonItem(title, icon, commands) {
 }
 
 
-function timelyAction(text, icon, command, triggerTimeMs, timeoutMs) {
+function timelyAction(text: string, icon: string, command: Command, triggerTimeMs: number, timeoutMs: number) {
     return {
         timelyActionRenderer: {
             actionButtons: [
@@ -197,7 +244,7 @@ function timelyAction(text, icon, command, triggerTimeMs, timeoutMs) {
 
 }
 
-function longPressData(data) {
+function longPressData(data: LongPressSource): Command {
     const isWatchLaterItem = data.watchEndpointData.playlistId === 'WL';
     const watchLaterAction = isWatchLaterItem ? {
         removedVideoId: data.videoId,
@@ -268,7 +315,7 @@ function longPressData(data) {
     }
 }
 
-function MenuServiceItemRenderer(text, serviceEndpoint) {
+function MenuServiceItemRenderer(text: string, serviceEndpoint: Command) {
     return {
         menuServiceItemRenderer: {
             text: {
@@ -284,7 +331,7 @@ function MenuServiceItemRenderer(text, serviceEndpoint) {
     };
 }
 
-function MenuNavigationItemRenderer(text, navigateEndpoint) {
+function MenuNavigationItemRenderer(text: string, navigateEndpoint: Command) {
     return {
         menuNavigationItemRenderer: {
             text: {
@@ -300,8 +347,8 @@ function MenuNavigationItemRenderer(text, navigateEndpoint) {
     }
 }
 
-function SettingsCategory(categoryId, items, title) {
-    const category = {
+function SettingsCategory(categoryId: string, items: Renderer[], title?: string): SettingCategory {
+    const category: SettingCategory = {
         settingCategoryCollectionRenderer: {
             items,
             categoryId,
@@ -323,7 +370,7 @@ function SettingsCategory(categoryId, items, title) {
     return category;
 }
 
-function SettingActionRenderer(title, itemId, serviceEndpoint, summary, thumbnail) {
+function SettingActionRenderer(title: string, itemId: string, serviceEndpoint: Command, summary: string, thumbnail: string) {
     return {
         settingActionRenderer: {
             title: {
@@ -361,7 +408,7 @@ function SettingActionRenderer(title, itemId, serviceEndpoint, summary, thumbnai
     }
 }
 
-function scrollPaneRenderer(items) {
+function scrollPaneRenderer(items: Renderer[]) {
     return {
         scrollPaneRenderer: {
             content: scrollPaneItemListRenderer(items)
@@ -369,7 +416,7 @@ function scrollPaneRenderer(items) {
     }
 }
 
-function scrollPaneItemListRenderer(items) {
+function scrollPaneItemListRenderer(items: Renderer[]) {
     return {
         scrollPaneItemListRenderer: {
             items
@@ -377,7 +424,7 @@ function scrollPaneItemListRenderer(items) {
     }
 }
 
-function overlayMessageRenderer(simpleText) {
+function overlayMessageRenderer(simpleText: string) {
     return {
         overlayMessageRenderer: {
             title: {
@@ -387,7 +434,7 @@ function overlayMessageRenderer(simpleText) {
     }
 }
 
-function ShelfRenderer(simpleText, items, selectedIndex = 0) {
+function ShelfRenderer(simpleText: string, items: Renderer[], selectedIndex = 0) {
     return {
         shelfRenderer: {
             shelfHeaderRenderer: {
@@ -407,7 +454,7 @@ function ShelfRenderer(simpleText, items, selectedIndex = 0) {
     }
 }
 
-function TileRenderer(simpleText, onSelectCommand) {
+function TileRenderer(simpleText: string, onSelectCommand: Command): QueuedTile {
     return {
         tileRenderer: {
             contentType: "TILE_CONTENT_TYPE_VIDEO",
@@ -424,7 +471,7 @@ function TileRenderer(simpleText, onSelectCommand) {
     }
 }
 
-function QrCodeRenderer(url) {
+function QrCodeRenderer(url: string) {
     return {
         qrCodeRenderer: {
             qrCodeImage: {
@@ -440,7 +487,7 @@ function QrCodeRenderer(url) {
     }
 }
 
-function ButtonRenderer(disabled, text, iconType, command) {
+function ButtonRenderer(disabled: boolean, text: string, iconType: string, command: Command) {
     return {
         isDisabled: disabled,
         text: {
