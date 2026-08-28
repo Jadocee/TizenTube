@@ -40,12 +40,18 @@
     </style>
     <script>
         "use strict";
-        tizen.tvinputdevice.registerKey("ColorF0Red");
-        tizen.tvinputdevice.registerKey("ColorF1Green");
-        tizen.tvinputdevice.registerKey("ColorF2Yellow");
-        tizen.tvinputdevice.registerKey("ColorF3Blue");
 
+        // Key registration is a nice-to-have; starting the service is not, so it
+        // must not sit above it unguarded. registerKey throws InvalidValuesError
+        // for any name this model does not list in getSupportedKeys() -- and that
+        // set varies by model and region -- so one unsupported key used to abort
+        // the whole script, leaving launchAppControl below it never executed and
+        // the app dead on the splash with no service at all.
         const keys = [
+            "ColorF0Red",
+            "ColorF1Green",
+            "ColorF2Yellow",
+            "ColorF3Blue",
             "MediaPlayPause",
             "MediaPlay",
             "MediaPause",
@@ -57,12 +63,32 @@
         ];
 
         for (let i = 0; i < keys.length; i++) {
-            tizen.tvinputdevice.registerKey(keys[i]);
+            try {
+                tizen.tvinputdevice.registerKey(keys[i]);
+            } catch (e) {
+                // Not supported on this model. The others still register.
+            }
+        }
+
+        // Shown under the progress bar. There is no console on a TV, so a launch
+        // that cannot proceed has to say so on screen or it just looks frozen.
+        let statusEl = null;
+        function status(message) {
+            if (!document.body) return;
+            if (!statusEl) {
+                statusEl = document.createElement("div");
+                statusEl.style.cssText = "color:#aaa;font-family:Roboto,Arial,sans-serif;font-size:22px;margin-top:32px;text-align:center;max-width:80%;";
+                document.body.appendChild(statusEl);
+            }
+            statusEl.textContent = message;
         }
 
         const pkgId = tizen.application.getCurrentApplication().appInfo.packageId;
 
         const serviceId = pkgId + ".StandaloneService";
+
+        // Attempts spent waiting for the service to answer on 8099.
+        let attempts = 0;
 
         function useInjectorOrProxy() {
             const data = tizen.application.getCurrentApplication().getRequestedAppControl().appControl.data;
@@ -73,8 +99,16 @@
             } catch (e) {
                 // Do nothing.
             }
-            fetch('http://localhost:8099/tizentube/getState')
-                .then(r => r.json())
+            // launchAppControl's success callback means the launch REQUEST was
+            // accepted, not that express is listening yet, so the first attempts
+            // here are normally connection refusals. The abort deadline matters
+            // separately: a service that accepts the connection but never writes
+            // a response would otherwise leave this promise pending forever,
+            // because fetch has no default timeout.
+            const ctrl = new AbortController();
+            const deadline = setTimeout(() => ctrl.abort(), 5000);
+            fetch('http://localhost:8099/tizentube/getState', { signal: ctrl.signal })
+                .then(r => { clearTimeout(deadline); return r.json(); })
                 .then(res => {
                     if (res.canConnectToDaemon && !res.isConnecting) {
                         fetch(`http://localhost:8099/tizentube/debugger${args ? `?${args}` : ''}`);
@@ -96,7 +130,21 @@
                         // service's own retry cadence.
                         setTimeout(useInjectorOrProxy, 500);
                     }
-                }).catch(() => window.location.reload());
+                }).catch(() => {
+                    clearTimeout(deadline);
+                    // Retry in place rather than reloading the document. The old
+                    // `window.location.reload()` had no delay and no counter, so a
+                    // service that took a moment to bind produced a full document
+                    // reload loop at connection-refusal speed -- and each reload
+                    // re-ran launchAppControl.
+                    attempts++;
+                    if (attempts === 30) {
+                        status("Still waiting for the TizenTube service\u2026");
+                    } else if (attempts === 120) {
+                        status("The TizenTube service is not responding. Try closing and reopening the app.");
+                    }
+                    setTimeout(useInjectorOrProxy, 500);
+                });
         }
 
         tizen.application.launchAppControl(
@@ -106,7 +154,8 @@
                 useInjectorOrProxy();
             },
             function (e) {
-                alert("Launch Service failed: " + e.message);
+                // alert() on a TV is a dead end with a D-pad; put it on the page.
+                status("Could not start the TizenTube service: " + (e && e.message));
             }
         );
     </script>

@@ -12,7 +12,7 @@
   "author": "Reis Can, YouTube WebOs contributors",
   "license": "GPL-3.0-only",
   "dependencies": {
-    "esprima": "^4.0.1",
+    "acorn": "^8.18.0",
     "estraverse": "^5.3.0",
     "i18next": "^26.4.0",
     "qrcode-npm": "^0.0.3",

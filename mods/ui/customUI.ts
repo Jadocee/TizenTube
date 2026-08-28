@@ -33,7 +33,15 @@ function applyPatches() {
     // with no space, so \s missed it, the ES5 path called a real class without
     // `new`, and YouTube's constructor threw.
     const isClass = /^class\b/.test(origSource);
-    const functions = extractAssignedFunctions(origSource);
+    // Guarded even though the parser now returns [] rather than throwing: this
+    // runs inside a setTimeout chain, so an escape here would kill every player
+    // patch for the life of the page with nothing to retry it.
+    let functions: AssignedFunction[] = [];
+    try {
+        functions = extractAssignedFunctions(origSource);
+    } catch (e) {
+        console.warn('TizenTube: could not parse the player component', e);
+    }
 
     // Each of these reads a name out of the minified component. A miss used to
     // throw straight out of the constructor, which leaves the transport control
@@ -57,6 +65,13 @@ function applyPatches() {
     });
 
     const engagementActionButton = nameOf((func) => func.rhs.includes('props.data.engagementActions'));
+
+    // Resolving nothing at all means the component's shape changed, not that
+    // this particular build has no settings row. Worth a line, because the
+    // failure is otherwise completely silent: every patch below simply no-ops.
+    if (!settingActionGroup && !engagementActionButton) {
+        console.warn('TizenTube: no player-control members resolved; the transport component shape has changed');
+    }
 
     function YtlrPlayerActionsContainer(this: any) {
         const args = Array.prototype.slice.call(arguments);

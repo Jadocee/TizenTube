@@ -27,38 +27,24 @@ declare module 'tiny-sha256' {
 // this one does not go away with the move to Chromium M120.
 declare module '*/spatial-navigation-polyfill.js';
 
-// esprima and estraverse ship no type definitions here. The parser walks a
-// minified bundle, so the node shapes are whatever the input happens to be;
-// what is declared is only the surface ASTParser.ts actually touches.
-declare module 'esprima' {
-    export interface Node {
+// estraverse ships no type definitions here. The parser walks a minified
+// bundle, so the node shapes are whatever the input happens to be; what is
+// declared is only the surface ASTParser.ts actually touches. acorn brings its
+// own types and needs no declaration.
+declare module 'estraverse' {
+    interface EstraverseNode {
         type: string;
         range?: [number, number];
         [key: string]: any;
     }
-    export interface Program extends Node {
-        type: 'Program';
-        body: Node[];
-    }
-    export interface ParseOptions {
-        range?: boolean;
-        loc?: boolean;
-        tolerant?: boolean;
-        comment?: boolean;
-        sourceType?: 'script' | 'module';
-    }
-    export function parse(code: string, options?: ParseOptions): Program;
-    const _default: { parse: typeof parse };
-    export default _default;
-}
-
-declare module 'estraverse' {
-    import type { Node } from 'esprima';
     export interface Visitor {
-        enter?(node: Node, parent: Node | null): void;
-        leave?(node: Node, parent: Node | null): void;
+        enter?(node: EstraverseNode, parent: EstraverseNode | null): void;
+        leave?(node: EstraverseNode, parent: EstraverseNode | null): void;
+        /** Required for modern syntax: without it estraverse throws on the
+         *  first node type it has no visitor keys for. */
+        fallback?: 'iteration' | ((node: EstraverseNode) => string[]);
     }
-    export function traverse(root: Node, visitor: Visitor): void;
+    export function traverse(root: EstraverseNode, visitor: Visitor): void;
     const _default: { traverse: typeof traverse };
     export default _default;
 }
