@@ -24,9 +24,6 @@
   line-height: 1.4;
   z-index: 1000;
 
-  /* Honoured by the spatial-navigation polyfill on engines that support CSS
-     custom properties; the key handler contains focus by hand for the rest. */
-  --spatial-navigation-contain: contain;
 }
 
 /* Fallback highlight for the moment the container itself holds focus, before
@@ -107,6 +104,14 @@
 .ytaf-ui-container :focus {
   outline: 0.25rem solid #f1f1f1;
   outline-offset: 0.15rem;
+}
+
+/* The fill lives on the row, not the control. On :focus it lost on specificity
+   to the input[type='text'] rule above -- and the two text inputs are the only
+   focusable things the panel has, so the fill never showed at all. Lighting the
+   whole row is also what the comment above promises, and it leaves the input's
+   own dark field intact. */
+.ytaf-ui-container .ytaf-ui-row:focus-within {
   background: rgba(255, 255, 255, 0.22);
 }
 

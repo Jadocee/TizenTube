@@ -6,6 +6,9 @@ import { ButtonRenderer } from "./ytUI.js";
 import { t } from 'i18next';
 import type { AssignedFunction } from "../utils/ASTParser.js";
 
+// Passes spent waiting for the transport-controls component to register.
+let scanAttempts = 0;
+
 function applyPatches() {
     if (!window._yttv) return setTimeout(applyPatches, 250);
     if (!document.querySelector('video')) return setTimeout(applyPatches, 250);
@@ -14,13 +17,22 @@ function applyPatches() {
     });
 
     if (methods.length === 0) {
-        setTimeout(applyPatches, 250);
+        // _yttv fills in progressively, so a miss means 'not yet' -- but this
+        // scan stringifies every function in the registry, so back off rather
+        // than paying that four times a second for the life of the page. Never
+        // gives up: the user may sit on the home screen for minutes before
+        // opening a video, and abandoning would cost them the player patches.
+        scanAttempts++;
+        setTimeout(applyPatches, scanAttempts > 40 ? 2000 : 250);
         return;
     }
 
     const origMethod = window._yttv[methods[0]];
     const origSource = origMethod.toString();
-    const isClass = /^class\s/.test(origSource);
+    // \b not \s: a minified anonymous class stringifies as `class{constructor…}`
+    // with no space, so \s missed it, the ES5 path called a real class without
+    // `new`, and YouTube's constructor threw.
+    const isClass = /^class\b/.test(origSource);
     const functions = extractAssignedFunctions(origSource);
 
     // Each of these reads a name out of the minified component. A miss used to
@@ -94,7 +106,12 @@ function applyPatches() {
                 inst[settingActionGroup] = function (this: any) {
                     const res = origSettingActionGroup.apply(this, arguments);
                     const idx = res.findIndex((item: any) => item.type === 'TRANSPORT_CONTROLS_BUTTON_TYPE_PLAYBACK_SETTINGS');
-                    res.find((item: any) => item.type === 'TRANSPORT_CONTROLS_BUTTON_TYPE_PIP') || res.splice(idx, 0, pipCommand);
+                    // splice() reads a negative start as an offset from the end, so
+                    // a missing settings button put the PiP button second-to-last
+                    // instead of appending it.
+                    if (!res.some((item: any) => item.type === 'TRANSPORT_CONTROLS_BUTTON_TYPE_PIP')) {
+                        res.splice(idx === -1 ? res.length : idx, 0, pipCommand);
+                    }
                     return res;
                 };
             }
