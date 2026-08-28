@@ -61,7 +61,12 @@ const dialServer = new dial.Server({
             console.log(`Got request to launch ${appName} with launch data: ${launchData}`);
             const app = apps[appName];
             if (app) {
-                const parsedData = launchData.split('&').reduce((acc: Record<string, string>, cur: string) => {
+                // peer-dial passes `req.text || null`, and req.text is only set
+                // when the body middleware recognises the content type -- so an
+                // empty or untyped DIAL body arrives here as null, and the
+                // declared `string` type does not stop it.
+                const raw = typeof launchData === 'string' ? launchData : '';
+                const parsedData = raw.split('&').reduce((acc: Record<string, string>, cur: string) => {
                     const parts = cur.split('=');
                     const key = parts[0];
                     const value = parts[1];
@@ -83,7 +88,7 @@ const dialServer = new dial.Server({
                 }
                 app.pid = "run";
                 app.state = "starting";
-                app.launch(launchData);
+                app.launch(raw);
                 app.state = "running";
             }
             callback(app!.pid);

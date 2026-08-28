@@ -127,7 +127,9 @@ JSON.parse = function () {
 
     // Patch settings
 
-    if (r?.title?.runs) {
+    // Array.isArray(r.items) is the precondition PatchSettings actually needs;
+    // title.runs alone matched unrelated payloads.
+    if (r?.title?.runs && Array.isArray(r.items)) {
       PatchSettings(r);
     }
 

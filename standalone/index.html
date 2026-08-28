@@ -91,13 +91,18 @@
         let attempts = 0;
 
         function useInjectorOrProxy() {
-            const data = tizen.application.getCurrentApplication().getRequestedAppControl().appControl.data;
+            // The whole read goes inside the try. getRequestedAppControl()
+            // returns null when the app was not started by an app-control
+            // request, and that deref used to sit one line ABOVE the try written
+            // to tolerate exactly this kind of absence -- so it threw out of the
+            // launch callback instead of falling through to the no-args path.
             let args;
             try {
-                const parsedData = JSON.parse(data[0].value[0]);
-                args = parsedData.args;
+                const requested = tizen.application.getCurrentApplication().getRequestedAppControl();
+                const data = requested.appControl.data;
+                args = JSON.parse(data[0].value[0]).args;
             } catch (e) {
-                // Do nothing.
+                // No app-control data: carry on with no args.
             }
             // launchAppControl's success callback means the launch REQUEST was
             // accepted, not that express is listening yet, so the first attempts
