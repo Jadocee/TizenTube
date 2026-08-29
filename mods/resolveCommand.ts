@@ -50,29 +50,31 @@ export function patchResolveCommand(): void {
             window._yttv[key].instance.resolveCommand = function (this: any, cmd: Command, _?: any): any {
                 if (cmd.setClientSettingEndpoint) {
                     // Command to change client settings. Use TizenTube configuration to change settings.
-                    for (const settings of cmd.setClientSettingEndpoint.settingDatas) {
-                        if (!settings.clientSettingEnum.item.includes('_')) {
-                            for (const setting of cmd.setClientSettingEndpoint.settingDatas as SettingDataPayload[]) {
-                                const valName = Object.keys(setting).find(key => key.includes('Value'));
-                                const value = valName === 'intValue' ? Number(setting[valName]) : setting[valName!];
-                                // The item comes straight out of the command payload, so it is
-                                // only a setting name if it actually names one.
-                                const item = setting.clientSettingEnum.item;
-                                if (!isConfigKey(item)) continue;
-                                if (valName === 'arrayValue') {
-                                    const arr = configRead(item);
-                                    if (Array.isArray(arr)) {
-                                        if (arr.includes(value)) {
-                                            arr.splice(arr.indexOf(value), 1);
-                                        } else {
-                                            arr.push(value);
-                                        }
-                                        configWrite(item, arr);
+                    // One pass. There used to be an inner loop over the same
+                    // array, so with N entries in one command every entry was
+                    // applied N times -- an arrayValue toggle applied twice is a
+                    // no-op, which is how this stayed invisible.
+                    for (const setting of cmd.setClientSettingEndpoint.settingDatas as SettingDataPayload[]) {
+                        if (!setting.clientSettingEnum.item.includes('_')) {
+                            const valName = Object.keys(setting).find(key => key.includes('Value'));
+                            const value = valName === 'intValue' ? Number(setting[valName]) : setting[valName!];
+                            // The item comes straight out of the command payload, so it is
+                            // only a setting name if it actually names one.
+                            const item = setting.clientSettingEnum.item;
+                            if (!isConfigKey(item)) continue;
+                            if (valName === 'arrayValue') {
+                                const arr = configRead(item);
+                                if (Array.isArray(arr)) {
+                                    if (arr.includes(value)) {
+                                        arr.splice(arr.indexOf(value), 1);
+                                    } else {
+                                        arr.push(value);
                                     }
-                                } else configWrite(item, value);
-                            }
-                        } else if (settings.clientSettingEnum.item === 'I18N_LANGUAGE') {
-                            const lang = settings.stringValue;
+                                    configWrite(item, arr);
+                                }
+                            } else configWrite(item, value);
+                        } else if (setting.clientSettingEnum.item === 'I18N_LANGUAGE') {
+                            const lang = setting.stringValue;
                             const date = new Date();
                             date.setFullYear(date.getFullYear() + 10);
                             document.cookie = `PREF=hl=${lang}; expires=${date.toUTCString()};`;
@@ -114,21 +116,37 @@ export function patchResolveCommand(): void {
                         }
                     }
 
-                    cmd.openPopupAction.popup.overlaySectionRenderer.overlay.overlayTwoPanelRenderer.actionPanel.overlayPanelRenderer.content.overlayPanelItemListRenderer.items.splice(2, 0,
-                        buttonItem(
-                            { title: t('player.miniPlayer') },
-                            { icon: 'CLEAR_COOKIES' }, [
-                            {
-                                customAction: {
-                                    action: 'ENTER_MP'
+                    // Guarded like every other renderer insert in the mod
+                    // (customUI.ts does the same before its PiP and speed rows).
+                    // Nothing here guarantees YouTube hands back a fresh endpoint
+                    // object, and these splice into it in place.
+                    const settingsItems = cmd.openPopupAction.popup.overlaySectionRenderer.overlay.overlayTwoPanelRenderer.actionPanel.overlayPanelRenderer.content.overlayPanelItemListRenderer.items;
+                    const hasAction = (action: string) => settingsItems.some((item: any) =>
+                        item?.compactLinkRenderer?.serviceEndpoint?.commandExecutorCommand?.commands?.some(
+                            (c: any) => c?.customAction?.action === action));
+
+                    if (!hasAction('ENTER_MP')) {
+                        settingsItems.splice(2, 0,
+                            buttonItem(
+                                { title: t('player.miniPlayer') },
+                                { icon: 'CLEAR_COOKIES' }, [
+                                {
+                                    customAction: {
+                                        action: 'ENTER_MP'
+                                    }
                                 }
-                            }
-                        ])
-                    );
+                            ])
+                        );
+                    }
 
                     if (window.h5vcc && window.h5vcc.tizentube && window.h5vcc.tizentube.HasSystemFeature &&
-                        window.h5vcc.tizentube.HasSystemFeature('android.software.picture_in_picture')) {
-                        cmd.openPopupAction.popup.overlaySectionRenderer.overlay.overlayTwoPanelRenderer.actionPanel.overlayPanelRenderer.content.overlayPanelItemListRenderer.items.splice(3, 0,
+                        window.h5vcc.tizentube.HasSystemFeature('android.software.picture_in_picture') &&
+                        !hasAction('ENTER_PIP')) {
+                        // Placed after the mini-player row wherever that ended up,
+                        // rather than at a hardcoded index that assumed it went in.
+                        settingsItems.splice(settingsItems.findIndex((item: any) =>
+                            item?.compactLinkRenderer?.serviceEndpoint?.commandExecutorCommand?.commands?.some(
+                                (c: any) => c?.customAction?.action === 'ENTER_MP')) + 1, 0,
                             buttonItem(
                                 { title: t('player.pictureInPicture') },
                                 { icon: 'TV' }, [
@@ -147,11 +165,15 @@ export function patchResolveCommand(): void {
                     }
                 } else if (cmd?.watchEndpoint?.videoId) {
                     window.isPipPlaying = false;
-                    const ytlrPlayerContainer = document.querySelector<HTMLElement>('ytlr-player-container');
-                    ytlrPlayerContainer!.style.removeProperty('z-index');
+                    // Guarded like the analogous lookup in ui.ts. A throw here
+                    // stopped the watch command from ever reaching ogResolve, so
+                    // the video would not open at all.
+                    document.querySelector<HTMLElement>('ytlr-player-container')?.style.removeProperty('z-index');
                 }
 
-                if (cmd.customAction) return window._yttv![key].instance.resolveCommand(cmd, _);
+                // ogResolve, not the registry slot -- that slot is this very
+                // wrapper, so the old call recursed into itself.
+                if (cmd.customAction) return ogResolve.call(this, cmd, _);
 
                 if (cmd.commandExecutorCommand && cmd.commandExecutorCommand.commands) {
                     for (const command of cmd.commandExecutorCommand.commands) {
@@ -164,7 +186,7 @@ export function patchResolveCommand(): void {
                         } else if (command.playlistEditEndpoint?.customAction) {
                             customAction(command.playlistEditEndpoint.customAction.action, command.playlistEditEndpoint.customAction.parameters);
                         } else {
-                            window._yttv![key].instance.resolveCommand(command, _);
+                            ogResolve.call(this, command, _);
                         }
                     }
                     return true;

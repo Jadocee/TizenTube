@@ -1,6 +1,6 @@
 # Harnesses
 
-Ten regression harnesses. They exist because the things that break TizenTube
+Eleven regression harnesses. They exist because the things that break TizenTube
 mostly cannot be caught by a typechecker or by reading a diff: a renderer shape
 that only appears at runtime, a focus trap you only find with a D-pad, a
 stylesheet that works until CSP is enforced, a script that behaves differently
@@ -22,6 +22,7 @@ here (no browser, no built bundle) report as *skipped*, not passed.
 | `settings/stale.mjs` | Menu scenarios end to end: picking a value, the list reopening on that value, clearing it again. |
 | `settings/crumb.mjs` | The startup-error breadcrumb, including a non-Error argument and a `localStorage` that throws. |
 | `whos-watching/test.mjs` | Every real shape YouTube's `recurring_actions` blob can take. This code runs at module scope, so a throw here aborts every module imported after it. |
+| `command-executor/test.mjs` | Resolving YouTube's action router out of the minified registry — the function whose failure produced the original black-screen-on-launch. Covers a module that throws, one that returns nothing, a decoy that only mentions the router in its source, a prototype whose `constructor` matches, and an accessor that must not be invoked. |
 | `adblock/test.mjs` | The `_yttv` JSON patch loop against modules that register late, are frozen, or carry no `JSON`. |
 | `stylesheet/run.mjs` | Runs the real stylesheet code in Chromium under an enforced nonce-only CSP, and shows the old approach destroying YouTube's CSSOM rules beside the current one preserving them. |
 | `injection/proxy.test.mjs` | Where the proxy injects the userscript tag, and that the loader prefers the packaged copy. |
