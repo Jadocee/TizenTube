@@ -42,6 +42,13 @@ function ensureOwnStyle(): HTMLStyleElement | null {
     // A strict CSP only honours a <style> carrying the page's nonce, and it has
     // to be set before the element is inserted.
     const nonce = readNonce(pageStyle());
+    // No nonce and no page stylesheet, while the document is still parsing its
+    // head, means YouTube's may still be coming -- and the nonce has to be set
+    // before insertion to count, so an element created now would be permanently
+    // nonce-less. Leave ownStyle null and let the next write build it properly.
+    // Once <body> exists the head is complete: absent then means absent, and a
+    // page with no CSP at all still gets our element.
+    if (!nonce && !pageStyle() && !document.body) return null;
     if (nonce) {
         style.setAttribute('nonce', nonce);
         try {
@@ -73,7 +80,11 @@ export function setStyleBlock(name: string, css: string): void {
         style.textContent = render();
         // A null sheet means CSP rejected the element. Anything else means our
         // rules took, and YouTube's stylesheet is never touched.
-        if (ownStyleUsable === undefined) ownStyleUsable = !!style.sheet;
+        // Re-tested until it succeeds once. Latching on the first call recorded
+        // a verdict from before there was a nonce to copy, and then never
+        // revisited it -- so one early write condemned every later one to the
+        // destructive fallback below.
+        if (ownStyleUsable !== true) ownStyleUsable = !!style.sheet;
         if (ownStyleUsable) return;
     }
 

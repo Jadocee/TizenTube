@@ -49,14 +49,16 @@ interface SettingCategory {
 }
 
 // Chained SponsorBlock skips can fire the same toast twice in a second, which
-// on a TV means two overlapping banners across the subtitle area.
+// on a TV means two overlapping banners across the subtitle area. Opt-in,
+// because that rationale is specific to SponsorBlock: applied to every caller
+// it also swallowed unrelated confirmations, so queueing the same video twice
+// in three seconds silently showed nothing the second time.
 let lastToast = { key: '', at: 0 };
 
-function showToast(title: string, subtitle: string, thumbnails?: Thumbnail[] | null): void {
+function showToast(title: string, subtitle: string, thumbnails?: Thumbnail[] | null, coalesce = false): void {
     const key = `${title}\u0000${subtitle}`;
     const now = Date.now();
-    if (key === lastToast.key && now - lastToast.at < 3000) return;
-    lastToast = { key, at: now };
+    if (coalesce && key === lastToast.key && now - lastToast.at < 3000) return;
 
     const toastCmd: PopupCommand = {
         openPopupAction: {
@@ -78,6 +80,9 @@ function showToast(title: string, subtitle: string, thumbnails?: Thumbnail[] | n
         toastCmd.openPopupAction.popup.overlayToastRenderer.image = { thumbnails };
     }
     resolveCommand(toastCmd);
+    // Armed on delivery, not on entry: a toast that never reached
+    // resolveCommand used to suppress the next real one.
+    if (coalesce) lastToast = { key, at: now };
 }
 
 function OverlayPanelHeaderRenderer(title: string, subtitle: string, thumbnails: Thumbnail[]) {

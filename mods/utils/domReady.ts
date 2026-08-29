@@ -12,14 +12,11 @@ export function whenBodyReady(callback: () => void): void {
         return;
     }
 
-    // ~10 seconds, which is far longer than the parser needs to reach <body>.
-    let tries = 0;
-    const timer = setInterval(() => {
-        if (!document.body) {
-            if (++tries > 200) clearInterval(timer);
-            return;
-        }
-        clearInterval(timer);
-        callback();
-    }, 50);
+    // Keyed to the document, not to a stopwatch. This used to poll and give up
+    // after ~10s "which is far longer than the parser needs to reach <body>" --
+    // but the wait here is not parser speed. Running first in <head> means
+    // YouTube's own multi-megabyte blocking head scripts have to download and
+    // execute before <body> is reached, which on a cold TV can take longer than
+    // that. Giving up silently left the clock and the PiP button simply absent.
+    document.addEventListener('DOMContentLoaded', () => callback(), { once: true });
 }

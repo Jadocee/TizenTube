@@ -77,10 +77,10 @@ function applyPatches() {
         const args = Array.prototype.slice.call(arguments);
 
         function constructAsNew(ctor: any, argsList: any[]) {
-            if (typeof Reflect !== 'undefined' && typeof Reflect.construct === 'function') {
-                return Reflect.construct(ctor, argsList, YtlrPlayerActionsContainer);
-            }
-            return new origMethod(...argsList);
+            // Reflect.construct is Chrome 49, so on the old target this test was
+            // always false and the `new origMethod(...)` fallback was the only
+            // arm anyone ran. On M120 it is always true and that arm is dead.
+            return Reflect.construct(ctor, argsList, YtlrPlayerActionsContainer);
         }
 
         if (!(this instanceof YtlrPlayerActionsContainer)) {

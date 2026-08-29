@@ -755,6 +755,11 @@
    * @returns {Node} The search origin for the spatial navigation
    */
   function findSearchOrigin() {
+    // Re-decided on every call. Upstream only ever assigns this (below, when the
+    // saved origin has collapsed to zero size) and never clears it, so the first
+    // collapsed origin pinned every later search to a stale rectangle -- four
+    // call sites read `searchOriginRect || <live rect>`.
+    searchOriginRect = null;
     let searchOrigin = document.activeElement;
 
     if (!searchOrigin || (searchOrigin === document.body && !document.querySelector(':focus'))) {
