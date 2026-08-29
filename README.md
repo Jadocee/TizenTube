@@ -20,6 +20,18 @@
     </a>
 </p>
 
+## 📋 Requirements
+
+**Tizen 9.0 or newer — 2025 TV models and later.**
+
+Tizen 9.0 is the first release whose web engine is Chromium M120, and TizenTube
+is built for that engine: the userscript targets it directly and ships no
+polyfills, and the standalone app declares `required_version="9.0"`. Both the
+TizenBrew module and the standalone app need it.
+
+On an older set the standalone app will refuse to install and the module will
+not run correctly. Earlier TizenTube releases still support those TVs.
+
 ## ❓ How to install
 
 1. Install TizenBrew from [here](https://github.com/reisxd/TizenBrew) and follow the instructions.
