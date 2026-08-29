@@ -1,4 +1,9 @@
-// This is only used for more subtitles feature, as adding polyfill for Intl.DisplayNames makes the user script way too big and slow to load.
+// Used only by the subtitle features. The original reason for this table was
+// that polyfilling Intl.DisplayNames made the userscript too large -- no longer
+// true, since Intl.DisplayNames is native on the Chromium M120 target and is
+// already typed by the pinned lib. It stays because it returns English names
+// deterministically, which is what the menu-matching code compares against;
+// Intl.DisplayNames would make those names locale-dependent.
 // Taken from @formatjs/intl-displaynames/locale-data/en.js
 
 /** Display names keyed by BCP 47 subtag. */

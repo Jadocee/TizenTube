@@ -8,7 +8,11 @@ JSON.parse = function () {
     try {
         const disabledSidebarContents = configRead('disabledSidebarContents');
         const disableChannelsOnSidebar = configRead('disableChannelsOnSidebar');
-        if (r && r.items && Array.isArray(r.items) && r.items[0]?.guideSectionRenderer) {
+        // Any section, not just element zero. The loop below already skips
+        // anything that is not a section with an items array, so the index-zero
+        // test bought nothing -- and PatchSettings unshifts into this same
+        // parsed object, so element zero is not reliably a guideSectionRenderer.
+        if (r && Array.isArray(r.items) && r.items.some((i: any) => i?.guideSectionRenderer)) {
             for (let i = 0; i < r.items.length; i++) {
                 const section = r.items[i].guideSectionRenderer;
                 if (!section || !Array.isArray(section.items)) continue;

@@ -449,7 +449,7 @@ class SponsorBlockHandler {
           if (wasSkippedBefore.lastSkipped - wasSkippedBefore.firstSkipped < 1000) {
             if (!wasSkippedBefore.hasShownToast) {
               if (configRead('enableSponsorBlockToasts')) {
-                showToast('SponsorBlock', t('sponsorblock.toasts.notSkipping', { segment: skipName, count: wasSkippedBefore.count }));
+                showToast('SponsorBlock', t('sponsorblock.toasts.notSkipping', { segment: skipName, count: wasSkippedBefore.count }), null, true);
               }
               wasSkippedBefore.hasShownToast = true;
               this.skippedCategories.set(segment.UUID, wasSkippedBefore);
@@ -465,7 +465,7 @@ class SponsorBlockHandler {
           });
         }
         if (configRead('enableSponsorBlockToasts')) {
-          showToast('SponsorBlock', t('sponsorblock.toasts.skipping', { segment: skipName }));
+          showToast('SponsorBlock', t('sponsorblock.toasts.skipping', { segment: skipName }), null, true);
         }
         if (this.video!.duration - end < 1) {
           this.video!.currentTime = end - 1;

@@ -66,19 +66,13 @@ const dialServer = new dial.Server({
                 // empty or untyped DIAL body arrives here as null, and the
                 // declared `string` type does not stop it.
                 const raw = typeof launchData === 'string' ? launchData : '';
-                const parsedData = raw.split('&').reduce((acc: Record<string, string>, cur: string) => {
-                    const parts = cur.split('=');
-                    const key = parts[0];
-                    const value = parts[1];
-                
-                    if (typeof value !== 'undefined') {
-                        acc[key] = value;
-                    } else {
-                        acc[key] = '';
-                    }
-                
-                    return acc;
-                }, {} as Record<string, string>);
+                // The platform parser. Splitting on '=' by hand truncated any
+                // value containing one, never percent-decoded, and turned a
+                // trailing or doubled '&' into an empty-string key.
+                const parsedData: Record<string, string> = {};
+                new URLSearchParams(raw).forEach((v, k) => {
+                    if (k) parsedData[k] = v;
+                });
                 
                 if (parsedData.yumi) {
                     app.additionalData = parsedData;

@@ -29,7 +29,7 @@ function redirectUrl(originalUrl: string | URL): string | URL {
     return originalUrl;
 }
 
-export default function (): void {
+export default function initPatches(): void {
     const originalFetch = window.fetch;
     if (originalFetch) {
         window.fetch = function (input, init) {
@@ -118,4 +118,12 @@ export default function (): void {
             descriptor!.value.call(this, 'src', redirectUrl(value));
         }
     });
+}
+
+// Invoked here rather than from userScript.ts, where a call sat above the other
+// imports but ran after all of them: import declarations are hoisted, so every
+// imported module body is evaluated first. Running it on this module's own
+// evaluation is what actually installs the interception before the rest.
+if (window.location.hostname === 'localhost') {
+    initPatches();
 }
