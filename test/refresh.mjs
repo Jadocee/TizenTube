@@ -82,6 +82,9 @@ if (whos.includes('export default disableWhosWatching;\n\nconst') || whos.split(
 }
 out('whos-watching/mod.generated.mts', whos);
 
+// customCommandExecution.ts has no imports, so it runs as-is.
+out('command-executor/mod.generated.mts', readRepo('mods', 'ui', 'customCommandExecution.ts'));
+
 // The patchYttvJson region of adblock.ts, on its own.
 const adblock = readRepo('mods', 'features', 'adblock.ts');
 const region = adblock.match(/^let jsonPatchAttempts[\s\S]*?^patchYttvJson\(\);$/m);

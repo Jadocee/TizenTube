@@ -8,48 +8,60 @@ function getCommandExecutor(): CommandExecutor | undefined {
     let instance;
     let executeFunction;
 
+    /**
+     * The router method on an instance's prototype, or undefined.
+     *
+     * `constructor` is skipped: getOwnPropertyNames on a prototype always
+     * returns it, and its source is the whole class -- a superset of every
+     * method body -- so it matched whenever the class mentioned the router
+     * anywhere at all. Members are read through their descriptors so a getter
+     * is not invoked just by looking for it.
+     */
+    const routerMethodOf = (obj: any): ((...args: any[]) => any) | undefined => {
+        const proto = Object.getPrototypeOf(obj);
+        if (!proto) return undefined;
+        for (const name of Object.getOwnPropertyNames(proto)) {
+            if (name === 'constructor') continue;
+            const descriptor = Object.getOwnPropertyDescriptor(proto, name);
+            if (typeof descriptor?.value !== 'function') continue;
+            if (descriptor.value.toString().includes('ytlrActionRouter')) return descriptor.value;
+        }
+        return undefined;
+    };
+
     for (const key in window._yttv) {
-        if (window._yttv[key] && window._yttv[key].getInstance) {
-            if (window._yttv[key].toString().includes('ytlrActionRouter')) instance = window._yttv[key].getInstance();
-            else {
-                let isInstance = false;
-                // This probes every registered module that exposes getInstance,
-                // so one that returns nothing, or throws, must not abort the
-                // search for the rest -- getPrototypeOf(undefined) throws, and
-                // nothing above catches.
-                let tempInstance;
-                try {
-                    tempInstance = window._yttv[key].getInstance();
-                } catch (e) {
-                    continue;
-                }
-                if (!tempInstance) continue;
+        if (!window._yttv[key] || !window._yttv[key].getInstance) continue;
 
-                const keys = Object.getOwnPropertyNames(Object.getPrototypeOf(tempInstance));
-                for (const key of keys) {
-                    if (typeof tempInstance[key] === 'function' && tempInstance[key].toString().includes('ytlrActionRouter')) {
-                        executeFunction = tempInstance[key];
-                        isInstance = true;
-                    }
-                }
+        // One module that returns nothing, or throws, must not abort the search
+        // for the rest -- getPrototypeOf(undefined) throws and nothing above
+        // this catches.
+        let candidate;
+        try {
+            candidate = window._yttv[key].getInstance();
+        } catch (e) {
+            continue;
+        }
+        if (!candidate) continue;
 
-                // Reuses the instance already in hand rather than calling
-                // getInstance() a second time for the same module.
-                if (isInstance) instance = tempInstance;
-            }
+        // The instance and its router method are taken as a pair. They used to
+        // be assigned in separate branches with no break, so a module matching
+        // on its own source that was enumerated after a module matching on its
+        // prototype replaced the instance and left executeFunction pointing at
+        // the earlier, unrelated one.
+        const method = routerMethodOf(candidate);
+        if (method) {
+            instance = candidate;
+            executeFunction = method;
+            break;
+        }
+        if (!instance && window._yttv[key].toString().includes('ytlrActionRouter')) {
+            instance = candidate;
         }
     }
 
     if (!instance) return;
 
-    if (!executeFunction) {
-        const keys = Object.getOwnPropertyNames(Object.getPrototypeOf(instance));
-        for (const key of keys) {
-            if (typeof instance[key] === 'function' && instance[key].toString().includes('ytlrActionRouter')) {
-                executeFunction = instance[key];
-            }
-        }
-    }
+    if (!executeFunction) executeFunction = routerMethodOf(instance);
 
     if (!executeFunction) return;
 
