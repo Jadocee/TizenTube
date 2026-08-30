@@ -2,6 +2,93 @@
 
 <head>
     <style>
+        /* --- launch screen ---------------------------------------------------
+           Everything here is CSS. The splash runs before the service is up, and
+           a script that stalls on this screen leaves the app dead on it, so the
+           animation is not allowed to depend on one.
+
+           Only transform and opacity are animated: both composite without
+           relaying out the page. There is deliberately no filter: blur() -- a TV
+           SoC pays for a full-surface blur every frame, and a handful of blurred
+           layers is enough to cost the whole screen its frame rate. The soft
+           edge comes from a radial-gradient fill, which rasterises once. */
+
+        .ground {
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(120% 90% at 18% 12%, #16233a 0%, transparent 60%),
+                radial-gradient(100% 80% at 84% 82%, #1d1430 0%, transparent 62%),
+                linear-gradient(160deg, #0d1018 0%, #0f0f0f 55%, #0b0d14 100%);
+        }
+
+        .bubbles {
+            position: fixed;
+            inset: 0;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .bubble {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle at 32% 30%,
+                rgb(120 170 255 / 20%) 0%,
+                rgb(120 170 255 / 8%) 45%,
+                rgb(120 170 255 / 0%) 70%);
+            animation: drift linear infinite;
+            will-change: transform;
+        }
+
+        @keyframes drift {
+            /* Fades at both ends, so a bubble is never visible as it wraps. */
+            0%   { transform: translate3d(0, 12vh, 0) scale(0.85); opacity: 0; }
+            12%  { opacity: 1; }
+            88%  { opacity: 1; }
+            100% { transform: translate3d(var(--dx, 4vw), -104vh, 0) scale(1.1); opacity: 0; }
+        }
+
+        @keyframes rise {
+            from { transform: translate3d(0, 1.5rem, 0); opacity: 0; }
+            to   { transform: none; opacity: 1; }
+        }
+
+        .stage { position: relative; text-align: center; }
+
+        .wordmark {
+            color: #FFFFFF;
+            font-size: 80px;
+            font-family: Roboto, "Noto Sans CJK ZH-HK", "Noto Sans Thai", Arial, Helvetica, sans-serif;
+            margin: 0;
+            animation: rise 700ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+        }
+
+        /* The numeral carries the accent, so the rebrand reads at ten feet
+           without a second line of text. */
+        .wordmark .nine { color: #4da3ff; }
+
+        .tagline {
+            margin: 0.75rem 0 0;
+            color: rgb(255 255 255 / 62%);
+            font-size: 22px;
+            font-family: Roboto, Arial, Helvetica, sans-serif;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            animation: rise 700ms cubic-bezier(0.2, 0.7, 0.3, 1) 120ms both;
+        }
+
+        .progress-container { animation: rise 700ms cubic-bezier(0.2, 0.7, 0.3, 1) 240ms both; }
+
+        /* Motion is a preference, and some sets expose it as an accessibility
+           setting. Reduced motion keeps the composition and drops everything
+           that moves -- including the progress bar's sweep, which is the most
+           restless thing on the screen. */
+        @media (prefers-reduced-motion: reduce) {
+            .bubble { animation: none; opacity: 0.5; }
+            .wordmark, .tagline, .progress-container { animation: none; }
+            .progress-bar { animation: none; width: 100%; opacity: 0.5; }
+        }
+
         @keyframes indeterminate-bar {
             0% {
                 left: 0%;
@@ -77,8 +164,13 @@
             if (!document.body) return;
             if (!statusEl) {
                 statusEl = document.createElement("div");
-                statusEl.style.cssText = "color:#aaa;font-family:Roboto,Arial,sans-serif;font-size:22px;margin-top:32px;text-align:center;max-width:80%;";
-                document.body.appendChild(statusEl);
+                // position/z-index are load-bearing, not decoration: the gradient
+                // ground is position:fixed, so it paints after ordinary in-flow
+                // content and would cover this message completely.
+                statusEl.style.cssText = "position:relative;z-index:1;color:#aaa;font-family:Roboto,Arial,sans-serif;font-size:22px;margin-top:32px;text-align:center;max-width:80%;";
+                // Into the stage, so it sits under the progress bar rather than
+                // below the whole centred block.
+                (document.querySelector(".stage") || document.body).appendChild(statusEl);
             }
             statusEl.textContent = message;
         }
@@ -168,12 +260,23 @@
 
 <body
     style="background-color: #0f0f0f; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0;">
-    <h1
-        style="color: #FFFFFF; font-size: 80px; font-family: Roboto,Noto Sans CJK ZH-HK,Noto Sans Thai,Arial,Helvetica,sans-serif; margin: 0;">
-        TizenTube 9
-    </h1>
-    <div class="progress-container">
-        <div class="progress-bar"></div>
+    <div class="ground"></div>
+    <!-- Six, hand-placed. Enough to read as motion, few enough that a TV SoC
+         composites them without touching the frame budget. -->
+    <div class="bubbles" aria-hidden="true">
+        <div class="bubble" style="left:8%;  width:22vh; height:22vh; --dx: 5vw;  animation-duration: 26s; animation-delay: -4s;"></div>
+        <div class="bubble" style="left:26%; width:13vh; height:13vh; --dx: -3vw; animation-duration: 19s; animation-delay: -11s;"></div>
+        <div class="bubble" style="left:47%; width:30vh; height:30vh; --dx: 4vw;  animation-duration: 34s; animation-delay: -20s;"></div>
+        <div class="bubble" style="left:66%; width:16vh; height:16vh; --dx: -6vw; animation-duration: 22s; animation-delay: -2s;"></div>
+        <div class="bubble" style="left:81%; width:25vh; height:25vh; --dx: 3vw;  animation-duration: 29s; animation-delay: -15s;"></div>
+        <div class="bubble" style="left:93%; width:11vh; height:11vh; --dx: -4vw; animation-duration: 17s; animation-delay: -8s;"></div>
+    </div>
+    <div class="stage">
+        <h1 class="wordmark">TizenTube <span class="nine">9</span></h1>
+        <p class="tagline">Starting up</p>
+        <div class="progress-container">
+            <div class="progress-bar"></div>
+        </div>
     </div>
 </body>
 
