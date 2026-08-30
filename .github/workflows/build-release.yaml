@@ -85,10 +85,10 @@ jobs:
           mkdir release
           tizenjs build . -t wgt -o release/TizenTube.wgt --author "${GITHUB_WORKSPACE}/TizenTube-author.p12" --authorPwd '${{ secrets.TIZEN_AUTHOR_KEY_PW }}' -p public --ignore node_modules,/.*\.wgt$/,/userwidget/,/release/
 
-      - name: Upload TizenTube package artifact for Old Tizen
+      - name: Upload TizenTube package artifact
         uses: actions/upload-artifact@v4
         with:
-            name: app-${{ github.sha }}-old.wgt
+            name: app-${{ github.sha }}.wgt
             path: standalone/release/TizenTube.wgt
       
       - name: Release TizenTube Build Results
