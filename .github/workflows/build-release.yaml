@@ -68,8 +68,8 @@ jobs:
 
       - name: Run the harnesses
         run: |
-          # After the builds: two harnesses load the real built bundle and three
-          # drive a browser. Without Chromium those three skip rather than fail,
+          # After the builds: two harnesses load the real built bundle and four
+          # drive a browser. Without Chromium those four skip rather than fail,
           # but a release is worth the ninety seconds it takes to install.
           npm install
           npx playwright install --with-deps chromium

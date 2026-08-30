@@ -16,6 +16,12 @@ for (const line of body.split('\n')) {
 globalThis.window = { h5vcc: undefined };
 globalThis.localStorage = {};
 
+// The title showModal() falls back to when a submenu ships without a menuHeader.
+// Resolved through the stub rather than written out: hardcoding the English
+// string meant the rebrand to "TizenTube 9 Settings" silently retired this
+// guard, and the next rename would retire it again.
+const ROOT_TITLE = stubs.t('settings.ttSettings.title');
+
 // Walk every menu the way a user would, following OPTIONS_SHOW commands.
 const problems = [];
 const seenMenuIds = new Map();
@@ -38,7 +44,7 @@ function walk(render, label, depth, path, parentMenuId) {
   const header = modal.header;
   const title = typeof header === 'string' ? header : header?.title;
   if (!title) problems.push(`${label}: modal has no title`);
-  if (title === 'TizenTube Settings' && depth > 0) problems.push(`${label}: submenu falls back to the root title`);
+  if (title === ROOT_TITLE && depth > 0) problems.push(`${label}: submenu falls back to the root title`);
   if (modal.id) {
     const prev = seenMenuIds.get(modal.id);
     if (prev && prev !== label) problems.push(`menuId "${modal.id}" used by both "${prev}" and "${label}"`);
