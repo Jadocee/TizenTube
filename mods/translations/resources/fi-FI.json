@@ -149,23 +149,23 @@
             }
         },
         "ttSettings": {
-            "title": "TizenTube 9-asetukset",
+            "title": "TizenTube 9 -asetukset",
             "madeByText": "Tekijä Reis Can (reisxd) ❤️",
-            "summary": "Avaa TizenTube 9-asetukset"
+            "summary": "Avaa TizenTube 9 -asetukset"
         },
         "supportTT": {
-            "title": "Tue TizenTubea",
-            "subtitle": "❤️ Tue TizenTubea ja sen kehitystä",
+            "title": "Tue TizenTube 9:ää",
+            "subtitle": "❤️ Tue TizenTube 9:ää ja sen kehitystä",
             "content": {
-                "1": "Jos pidät TizenTuben käytöstä ja haluat tukea sen kehitystä, harkitse seuraavaa:",
+                "1": "Jos pidät TizenTube 9:n käytöstä ja haluat tukea sen kehitystä, harkitse seuraavaa:",
                 "2": "1. Anna GitHub-repositorioon tähti, jotta sen näkyvyys kasvaa.",
-                "3": "2. Jaa TizenTubea muille."
+                "3": "2. Jaa TizenTube 9:ää muille."
             }
         }
     },
     "welcomeMsg": {
-        "title": "Tervetuloa TizenTubeen",
-        "subtitle": "Siirry asetuksiin ja avaa TizenTube 9-asetukset."
+        "title": "Tervetuloa TizenTube 9:ään",
+        "subtitle": "Siirry asetuksiin ja avaa TizenTube 9 -asetukset."
     },
     "sponsorblock": {
         "segments": {

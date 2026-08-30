@@ -154,12 +154,12 @@
             "summary": "Nyisd meg a TizenTube 9 beállításokat"
         },
         "supportTT": {
-            "title": "Támogasd a TizenTube 9-ot",
+            "title": "Támogasd a TizenTube 9-et",
             "subtitle": "❤️ Fejezd ki a köszöneted a TizenTube 9 és azok fejlesztései felé",
             "content": {
                 "1": "Ha tetszik a TizenTube 9 és támogatnád a fejlesztését:",
                 "2": "1. Csillagozd be a GitHub-on, hogy többekhez eljusson",
-                "3": "2. Oszd meg a TizenTube 9-ot másokkal"
+                "3": "2. Oszd meg a TizenTube 9-et másokkal"
             }
         }
     },

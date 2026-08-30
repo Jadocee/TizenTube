@@ -144,9 +144,9 @@
                     // re-ran launchAppControl.
                     attempts++;
                     if (attempts === 30) {
-                        status("Still waiting for the TizenTube service\u2026");
+                        status("Still waiting for the TizenTube 9 service\u2026");
                     } else if (attempts === 120) {
-                        status("The TizenTube service is not responding. Try closing and reopening the app.");
+                        status("The TizenTube 9 service is not responding. Try closing and reopening the app.");
                     }
                     setTimeout(useInjectorOrProxy, 500);
                 });
@@ -160,7 +160,7 @@
             },
             function (e) {
                 // alert() on a TV is a dead end with a D-pad; put it on the page.
-                status("Could not start the TizenTube service: " + (e && e.message));
+                status("Could not start the TizenTube 9 service: " + (e && e.message));
             }
         );
     </script>
@@ -170,7 +170,7 @@
     style="background-color: #0f0f0f; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0;">
     <h1
         style="color: #FFFFFF; font-size: 80px; font-family: Roboto,Noto Sans CJK ZH-HK,Noto Sans Thai,Arial,Helvetica,sans-serif; margin: 0;">
-        TizenTube
+        TizenTube 9
     </h1>
     <div class="progress-container">
         <div class="progress-bar"></div>

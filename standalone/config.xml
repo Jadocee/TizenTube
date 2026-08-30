@@ -3,7 +3,7 @@
     <access origin="*" subdomains="true"></access>
     <tizen:allow-navigation href="*"/>
     <tizen:application id="xvvl3S1TT1.TizenTubeStandalone" package="xvvl3S1TT1" required_version="9.0"/>
-    <author href="https://tizentube.app">Reis Can</author>
+    <author href="https://github.com/Jadocee/TizenTube">Jadocee (fork of TizenTube by Reis Can)</author>
     <content src="index.html"/>
     <feature name="http://tizen.org/feature/screen.size.all"/>
     <feature name="http://tizen.org/feature/web.service"/>

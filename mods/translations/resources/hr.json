@@ -136,7 +136,7 @@
                     },
                     "launchToOnStartup": {
                         "title": "Početna stranica pri pokretanju",
-                        "subtitle": "Odaberite zadanu stranicu koja se otvara pri pokretanju TizenTubea"
+                        "subtitle": "Odaberite zadanu stranicu koja se otvara pri pokretanju TizenTubea 9"
                     },
                     "sortSubscriptionsByAlphabet": "Poredaj pretplate abecedno",
                     "disableChannelsOnSidebar": "Onemogući kanale na bočnoj traci",
@@ -168,9 +168,9 @@
         },
         "supportTT": {
             "title": "Podrži TizenTube 9",
-            "subtitle": "❤️ Podržite razvoj TizenTubea",
+            "subtitle": "❤️ Podržite razvoj TizenTubea 9",
             "content": {
-                "1": "Ako uživate u korištenju TizenTubea i želite podržati njegov razvoj, razmislite o sljedećem:",
+                "1": "Ako uživate u korištenju TizenTubea 9 i želite podržati njegov razvoj, razmislite o sljedećem:",
                 "2": "1. Označite repozitorij zvjezdicom (Star) na GitHubu radi bolje vidljivosti.",
                 "3": "2. Podijelite TizenTube 9 s drugima."
             }
