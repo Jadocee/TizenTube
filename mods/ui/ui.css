@@ -1,213 +1,239 @@
-/* TizenTube theme panel.
+/* TizenTube 9 theme panel.
    Sized in rem, the unit YouTube's TV app scales with the viewport, and inset
-   far enough to clear overscan on sets that still do it. */
+   far enough to clear overscan on sets that still do it.
+
+   Targets Chromium M120, so nesting, color-mix(), :is() and logical properties
+   are all available -- and this file is inlined as text rather than parsed by
+   the bundler, so nothing here has to survive a build step. */
 
 .ytaf-ui-container {
+  /* One place to change the look. Scoped to the panel rather than :root so
+     nothing leaks into YouTube's own styles. */
+  --tt-surface: rgb(18 18 18 / 96%);
+  --tt-ink: #f1f1f1;
+  --tt-ink-dim: #a8a8a8;
+  --tt-line: rgb(255 255 255 / 12%);
+  --tt-row: rgb(255 255 255 / 7%);
+  --tt-row-focus: rgb(255 255 255 / 22%);
+  --tt-focus-ring: #f1f1f1;
+
+  /* Generous, because a 10-foot UI reads shapes before it reads edges, and a
+     tight radius is indistinguishable from a square at that distance. */
+  --tt-radius-panel: 2rem;
+  --tt-radius-row: 1.25rem;
+  --tt-radius-field: 0.75rem;
+
+  --tt-gap: 1rem;
+  --tt-pad-block: 2.25rem;
+  --tt-pad-inline: 2.5rem;
+
   position: fixed;
   /* Sized to its content and centred, rather than stretched to a fixed box:
      the panel holds two rows, and a half-empty full-height sheet reads as a
      rendering fault on a TV. */
-  top: 50%;
-  left: 8%;
-  right: 8%;
+  inset-block-start: 50%;
+  inset-inline: 8%;
   transform: translateY(-50%);
-  max-height: 84%;
+  max-block-size: 84%;
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--tt-gap);
 
   box-sizing: border-box;
   overflow-y: auto;
+  padding-block: var(--tt-pad-block);
+  padding-inline: var(--tt-pad-inline);
 
-  background: rgba(15, 15, 15, 0.94);
-  color: #f1f1f1;
-  border-radius: 0.75rem;
-  padding: 2rem 2.5rem;
+  background: var(--tt-surface);
+  color: var(--tt-ink);
+  border-radius: var(--tt-radius-panel);
+  /* Lifts the panel off the artwork behind it without a bright fill, which an
+     OLED would be holding at full brightness for as long as this is open. */
+  border: 0.0625rem solid var(--tt-line);
+  box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 60%);
   font-size: 1.5rem;
   line-height: 1.4;
   z-index: 1000;
 
-}
+  /* Fallback highlight for the moment the container itself holds focus, before
+     a control inside it does. */
+  &:focus {
+    outline: 0.25rem solid var(--tt-focus-ring);
+    outline-offset: 0.25rem;
+  }
 
-/* Fallback highlight for the moment the container itself holds focus, before
-   a control inside it does. */
-.ytaf-ui-container:focus {
-  outline: 0.25rem solid #f1f1f1;
-}
+  & h1 {
+    margin: 0;
+    font-size: 2.5rem;
+    font-weight: 500;
+    text-align: center;
+    text-wrap: balance;
+  }
 
-.ytaf-ui-container h1 {
-  margin: 0;
-  font-size: 2.5rem;
-  font-weight: 500;
-  text-align: center;
-}
+  & .ytaf-ui-subtitle {
+    margin: 0;
+    margin-block-end: 0.75rem;
+    text-align: center;
+    text-wrap: balance;
+    font-size: 1.2rem;
+    color: var(--tt-ink-dim);
+  }
 
-.ytaf-ui-container .ytaf-ui-subtitle {
-  margin: 0.4rem 0 2rem;
-  text-align: center;
-  font-size: 1.2rem;
-  color: #aaa;
-}
+  & .ytaf-ui-row {
+    /* Label left, value right. Block layout left the value hard against the
+       left edge with the rest of the row empty, which on a wide panel reads as
+       a broken column rather than a setting. */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    box-sizing: border-box;
+    inline-size: 100%;
+    padding-block: 1.1rem;
+    padding-inline: 1.5rem;
+    border-radius: var(--tt-radius-row);
+    background: var(--tt-row);
 
-.ytaf-ui-container .ytaf-ui-row {
-  display: block;
-  box-sizing: border-box;
-  width: 100%;
-  margin-bottom: 1rem;
-  padding: 1rem 1.25rem;
-  border-radius: 0.5rem;
-  background: rgba(255, 255, 255, 0.08);
-}
+    /* The fill lives on the row, not the control: the two text inputs are the
+       only focusable things in here, and input[type='text'] wins on
+       specificity, so a fill on :focus never showed at all. */
+    &:focus-within {
+      background: var(--tt-row-focus);
+    }
+  }
 
-.ytaf-ui-container .ytaf-ui-row-label {
-  display: block;
-  margin-bottom: 0.7rem;
-  font-size: 1.5rem;
-}
+  & .ytaf-ui-row-label {
+    font-size: 1.5rem;
+  }
 
-.ytaf-ui-container .ytaf-ui-row-value {
-  display: block;
-  white-space: nowrap;
-}
+  & .ytaf-ui-row-value {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    white-space: nowrap;
+  }
 
-/* A live swatch of the colour that is currently stored, so the hex code beside
-   it means something without leaving the panel. */
-.ytaf-ui-container .ytaf-ui-swatch {
-  display: inline-block;
-  vertical-align: middle;
-  width: 2rem;
-  height: 2rem;
-  margin-right: 0.75rem;
-  border: 0.1rem solid rgba(255, 255, 255, 0.5);
-  border-radius: 0.3rem;
-}
+  /* A live swatch of the colour that is currently stored, so the hex code
+     beside it means something without leaving the panel. */
+  & .ytaf-ui-swatch {
+    inline-size: 2.25rem;
+    block-size: 2.25rem;
+    border: 0.125rem solid rgb(255 255 255 / 50%);
+    border-radius: var(--tt-radius-field);
+  }
 
-.ytaf-ui-container input[type='text'] {
-  vertical-align: middle;
-  box-sizing: border-box;
-  width: 11rem;
-  padding: 0.5rem 0.75rem;
-  border: 0.1rem solid rgba(255, 255, 255, 0.3);
-  border-radius: 0.3rem;
-  background: rgba(0, 0, 0, 0.6);
-  color: #f1f1f1;
-  font-family: inherit;
-  font-size: 1.5rem;
-}
+  & input[type='text'] {
+    box-sizing: border-box;
+    inline-size: 11rem;
+    padding-block: 0.55rem;
+    padding-inline: 0.9rem;
+    border: 0.125rem solid rgb(255 255 255 / 25%);
+    border-radius: var(--tt-radius-field);
+    background: rgb(0 0 0 / 60%);
+    color: var(--tt-ink);
+    font-family: inherit;
+    font-size: 1.5rem;
+  }
 
-.ytaf-ui-container input[type='checkbox'],
-.ytaf-ui-container input[type='radio'] {
-  width: 1.4rem;
-  height: 1.4rem;
-}
+  & :is(input[type='checkbox'], input[type='radio']) {
+    inline-size: 1.4rem;
+    block-size: 1.4rem;
+    /* Native controls follow this instead of rendering a light-mode default on
+       a dark panel. */
+    accent-color: var(--tt-focus-ring);
+  }
 
-/* Focus has to read from across a room, so it is a light ring plus a filled
-   row rather than a hairline outline. Saturated red is deliberately avoided:
-   TVs bleed it and it is the hardest colour to resolve at a distance. */
-.ytaf-ui-container :focus {
-  outline: 0.25rem solid #f1f1f1;
-  outline-offset: 0.15rem;
-}
+  /* Focus has to read from across a room, so it is a light ring plus a filled
+     row rather than a hairline outline. Saturated red is deliberately avoided:
+     TVs bleed it and it is the hardest colour to resolve at a distance. */
+  & :focus {
+    outline: 0.25rem solid var(--tt-focus-ring);
+    outline-offset: 0.15rem;
+  }
 
-/* The fill lives on the row, not the control. On :focus it lost on specificity
-   to the input[type='text'] rule above -- and the two text inputs are the only
-   focusable things the panel has, so the fill never showed at all. Lighting the
-   whole row is also what the comment above promises, and it leaves the input's
-   own dark field intact. */
-.ytaf-ui-container .ytaf-ui-row:focus-within {
-  background: rgba(255, 255, 255, 0.22);
-}
-
-.ytaf-ui-container .ytaf-ui-hint {
-  margin-top: 1.5rem;
-  text-align: center;
-  font-size: 1.2rem;
-  color: #aaa;
+  & .ytaf-ui-hint {
+    margin-block-start: 0.5rem;
+    text-align: center;
+    font-size: 1.2rem;
+    color: var(--tt-ink-dim);
+  }
 }
 
 /* Fixes transparency effect for the video player */
 
-.ytLrWatchDefaultShadow,
-div[idomkey="shadow"] {
-  background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0, rgba(0, 0, 0, 0.8) 90%) !important;
-  background-color: rgba(0, 0, 0, 0.3) !important;
+:is(.ytLrWatchDefaultShadow, div[idomkey='shadow']) {
+  background-image: linear-gradient(to bottom, rgb(0 0 0 / 0%) 0, rgb(0 0 0 / 80%) 90%) !important;
+  background-color: rgb(0 0 0 / 30%) !important;
   display: block !important;
-  height: 100% !important;
+  block-size: 100% !important;
+  inline-size: 100% !important;
   pointer-events: none !important;
   position: absolute !important;
-  width: 100% !important;
 }
 
 /* https://github.com/webosbrew/youtube-webos/commit/4fbe38a18df31ddd62b6cf15f141dd58e1d1a71d */
 .ytLrWatchDefault2025Shadow {
-  background-color: rgba(11, 11, 11, 0.5) !important;
+  background-color: rgb(11 11 11 / 50%) !important;
 }
 
 /* Fixes shorts having a black background */
-
 .ytLrTileHeaderRendererShorts {
   background-image: none !important;
 }
 
 /* Multiline support for strings in the UI */
-
 .ytLrOverlayPanelHeaderRendererSubtitle {
   white-space: pre-wrap !important;
 }
 
 /* Fixes SponsorBlock segments overlapping with the playhead */
-
-.ytLrProgressBarPlayhead {
-  z-index: 1 !important;
-}
-
-.ytLrProgressBarPlayed {
+:is(.ytLrProgressBarPlayhead, .ytLrProgressBarPlayed) {
   z-index: 1 !important;
 }
 
 .ytLrSearchBarSearchVoice {
-    display: block;
-    position: absolute;
-    left: 0;
-    top: 0;
-    pointer-events: auto
+  display: block;
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  pointer-events: auto;
 }
 
 .ytLrSearchVoiceHost {
-    font-size: 3rem;
+  font-size: 3rem;
 }
 
 .ytLrSearchVoiceMicButtonHost {
-    color: rgba(255, 255, 255, 0.7);
-}
-
-.ytLrSearchVoiceMicButtonHost {
-    background-color: rgba(255, 255, 255, 0.1);
-    border-radius: 50%;
-    color: #f1f1f1;
-    display: block;
-    text-align: center;
-    width: 1em;
-    height: 1em;
+  display: block;
+  inline-size: 1em;
+  block-size: 1em;
+  border-radius: 50%;
+  background-color: rgb(255 255 255 / 10%);
+  color: var(--tt-ink, #f1f1f1);
+  text-align: center;
 }
 
 .ytLrSearchVoiceMicButtonIcon {
-    display: inline-block;
-    font-size: .5em;
-    height: .5em;
-    width: .5em;
-    height: 1em;
-    width: 1em;
-    margin-top: .5em;
-    vertical-align: top !important;
+  display: inline-block;
+  /* The declaration order here used to set .5em and then immediately overwrite
+     it with 1em; only the 1em ever applied. */
+  font-size: 0.5em;
+  inline-size: 1em;
+  block-size: 1em;
+  margin-block-start: 0.5em;
+  vertical-align: top !important;
 }
 
 .ytContribIconHost {
-    display: inline-block;
-    vertical-align: middle;
+  display: inline-block;
+  vertical-align: middle;
+
+  &::before {
+    font-family: 'YouTube Icons Outlined';
+  }
 }
 
 .ytContribIconTvArrowLeft::before {
-    content: "\e822";
-}
-
-.ytContribIconHost::before {
-    font-family: "YouTube Icons Outlined";
+  content: '\e822';
 }

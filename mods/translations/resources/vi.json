@@ -55,7 +55,7 @@
                     "longPress": "Bật thao tác nhấn giữ",
                     "shorts": "Bật Shorts",
                     "videoPreviews": "Bật tính năng xem trước video",
-                    "ttWelcomeMsg": "Hiển thị thông báo chào mừng TizenTube",
+                    "ttWelcomeMsg": "Hiển thị thông báo chào mừng TizenTube 9",
                     "guestSignInReminder": "Hiển thị nhắc nhở đăng nhập cho chế độ khách",
                     "reloadHomeOnStartup": "Tải lại trang chủ khi khởi động"
                 }
@@ -137,7 +137,7 @@
                     },
                     "launchToOnStartup": {
                         "title": "Trang khởi động",
-                        "subtitle": "Chọn trang mặc định mà TizenTube sẽ mở khi khởi động"
+                        "subtitle": "Chọn trang mặc định mà TizenTube 9 sẽ mở khi khởi động"
                     },
                     "sortSubscriptionsByAlphabet": "Sắp xếp các kênh đăng ký theo bảng chữ cái",
                     "disableChannelsOnSidebar": "Ẩn kênh khỏi thanh điều hướng",
@@ -153,8 +153,8 @@
                 }
             },
             "updater": {
-                "title": "Trình cập nhật TizenTube Cobalt",
-                "menuSubtitle": "Quản lý các bản cập nhật TizenTube Cobalt",
+                "title": "Trình cập nhật TizenTube 9",
+                "menuSubtitle": "Quản lý các bản cập nhật TizenTube 9",
                 "versionSubtitle": "Phiên bản hiện tại: {{version}}",
                 "options": {
                     "checkForUpdates": "Kiểm tra cập nhật",
@@ -163,26 +163,23 @@
             }
         },
         "ttSettings": {
-            "title": "Cài đặt TizenTube",
+            "title": "Cài đặt TizenTube 9",
             "madeByText": "Được tạo bởi Reis Can (reisxd) ❤️",
-            "summary": "Mở Cài đặt TizenTube"
+            "summary": "Mở Cài đặt TizenTube 9"
         },
         "supportTT": {
-            "title": "Ủng hộ TizenTube",
-            "subtitle": "❤️ Thể hiện sự ủng hộ dành cho TizenTube và đội ngũ phát triển!",
+            "title": "Ủng hộ TizenTube 9",
+            "subtitle": "❤️ Thể hiện sự ủng hộ dành cho TizenTube 9 và đội ngũ phát triển!",
             "content": {
-                "1": "Nếu bạn thích sử dụng TizenTube và muốn ủng hộ đội ngũ phát triển dự án này, hãy:",
+                "1": "Nếu bạn thích sử dụng TizenTube 9 và muốn ủng hộ đội ngũ phát triển dự án này, hãy:",
                 "2": "1. Tặng sao (Star) cho dự án ở trên GitHub để giúp dự án phổ biến hơn.",
-                "3": "2. Chia sẻ TizenTube với mọi người.",
-                "4": "Nếu bạn muốn quyên góp:",
-                "5": "- Buy Me A Coffee: https://www.buymeacoffee.com/reisxd (ưu tiên)",
-                "6": "- GitHub Sponsors: https://github.com/sponsors/reisxd"
+                "3": "2. Chia sẻ TizenTube 9 với mọi người."
             }
         }
     },
     "welcomeMsg": {
-        "title": "Chào mừng đến với TizenTube",
-        "subtitle": "Vào mục Cài đặt và nhấp vào Cài đặt TizenTube để tùy chỉnh."
+        "title": "Chào mừng đến với TizenTube 9",
+        "subtitle": "Vào mục Cài đặt và nhấp vào Cài đặt TizenTube 9 để tùy chỉnh."
     },
     "sponsorblock": {
         "segments": {

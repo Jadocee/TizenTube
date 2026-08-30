@@ -191,7 +191,12 @@ function execute_once_dom_loaded(): void {
       uiContainer.querySelector<HTMLElement>('#__routeColorSwatch')!.style.backgroundColor = configRead('routeColor');
     }
 
-    uiContainer.style.display = 'block';
+    // 'flex', not 'block': the panel's row spacing is `gap` on this container,
+    // and an inline `display: block` here would beat the stylesheet and make the
+    // gap inert, collapsing the rows into one slab. Everything that reads this
+    // back only ever compares it against 'none' (hidePanel, the two keydown
+    // guards below, and speedUI), so the value itself is free to change.
+    uiContainer.style.display = 'flex';
     uiContainer.focus();
     // Land on a real control: the focus style is a descendant selector, so a
     // focused container would leave the panel looking like nothing is selected.

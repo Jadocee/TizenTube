@@ -137,7 +137,7 @@
                     },
                     "launchToOnStartup": {
                         "title": "Açılışta Başlatılacak Sayfa",
-                        "subtitle": "TizenTube'un açılışta varsayılan olarak açacağı sayfayı seçin"
+                        "subtitle": "TizenTube 9'un açılışta varsayılan olarak açacağı sayfayı seçin"
                     },
                     "sortSubscriptionsByAlphabet": "Abonelikleri Alfabetik Sırala",
                     "disableChannelsOnSidebar": "Kenar Çubuğunda Kanalları Devre Dışı Bırak",
@@ -153,8 +153,8 @@
                 }
             },
             "updater": {
-                "title": "TizenTube Cobalt Güncelleyici",
-                "menuSubtitle": "TizenTube Cobalt güncellemelerini yönetin",
+                "title": "TizenTube 9 Güncelleyici",
+                "menuSubtitle": "TizenTube 9 güncellemelerini yönetin",
                 "versionSubtitle": "Geçerli sürüm: {{version}}",
                 "options": {
                     "checkForUpdates": "Güncellemeleri kontrol et",
@@ -163,26 +163,23 @@
             }
         },
         "ttSettings": {
-            "title": "TizenTube Ayarları",
+            "title": "TizenTube 9 Ayarları",
             "madeByText": "Reis Can (reisxd) tarafından ❤️ ile yapıldı",
-            "summary": "TizenTube Ayarlarını Aç"
+            "summary": "TizenTube 9 Ayarlarını Aç"
         },
         "supportTT": {
-            "title": "TizenTube'u Destekleyin",
-            "subtitle": "❤️ TizenTube'a ve geliştirilmesine destek olun",
+            "title": "TizenTube 9'u Destekleyin",
+            "subtitle": "❤️ TizenTube 9'a ve geliştirilmesine destek olun",
             "content": {
-                "1": "TizenTube'u kullanmaktan memnunsanız ve geliştirilmesini desteklemek istiyorsanız, şunları değerlendirebilirsiniz:",
+                "1": "TizenTube 9'u kullanmaktan memnunsanız ve geliştirilmesini desteklemek istiyorsanız, şunları değerlendirebilirsiniz:",
                 "2": "1. Görünürlüğünü artırmaya yardımcı olmak için GitHub deposuna yıldız verin.",
-                "3": "2. TizenTube'u başkalarıyla paylaşın.",
-                "4": "Maddi olarak katkıda bulunmak isterseniz bağış yapmayı düşünebilirsiniz:",
-                "5": "- Buy Me A Coffee: https://www.buymeacoffee.com/reisxd (tercihen)",
-                "6": "- GitHub Sponsors: https://github.com/sponsors/reisxd"
+                "3": "2. TizenTube 9'u başkalarıyla paylaşın."
             }
         }
     },
     "welcomeMsg": {
-        "title": "TizenTube'a Hoş Geldiniz",
-        "subtitle": "Ayarlar menüsüne gidip TizenTube Ayarları'na tıklayarak ayarları açabilirsiniz."
+        "title": "TizenTube 9'a Hoş Geldiniz",
+        "subtitle": "Ayarlar menüsüne gidip TizenTube 9 Ayarları'na tıklayarak ayarları açabilirsiniz."
     },
     "sponsorblock": {
         "segments": {

@@ -134,14 +134,14 @@
                     },
                     "launchToOnStartup": {
                         "title": "Sākumlapa palaišanas brīdī",
-                        "subtitle": "Izvēlieties noklusējuma lapu, kuru TizenTube atvērs palaišanas brīdī"
+                        "subtitle": "Izvēlieties noklusējuma lapu, kuru TizenTube 9 atvērs palaišanas brīdī"
                     },
                     "sortSubscriptionsByAlphabet": "Sort Subscriptions Alphabetically"
                 }
             },
             "updater": {
-                "title": "TizenTube Cobalt atjauninātājs",
-                "menuSubtitle": "Pārvaldīt TizenTube Cobalt atjauninājumus",
+                "title": "TizenTube 9 atjauninātājs",
+                "menuSubtitle": "Pārvaldīt TizenTube 9 atjauninājumus",
                 "versionSubtitle": "Pašreizējā versija: {{version}}",
                 "options": {
                     "checkForUpdates": "Pārbaudīt atjauninājumus",
@@ -150,26 +150,23 @@
             }
         },
         "ttSettings": {
-            "title": "TizenTube iestatījumi",
+            "title": "TizenTube 9 iestatījumi",
             "madeByText": "Izveidoja Reis Can (reisxd) ar ❤️",
-            "summary": "Atvērt TizenTube iestatījumus"
+            "summary": "Atvērt TizenTube 9 iestatījumus"
         },
         "supportTT": {
-            "title": "Atbalstīt TizenTube",
-            "subtitle": "❤️ Atbalstiet TizenTube un tā izstrādi",
+            "title": "Atbalstīt TizenTube 9",
+            "subtitle": "❤️ Atbalstiet TizenTube 9 un tā izstrādi",
             "content": {
-                "1": "Ja jums patīk lietot TizenTube un vēlaties atbalstīt tā izstrādi, apsveriet sekojošo:",
+                "1": "Ja jums patīk lietot TizenTube 9 un vēlaties atbalstīt tā izstrādi, apsveriet sekojošo:",
                 "2": "1. Atzīmējiet GitHub repozitoriju ar zvaigznīti, lai palīdzētu uzlabot tā redzamību.",
-                "3": "2. Dalieties ar TizenTube ar citiem.",
-                "4": "Ja vēlaties sniegt finansiālu ieguldījumu, apsveriet ziedošanu:",
-                "5": "- Buy Me A Coffee: https://www.buymeacoffee.com/reisxd (ieteicams)",
-                "6": "- GitHub Sponsors: https://github.com/sponsors/reisxd"
+                "3": "2. Dalieties ar TizenTube 9 ar citiem."
             }
         }
     },
     "welcomeMsg": {
-        "title": "Laipni lūdzam TizenTube",
-        "subtitle": "Dodieties uz iestatījumiem un noklikšķiniet uz 'TizenTube iestatījumi', lai veiktu izmaiņas."
+        "title": "Laipni lūdzam TizenTube 9",
+        "subtitle": "Dodieties uz iestatījumiem un noklikšķiniet uz 'TizenTube 9 iestatījumi', lai veiktu izmaiņas."
     },
     "sponsorblock": {
         "segments": {

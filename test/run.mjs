@@ -17,6 +17,7 @@ const HARNESSES = [
     { name: 'adblock JSON patch',    dir: 'adblock',       file: 'test.mjs' },
     { name: 'command executor',      dir: 'command-executor', file: 'test.mjs', types: true },
     { name: 'stylesheet under CSP',  dir: 'stylesheet',    file: 'run.mjs',        browser: true },
+    { name: 'theme panel styling',   dir: 'panel-style',   file: 'test.mjs',       browser: true },
     { name: 'proxy injection',       dir: 'injection',     file: 'proxy.test.mjs' },
     { name: 'bundle at document-start', dir: 'injection',  file: 'docstart.mjs',   browser: true, needsBundle: true },
     { name: 'bundle injected last',  dir: 'injection',     file: 'late.mjs',       browser: true, needsBundle: true },

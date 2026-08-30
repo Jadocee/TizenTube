@@ -137,15 +137,15 @@
                     },
                     "launchToOnStartup": {
                         "title": "Ouvrir la page au démarrage",
-                        "subtitle": "Choisir la page sur laquelle TizenTube démarrera"
+                        "subtitle": "Choisir la page sur laquelle TizenTube 9 démarrera"
                     },
                     "sortSubscriptionsByAlphabet": "Trier les abonnements par ordre alphabétique",
                     "disableChannelsOnSidebar": "Désactiver les chaînes dans la barre latérale"
                 }
             },
             "updater": {
-                "title": "Mise à jour de Tizentube Cobalt",
-                "menuSubtitle": "Gérer les mises à jour TizenTube Cobalt",
+                "title": "Mise à jour de TizenTube 9",
+                "menuSubtitle": "Gérer les mises à jour TizenTube 9",
                 "versionSubtitle": "Version actuelle: {{version}}",
                 "options": {
                     "checkForUpdates": "Vérifier les mises à jour",
@@ -154,26 +154,23 @@
             }
         },
         "ttSettings": {
-            "title": "Paramètres Tizentube",
+            "title": "Paramètres TizenTube 9",
             "madeByText": "Fait par Reis Can (reisxd) avec ❤️",
-            "summary": "Ouvrir les paramètres Tizentube"
+            "summary": "Ouvrir les paramètres TizenTube 9"
         },
         "supportTT": {
-            "title": "Soutenir TizenTube",
-            "subtitle": "❤️ Soutenir TizenTube et son développement",
+            "title": "Soutenir TizenTube 9",
+            "subtitle": "❤️ Soutenir TizenTube 9 et son développement",
             "content": {
-                "1": "Si vous appréciez TizenTube et que vous aimeriez soutenir son développement, vous pouvez :",
+                "1": "Si vous appréciez TizenTube 9 et que vous aimeriez soutenir son développement, vous pouvez :",
                 "2": "1. Ajouter une étoile au dépot Github améliore sa visibilité.",
-                "3": "2. Partager TizenTube.",
-                "4": "Si vous voulez contribuer financièrement :",
-                "5": "- Buy Me A Coffee: https://www.buymeacoffee.com/reisxd (de préférences)",
-                "6": "- GitHub Sponsors: https://github.com/sponsors/reisxd"
+                "3": "2. Partager TizenTube 9."
             }
         }
     },
     "welcomeMsg": {
-        "title": "Bienvenue sur TizenTube",
-        "subtitle": "Accédez aux paramètres et cliquez sur « Paramètres de TizenTube » pour accéder aux réglages."
+        "title": "Bienvenue sur TizenTube 9",
+        "subtitle": "Accédez aux paramètres et cliquez sur « Paramètres de TizenTube 9 » pour accéder aux réglages."
     },
     "sponsorblock": {
         "segments": {

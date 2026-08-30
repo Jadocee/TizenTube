@@ -55,7 +55,7 @@
                     "longPress": "啟用長按操作",
                     "shorts": "啟用 Shorts(短影音)",
                     "videoPreviews": "啟用影片預覽",
-                    "ttWelcomeMsg": "顯示 TT(TizenTube)歡迎訊息",
+                    "ttWelcomeMsg": "顯示 TT(TizenTube 9)歡迎訊息",
                     "guestSignInReminder": "顯示訪客登入提醒",
                     "reloadHomeOnStartup": "啟動時重新載入首頁"
                 }
@@ -134,14 +134,14 @@
                     },
                     "launchToOnStartup": {
                         "title": "啟動時預設頁面",
-                        "subtitle": "選擇 TizenTube 啟動時預設開啟的頁面"
+                        "subtitle": "選擇 TizenTube 9 啟動時預設開啟的頁面"
                     },
                     "sortSubscriptionsByAlphabet": "訂閱依字母排序"
                 }
             },
             "updater": {
-                "title": "TizenTube Cobalt 更新工具",
-                "menuSubtitle": "管理 TizenTube Cobalt 更新",
+                "title": "TizenTube 9 更新工具",
+                "menuSubtitle": "管理 TizenTube 9 更新",
                 "versionSubtitle": "目前版本:{{version}}",
                 "options": {
                     "checkForUpdates": "檢查更新",
@@ -150,26 +150,23 @@
             }
         },
         "ttSettings": {
-            "title": "TizenTube 設定",
+            "title": "TizenTube 9 設定",
             "madeByText": "由 Reis Can (reisxd) 製作❤️",
-            "summary": "開啟 TizenTube 設定"
+            "summary": "開啟 TizenTube 9 設定"
         },
         "supportTT": {
-            "title": "支持TizenTube",
-            "subtitle": "❤️ 支持 TizenTube 與其開發",
+            "title": "支持 TizenTube 9",
+            "subtitle": "❤️ 支持 TizenTube 9 與其開發",
             "content": {
-                "1": "如果你喜歡使用 TizenTube，並想支持它的開發，可以參考以下方式:",
+                "1": "如果你喜歡使用 TizenTube 9，並想支持它的開發，可以參考以下方式:",
                 "2": "1. 在 GitHub 專案點星標（Star），幫助提升曝光度。",
-                "3": "2. 分享 TizenTube 給其他人。",
-                "4": "如果你想提供金錢上的支持，可以考慮斗內(捐款):",
-                "5": "- Buy Me A Coffee: https://www.buymeacoffee.com/reisxd (建議優先)",
-                "6": "- GitHub Sponsors: https://github.com/sponsors/reisxd"
+                "3": "2. 分享 TizenTube 9 給其他人。"
             }
         }
     },
     "welcomeMsg": {
-        "title": "歡迎使用 TizenTube",
-        "subtitle": "請前往設定，點選 TizenTube 設定以進行相關設定"
+        "title": "歡迎使用 TizenTube 9",
+        "subtitle": "請前往設定，點選 TizenTube 9 設定以進行相關設定"
     },
     "sponsorblock": {
         "segments": {

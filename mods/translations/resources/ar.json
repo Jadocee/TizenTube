@@ -152,8 +152,8 @@
                 }
             },
             "updater": {
-                "title": "أداة تحديث TizenTube Cobalt",
-                "menuSubtitle": "إدارة تحديثات TizenTube Cobalt",
+                "title": "أداة تحديث TizenTube 9",
+                "menuSubtitle": "إدارة تحديثات TizenTube 9",
                 "versionSubtitle": "الإصدار الحالي: {{version}}",
                 "options": {
                     "checkForUpdates": "التحقق من التحديثات",
@@ -162,26 +162,23 @@
             }
         },
         "ttSettings": {
-            "title": "TizenTube إعدادات",
+            "title": "TizenTube 9 إعدادات",
             "madeByText": "تم تطويره بواسطة Reis Can (reisxd) مع ❤️",
-            "summary": "فتح إعدادات TizenTube"
+            "summary": "فتح إعدادات TizenTube 9"
         },
         "supportTT": {
-            "title": "دعم TizenTube",
-            "subtitle": "❤️ أظهر دعمك لـ TizenTube وتطويره",
+            "title": "دعم TizenTube 9",
+            "subtitle": "❤️ أظهر دعمك لـ TizenTube 9 وتطويره",
             "content": {
-                "1": "إذا كنت تستمتع باستخدام TizenTube وترغب في دعم تطويره، يمكنك القيام بما يلي:",
+                "1": "إذا كنت تستمتع باستخدام TizenTube 9 وترغب في دعم تطويره، يمكنك القيام بما يلي:",
                 "2": "1. وضع نجمة على مستودع GitHub لزيادة ظهوره.",
-                "3": "2. مشاركة TizenTube مع الآخرين.",
-                "4": "إذا كنت ترغب في المساهمة ماليًا:",
-                "5": "- Buy Me A Coffee: https://www.buymeacoffee.com/reisxd (يُفضّل)",
-                "6": "- GitHub Sponsors: https://github.com/sponsors/reisxd"
+                "3": "2. مشاركة TizenTube 9 مع الآخرين."
             }
         }
     },
     "welcomeMsg": {
-        "title": "مرحبًا بك في TizenTube",
-        "subtitle": "انتقل إلى الإعدادات واضغط على إعدادات TizenTube."
+        "title": "مرحبًا بك في TizenTube 9",
+        "subtitle": "انتقل إلى الإعدادات واضغط على إعدادات TizenTube 9."
     },
     "sponsorblock": {
         "segments": {

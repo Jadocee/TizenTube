@@ -152,7 +152,7 @@
                 }
             },
             "updater": {
-                "title": "TizenTube Cobalt chu'ghach",
+                "title": "TizenTube 9 chu'ghach",
                 "menuSubtitle": "chu'ghach yInuqlI'",
                 "versionSubtitle": "Version: {{version}}",
                 "options": {
@@ -162,25 +162,22 @@
             }
         },
         "ttSettings": {
-            "title": "TizenTube choHtaHghach",
+            "title": "TizenTube 9 choHtaHghach",
             "madeByText": "Reis Can (reisxd) bang ❤️",
-            "summary": "TizenTube choHtaHghach yIpoS"
+            "summary": "TizenTube 9 choHtaHghach yIpoS"
         },
         "supportTT": {
-            "title": "TizenTube yIQah",
-            "subtitle": "❤️ TizenTube yIQah",
+            "title": "TizenTube 9 yIQah",
+            "subtitle": "❤️ TizenTube 9 yIQah",
             "content": {
-                "1": "TizenTube yIQah:",
+                "1": "TizenTube 9 yIQah:",
                 "2": "1. GitHub Star yIchu'.",
-                "3": "2. TizenTube yIlatlh.",
-                "4": "Hvep yIQah:",
-                "5": "- Buy Me A Coffee: https://www.buymeacoffee.com/reisxd",
-                "6": "- GitHub Sponsors: https://github.com/sponsors/reisxd"
+                "3": "2. TizenTube 9 yIlatlh."
             }
         }
     },
     "welcomeMsg": {
-        "title": "TizenTube-Daq yI'el!",
+        "title": "TizenTube 9-Daq yI'el!",
         "subtitle": "choHtaHghach yInuqlI'!"
     },
     "sponsorblock": {

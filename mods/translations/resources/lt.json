@@ -55,7 +55,7 @@
                     "longPress": "Įjungti ilgo paspaudimo veiksmus",
                     "shorts": "Įjungti trumpuosius vaizdo įrašus („Shorts“)",
                     "videoPreviews": "Įjungti vaizdo įrašų peržiūras",
-                    "ttWelcomeMsg": "Rodyti „TizenTube“ pasisveikinimą",
+                    "ttWelcomeMsg": "Rodyti „TizenTube 9“ pasisveikinimą",
                     "guestSignInReminder": "Rodyti svečio prisijungimo priminimą",
                     "reloadHomeOnStartup": "Atnaujinti pagrindinį puslapį paleidžiant"
                 }
@@ -134,14 +134,14 @@
                     },
                     "launchToOnStartup": {
                         "title": "Pradinis puslapis paleidžiant",
-                        "subtitle": "Pasirinkite numatytąjį puslapį, kurį „TizenTube“ atidarys paleidimo metu"
+                        "subtitle": "Pasirinkite numatytąjį puslapį, kurį „TizenTube 9“ atidarys paleidimo metu"
                     },
                     "sortSubscriptionsByAlphabet": "Rūšiuoti prenumeratas abėcėlės tvarka"
                 }
             },
             "updater": {
-                "title": "„TizenTube Cobalt“ naujinimo įrankis",
-                "menuSubtitle": "Valdykite „TizenTube Cobalt“ naujinimus",
+                "title": "„TizenTube 9“ naujinimo įrankis",
+                "menuSubtitle": "Valdykite „TizenTube 9“ naujinimus",
                 "versionSubtitle": "Dabartinė versija: {{version}}",
                 "options": {
                     "checkForUpdates": "Tikrinti ar yra naujinimų",
@@ -150,26 +150,23 @@
             }
         },
         "ttSettings": {
-            "title": "„TizenTube“ nustatymai",
+            "title": "„TizenTube 9“ nustatymai",
             "madeByText": "Sukūrta Reis Can (reisxd) su ❤️",
-            "summary": "Atidaryti „TizenTube“ nustatymus"
+            "summary": "Atidaryti „TizenTube 9“ nustatymus"
         },
         "supportTT": {
-            "title": "Paremkite „TizenTube“",
-            "subtitle": "❤️ Parodykite paramą „TizenTube“ ir jo vystymui",
+            "title": "Paremkite „TizenTube 9“",
+            "subtitle": "❤️ Parodykite paramą „TizenTube 9“ ir jo vystymui",
             "content": {
-                "1": "Jei jums patinka naudotis „TizenTube“ ir norėtumėte paremti projekto vystymą, apsvarstykite šias galimybes:",
+                "1": "Jei jums patinka naudotis „TizenTube 9“ ir norėtumėte paremti projekto vystymą, apsvarstykite šias galimybes:",
                 "2": "1. Pažymėkite „GitHub“ saugyklą žvaigždute, kad padidintumėte jos matomumą.",
-                "3": "2. Pasidalinkite „TizenTube“ su kitais.",
-                "4": "Jei norite prisidėti finansiškai, apsvarstykite galimybę paaukoti:",
-                "5": "- „Buy Me A Coffee“: https://www.buymeacoffee.com/reisxd (pageidautina)",
-                "6": "- „GitHub Sponsors“: https://github.com/sponsors/reisxd"
+                "3": "2. Pasidalinkite „TizenTube 9“ su kitais."
             }
         }
     },
     "welcomeMsg": {
-        "title": "Sveiki! Čia – „TizenTube“",
-        "subtitle": "Eikite į nustatymus ir pasirinkite „„TizenTube“ nustatymai“, jei norite juos keisti."
+        "title": "Sveiki! Čia – „TizenTube 9“",
+        "subtitle": "Eikite į nustatymus ir pasirinkite „„TizenTube 9“ nustatymai“, jei norite juos keisti."
     },
     "sponsorblock": {
         "segments": {

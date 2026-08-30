@@ -1,5 +1,7 @@
 {
-    "__contributors": ["Mikxus"],
+    "__contributors": [
+        "Mikxus"
+    ],
     "settings": {
         "options": {
             "socialMedia": {
@@ -132,12 +134,12 @@
                     },
                     "launchToOnStartup": {
                         "title": "Aloitussivu käynnistyksessä",
-                        "subtitle": "Valitse oletussivu, johon TizenTube avautuu käynnistyksessä"
+                        "subtitle": "Valitse oletussivu, johon TizenTube 9 avautuu käynnistyksessä"
                     }
                 },
                 "updater": {
-                    "title": "TizenTube Cobalt -päivittäjä",
-                    "menuSubtitle": "Hallitse TizenTube Cobaltin päivityksiä",
+                    "title": "TizenTube 9 -päivittäjä",
+                    "menuSubtitle": "Hallitse TizenTube 9 päivityksiä",
                     "versionSubtitle": "Nykyinen versio: {{version}}",
                     "options": {
                         "checkForUpdates": "Tarkista päivitykset",
@@ -147,26 +149,23 @@
             }
         },
         "ttSettings": {
-            "title": "TizenTube-asetukset",
+            "title": "TizenTube 9 -asetukset",
             "madeByText": "Tekijä Reis Can (reisxd) ❤️",
-            "summary": "Avaa TizenTube-asetukset"
+            "summary": "Avaa TizenTube 9 -asetukset"
         },
         "supportTT": {
-            "title": "Tue TizenTubea",
-            "subtitle": "❤️ Tue TizenTubea ja sen kehitystä",
+            "title": "Tue TizenTube 9:ää",
+            "subtitle": "❤️ Tue TizenTube 9:ää ja sen kehitystä",
             "content": {
-                "1": "Jos pidät TizenTuben käytöstä ja haluat tukea sen kehitystä, harkitse seuraavaa:",
+                "1": "Jos pidät TizenTube 9:n käytöstä ja haluat tukea sen kehitystä, harkitse seuraavaa:",
                 "2": "1. Anna GitHub-repositorioon tähti, jotta sen näkyvyys kasvaa.",
-                "3": "2. Jaa TizenTubea muille.",
-                "4": "Jos haluat tukea taloudellisesti, harkitse lahjoittamista:",
-                "5": "- Buy Me A Coffee: https://www.buymeacoffee.com/reisxd (mieluiten)",
-                "6": "- GitHub Sponsors: https://github.com/sponsors/reisxd"
+                "3": "2. Jaa TizenTube 9:ää muille."
             }
         }
     },
     "welcomeMsg": {
-        "title": "Tervetuloa TizenTubeen",
-        "subtitle": "Siirry asetuksiin ja avaa TizenTube-asetukset."
+        "title": "Tervetuloa TizenTube 9:ään",
+        "subtitle": "Siirry asetuksiin ja avaa TizenTube 9 -asetukset."
     },
     "sponsorblock": {
         "segments": {

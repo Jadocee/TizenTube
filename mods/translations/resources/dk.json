@@ -134,14 +134,14 @@
                     },
                     "launchToOnStartup": {
                         "title": "Startside ved Opstart",
-                        "subtitle": "Vælg den standardside, TizenTube åbner ved opstart"
+                        "subtitle": "Vælg den standardside, TizenTube 9 åbner ved opstart"
                     },
                     "sortSubscriptionsByAlphabet": "Sort Subscriptions Alphabetically"
                 }
             },
             "updater": {
-                "title": "TizenTube Cobalt Updater",
-                "menuSubtitle": "Administrér TizenTube Cobalt-opdateringer",
+                "title": "TizenTube 9 Updater",
+                "menuSubtitle": "Administrér TizenTube 9-opdateringer",
                 "versionSubtitle": "Nuværende version: {{version}}",
                 "options": {
                     "checkForUpdates": "Søg efter opdateringer",
@@ -150,26 +150,23 @@
             }
         },
         "ttSettings": {
-            "title": "TizenTube-indstillinger",
+            "title": "TizenTube 9-indstillinger",
             "madeByText": "Lavet af Reis Can (reisxd) med ❤️",
-            "summary": "Åbn TizenTube-indstillinger"
+            "summary": "Åbn TizenTube 9-indstillinger"
         },
         "supportTT": {
-            "title": "Støt TizenTube",
-            "subtitle": "❤️ Vis støtte til TizenTube og dets udvikling",
+            "title": "Støt TizenTube 9",
+            "subtitle": "❤️ Vis støtte til TizenTube 9 og dets udvikling",
             "content": {
-                "1": "Hvis du nyder at bruge TizenTube og gerne vil støtte dets udvikling, kan du overveje følgende:",
+                "1": "Hvis du nyder at bruge TizenTube 9 og gerne vil støtte dets udvikling, kan du overveje følgende:",
                 "2": "1. Giv GitHub-repositoriet en stjerne for at hjælpe med at øge dets synlighed.",
-                "3": "2. Del TizenTube med andre.",
-                "4": "Hvis du gerne vil bidrage økonomisk, kan du overveje at donere:",
-                "5": "- Buy Me A Coffee: https://www.buymeacoffee.com/reisxd (helst)",
-                "6": "- GitHub Sponsors: https://github.com/sponsors/reisxd"
+                "3": "2. Del TizenTube 9 med andre."
             }
         }
     },
     "welcomeMsg": {
-        "title": "Velkommen til TizenTube",
-        "subtitle": "Gå til indstillinger, og klik på TizenTube-indstillinger for at åbne indstillingerne."
+        "title": "Velkommen til TizenTube 9",
+        "subtitle": "Gå til indstillinger, og klik på TizenTube 9-indstillinger for at åbne indstillingerne."
     },
     "sponsorblock": {
         "segments": {

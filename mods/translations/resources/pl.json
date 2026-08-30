@@ -9,8 +9,7 @@
                 "qrCodeScanMessage": "Możesz odwiedzić stronę {{name}}, skanując poniższy kod QR.",
                 "announcements": "Ogłoszenia",
                 "group": "Grupa",
-                "website": "Strona internetowa",
-                "githubSponsors": "GitHub Sponsors"
+                "website": "Strona internetowa"
             },
             "adBlock": "Blokada reklam",
             "sponsorblock": {
@@ -81,7 +80,7 @@
                             "enableVPUIPatching": "Włącz modyfikację interfejsu odtwarzacza",
                             "previousNextBtns": "Włącz przyciski Poprzedni i Następny",
                             "showSuperThxBtn": "Pokaż przycisk Super Podziękowania",
-							"showAIAskBtn": "Pokaż przycisk Zapytaj",
+                            "showAIAskBtn": "Pokaż przycisk Zapytaj",
                             "showSpeedCtrlBtn": "Pokaż przycisk kontroli prędkości",
                             "addMPBtn": "Pokaż przycisk miniodtwarzacza",
                             "swapMPWithPIP": "Zamień miniodtwarzacz na PiP"
@@ -149,7 +148,7 @@
                     },
                     "launchToOnStartup": {
                         "title": "Strona startowa",
-                        "subtitle": "Wybierz domyślną stronę, która otwiera się po uruchomieniu TizenTube"
+                        "subtitle": "Wybierz domyślną stronę, która otwiera się po uruchomieniu TizenTube 9"
                     },
                     "categories": {
                         "search": "Szukaj",
@@ -166,7 +165,7 @@
                         "more": "Więcej",
                         "shorts": "Shorts",
                         "searchResults": "Wyniki wyszukiwania"
-                    }, 
+                    },
                     "sortSubscriptionsByAlphabet": "Sortuj subskrypcje alfabetycznie",
                     "disableChannelsOnSidebar": "Wyłącz kanały na pasku bocznym",
                     "clock": {
@@ -181,16 +180,16 @@
                 }
             },
             "updater": {
-                "title": "Aktualizacje TizenTube Cobalt",
-                "menuSubtitle": "Zarządzaj aktualizacjami TizenTube Cobalt",
+                "title": "Aktualizacje TizenTube 9",
+                "menuSubtitle": "Zarządzaj aktualizacjami TizenTube 9",
                 "versionSubtitle": "Zainstalowana wersja: {{version}}",
                 "options": {
                     "checkForUpdates": "Sprawdź dostępność aktualizacji",
                     "checkForUpdatesOnStartup": "Sprawdź aktualizacje przy uruchomieniu"
                 },
                 "updateAvailable": {
-					"title": "Dostępna aktualizacja",
-                    "subtitle": "Nowa wersja TizenTube Cobalt jest dostępna: {{latestVersion}}, zainstalowana: {{currentVersion}}"
+                    "title": "Dostępna aktualizacja",
+                    "subtitle": "Nowa wersja TizenTube 9 jest dostępna: {{latestVersion}}, zainstalowana: {{currentVersion}}"
                 },
                 "releaseDate": "Wydana: {{date}}",
                 "updateNow": {
@@ -202,40 +201,37 @@
                     "subtitle": "Sprawdź dostępność aktualizacji później"
                 },
                 "upToDate": {
-                    "title": "TizenTube jest aktualne",
-                    "subtitle": "Używasz już najnowszej wersji ({{version}}) TizenTube Cobalt."
+                    "title": "TizenTube 9 jest aktualne",
+                    "subtitle": "Używasz już najnowszej wersji ({{version}}) TizenTube 9."
                 },
                 "checkFailed": {
-                    "title": "TizenTube update check failed",
-                    "subtitle": "Could not check for updates." 
+                    "title": "TizenTube 9 update check failed",
+                    "subtitle": "Could not check for updates."
                 },
                 "downloading": {
-                    "title": "Aktualizacja TizenTube",
+                    "title": "Aktualizacja TizenTube 9",
                     "subtitle": "Pobieranie aktualizacji, proszę czekać..."
                 }
             }
         },
         "ttSettings": {
-            "title": "Ustawienia TizenTube",
+            "title": "Ustawienia TizenTube 9",
             "madeByText": "Stworzony przez Reisa Cana „reisxd” z ❤️",
-            "summary": "Otwórz ustawienia TizenTube"
+            "summary": "Otwórz ustawienia TizenTube 9"
         },
         "supportTT": {
-            "title": "Wesprzyj TizenTube",
-            "subtitle": "❤️ Okaż wsparcie dla TizenTube i jego rozwoju",
+            "title": "Wesprzyj TizenTube 9",
+            "subtitle": "❤️ Okaż wsparcie dla TizenTube 9 i jego rozwoju",
             "content": {
-                "1": "Jeśli podoba Ci się TizenTube i chcesz pomóc w jego rozwoju, oto co możesz zrobić:",
+                "1": "Jeśli podoba Ci się TizenTube 9 i chcesz pomóc w jego rozwoju, oto co możesz zrobić:",
                 "2": "1. Oznacz repozytorium na GitHubie gwiazdką, aby zwiększyć jego widoczność.",
-                "3": "2. Poleć TizenTube znajomym.",
-                "4": "Jeśli chcesz wesprzeć projekt finansowo, możesz przekazać darowiznę:",
-                "5": "- Buy Me A Coffee: https://www.buymeacoffee.com/reisxd (Preferowane)",
-                "6": "- GitHub Sponsors: https://github.com/sponsors/reisxd"
+                "3": "2. Poleć TizenTube 9 znajomym."
             }
         }
     },
     "welcomeMsg": {
-        "title": "Witaj w TizenTube",
-        "subtitle": "Aby przejść do ustawień, wejdź w ustawienia i wybierz Ustawienia TizenTube."
+        "title": "Witaj w TizenTube 9",
+        "subtitle": "Aby przejść do ustawień, wejdź w ustawienia i wybierz Ustawienia TizenTube 9."
     },
     "sponsorblock": {
         "segments": {
@@ -266,7 +262,7 @@
         "pictureInPicture": "Obraz w obrazie (PiP)",
         "previous": "Poprzedni",
         "next": "Następny",
-        "withTizenTube": "Za pomocą TizenTube"
+        "withTizenTube": "Za pomocą TizenTube 9"
     },
     "toasts": {
         "videoAddedToQueue": "Dodano film do kolejki",

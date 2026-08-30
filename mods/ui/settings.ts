@@ -199,10 +199,7 @@ export default function modernUI(update?: boolean, parameters?: number[]): void 
                 content: scrollPaneRenderer([
                     overlayMessageRenderer(t('settings.supportTT.content.1')),
                     overlayMessageRenderer(t('settings.supportTT.content.2')),
-                    overlayMessageRenderer(t('settings.supportTT.content.3')),
-                    overlayMessageRenderer(t('settings.supportTT.content.4')),
-                    overlayMessageRenderer(t('settings.supportTT.content.5')),
-                    overlayMessageRenderer(t('settings.supportTT.content.6'))
+                    overlayMessageRenderer(t('settings.supportTT.content.3'))
                 ])
             }
         },
@@ -218,7 +215,7 @@ export default function modernUI(update?: boolean, parameters?: number[]): void 
             options: [
                 {
                     name: 'GitHub',
-                    link: 'https://github.com/reisxd/TizenTube',
+                    link: 'https://github.com/Jadocee/TizenTube',
                 },
                 {
                     name: 'YouTube',
@@ -229,24 +226,12 @@ export default function modernUI(update?: boolean, parameters?: number[]): void 
                     link: 'https://discord.gg/m2P7v8Y2qR',
                 },
                 {
-                    name: `Telegram (${t('settings.options.socialMedia.announcements')})`,
-                    link: 'https://t.me/tizentubecobaltofficial',
-                },
-                {
                     name: `Telegram (${t('settings.options.socialMedia.group')})`,
                     link: 'https://t.me/tizentubeofficial',
                 },
                 {
                     name: t('settings.options.socialMedia.website'),
                     link: 'https://tizentube.6513006.xyz',
-                },
-                {
-                    name: 'Buy Me A Coffee',
-                    link: 'https://www.buymeacoffee.com/reisxd',
-                },
-                {
-                    name: t('settings.options.socialMedia.githubSponsors'),
-                    link: 'https://github.com/sponsors/reisxd',
                 }
             ].map((option): SubmenuRow => {
                 if (!qrcodes[option.name]) {

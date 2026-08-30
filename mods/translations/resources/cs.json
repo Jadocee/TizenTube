@@ -136,7 +136,7 @@
                     },
                     "launchToOnStartup": {
                         "title": "Spustit Na při Startu",
-                        "subtitle": "Zvolte výchozí stránku, na kterou TizenTube přejde při spuštění"
+                        "subtitle": "Zvolte výchozí stránku, na kterou TizenTube 9 přejde při spuštění"
                     },
                     "sortSubscriptionsByAlphabet": "Seřadit Odběry Abecedně",
                     "disableChannelsOnSidebar": "Zakázat Kanály v Postranním Panelu",
@@ -152,8 +152,8 @@
                 }
             },
             "updater": {
-                "title": "Aktualizátor TizenTube Cobalt",
-                "menuSubtitle": "Správa aktualizací TizenTube Cobalt",
+                "title": "Aktualizátor TizenTube 9",
+                "menuSubtitle": "Správa aktualizací TizenTube 9",
                 "versionSubtitle": "Aktuální verze: {{version}}",
                 "options": {
                     "checkForUpdates": "Zkontrolovat aktualizace",
@@ -162,26 +162,23 @@
             }
         },
         "ttSettings": {
-            "title": "Nastavení TizenTube",
+            "title": "Nastavení TizenTube 9",
             "madeByText": "Vytvořil Reis Can (reisxd) s ❤️",
-            "summary": "Otevřít TizenTube Nastavení"
+            "summary": "Otevřít TizenTube 9 Nastavení"
         },
         "supportTT": {
-            "title": "Podpořte TizenTube",
-            "subtitle": "❤️ Vyjádřete podporu TizenTube a přispějte k jeho vývoji",
+            "title": "Podpořte TizenTube 9",
+            "subtitle": "❤️ Vyjádřete podporu TizenTube 9 a přispějte k jeho vývoji",
             "content": {
-                "1": "Pokud se vám líbí TizenTube a chcete podpořit vývoj, zvažte následující:",
+                "1": "Pokud se vám líbí TizenTube 9 a chcete podpořit vývoj, zvažte následující:",
                 "2": "1. Dejte hvězdičku repozitáři na Githubu, aby se mu zvýšila viditelnost.",
-                "3": "2. Sdílejte TizenTube s ostatními.",
-                "4": "Pokud chcete přispět finančně, zvažte dar; přes:",
-                "5": "- Buy Me A Coffee: https://www.buymeacoffee.com/reisxd (preferováno)",
-                "6": "- Sponzoři GitHub: https://github.com/sponsors/reisxd"
+                "3": "2. Sdílejte TizenTube 9 s ostatními."
             }
         }
     },
     "welcomeMsg": {
-        "title": "Vítejte v TizenTube",
-        "subtitle": "Pro nastavení přejděte na sekci nastavení a klikněte na Nastavení TizenTube."
+        "title": "Vítejte v TizenTube 9",
+        "subtitle": "Pro nastavení přejděte na sekci nastavení a klikněte na Nastavení TizenTube 9."
     },
     "sponsorblock": {
         "segments": {

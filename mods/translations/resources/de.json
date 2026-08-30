@@ -9,8 +9,7 @@
                 "qrCodeScanMessage": "Du kannst die {{name}}-Seite besuchen, indem du den untenstehenden QR-Code scannst.",
                 "announcements": "Anzeigen",
                 "group": "Gruppe",
-                "website": "Website",
-                "githubSponsors": "GitHub Sponsoren"
+                "website": "Website"
             },
             "adBlock": "Werbeblocker",
             "sponsorblock": {
@@ -149,7 +148,7 @@
                     },
                     "launchToOnStartup": {
                         "title": "Startseite beim Start",
-                        "subtitle": "Wähle die Standardseite, die TizenTube beim Start öffnet"
+                        "subtitle": "Wähle die Standardseite, die TizenTube 9 beim Start öffnet"
                     },
                     "categories": {
                         "search": "Suchen",
@@ -181,8 +180,8 @@
                 }
             },
             "updater": {
-                "title": "TizenTube Cobalt Updater",
-                "menuSubtitle": "TizenTube Cobalt Updates verwalten",
+                "title": "TizenTube 9 Updater",
+                "menuSubtitle": "TizenTube 9 Updates verwalten",
                 "versionSubtitle": "Aktuelle Version: {{version}}",
                 "options": {
                     "checkForUpdates": "Nach Updates suchen",
@@ -190,7 +189,7 @@
                 },
                 "updateAvailable": {
                     "title": "Update verfügbar",
-                    "subtitle": "Eine neue Version von TizenTube Cobalt ist verfügbar: {{latestVersion}}, installiert: {{currentVersion}}"
+                    "subtitle": "Eine neue Version von TizenTube 9 ist verfügbar: {{latestVersion}}, installiert: {{currentVersion}}"
                 },
                 "releaseDate": "Veröffentlichungsdatum: {{date}}",
                 "updateNow": {
@@ -202,40 +201,37 @@
                     "subtitle": "Später nach Updates suchen."
                 },
                 "upToDate": {
-                    "title": "TizenTube ist auf dem neuesten Stand",
-                    "subtitle": "Sie verwenden die neueste Version ({{version}}) von TizenTube Cobalt."
+                    "title": "TizenTube 9 ist auf dem neuesten Stand",
+                    "subtitle": "Sie verwenden die neueste Version ({{version}}) von TizenTube 9."
                 },
                 "checkFailed": {
-                    "title": "Überprüfung auf TizenTube-Updates fehlgeschlagen",
+                    "title": "Überprüfung auf TizenTube 9-Updates fehlgeschlagen",
                     "subtitle": "Es konnten keine Updates gefunden werden."
                 },
                 "downloading": {
-                    "title": "TizenTube-Update",
+                    "title": "TizenTube 9-Update",
                     "subtitle": "Update wird heruntergeladen, bitte warten..."
                 }
             }
         },
         "ttSettings": {
-            "title": "TizenTube-Einstellungen",
+            "title": "TizenTube 9-Einstellungen",
             "madeByText": "Erstellt von Reis Can (reisxd) mit ❤️",
-            "summary": "TizenTube-Einstellungen öffnen"
+            "summary": "TizenTube 9-Einstellungen öffnen"
         },
         "supportTT": {
-            "title": "TizenTube unterstützen",
-            "subtitle": "❤️ Unterstütze TizenTube und seine Entwicklung",
+            "title": "TizenTube 9 unterstützen",
+            "subtitle": "❤️ Unterstütze TizenTube 9 und seine Entwicklung",
             "content": {
-                "1": "Wenn dir TizenTube gefällt und du seine Entwicklung unterstützen möchtest, ziehe Folgendes in Betracht:",
+                "1": "Wenn dir TizenTube 9 gefällt und du seine Entwicklung unterstützen möchtest, ziehe Folgendes in Betracht:",
                 "2": "1. Markiere das GitHub-Repository mit einem Stern, um seine Sichtbarkeit zu erhöhen.",
-                "3": "2. Teile TizenTube mit anderen.",
-                "4": "Wenn du finanziell beitragen möchtest, kannst du spenden:",
-                "5": "- Buy Me A Coffee: https://www.buymeacoffee.com/reisxd (bevorzugt)",
-                "6": "- GitHub Sponsoren: https://github.com/sponsors/reisxd"
+                "3": "2. Teile TizenTube 9 mit anderen."
             }
         }
     },
     "welcomeMsg": {
-        "title": "Willkommen bei TizenTube",
-        "subtitle": "Gehe zu den Einstellungen und klicke auf TizenTube-Einstellungen."
+        "title": "Willkommen bei TizenTube 9",
+        "subtitle": "Gehe zu den Einstellungen und klicke auf TizenTube 9-Einstellungen."
     },
     "sponsorblock": {
         "segments": {
@@ -263,10 +259,10 @@
             "fixStuttering": "Ruckeln beheben (1.0001x)"
         },
         "miniPlayer": "MiniPlayer",
-        "pictureInPicture": "Bild-in-Bild",	  
+        "pictureInPicture": "Bild-in-Bild",
         "previous": "Zurück",
         "next": "Weiter",
-        "withTizenTube": "mit TizenTube"
+        "withTizenTube": "mit TizenTube 9"
     },
     "toasts": {
         "videoAddedToQueue": "Video wurde zur Warteschlange hinzugefügt",

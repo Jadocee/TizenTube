@@ -1,6 +1,6 @@
 # Harnesses
 
-Eleven regression harnesses. They exist because the things that break TizenTube
+Twelve regression harnesses. They exist because the things that break TizenTube
 mostly cannot be caught by a typechecker or by reading a diff: a renderer shape
 that only appears at runtime, a focus trap you only find with a D-pad, a
 stylesheet that works until CSP is enforced, a script that behaves differently
@@ -28,6 +28,7 @@ here (no browser, no built bundle) report as *skipped*, not passed.
 | `injection/proxy.test.mjs` | Where the proxy injects the userscript tag, and that the loader prefers the packaged copy. |
 | `injection/docstart.mjs` | Loads the **real built bundle** in Chromium as the first script in `<head>`, before `<body>` exists, and asserts it boots with no uncaught errors. |
 | `injection/late.mjs` | The same bundle injected last in `<body>`. |
+| `panel-style/test.mjs` | The theme panel's stylesheet in Chromium, rendered with the inline `display` `ui.ts` actually sets: that the nesting parsed, that rows stay separated and corners rounded, that text clears 3:1 at 24px, that focus lights the whole row, that the four YouTube override rules still land, and that the panel stays inside the title-safe inset on each axis. |
 | `splash/test.mjs` | The standalone launch page's state machine over all four service states, its retry path, and that a rejected TV key cannot abort the launch. |
 
 ## Snapshots
@@ -47,7 +48,7 @@ that was fixed, so the harness can show the before and after side by side.
 - Node 22+ (`--experimental-strip-types` is used for the `.mts` snapshots).
 - `npm install` in `mods/` — the refresh step uses that TypeScript compiler.
 - `dist/userScript.js` built, for the two harnesses that load the real bundle.
-- Playwright with Chromium, for the three browser harnesses. Without it they
+- Playwright with Chromium, for the four browser harnesses. Without it they
   skip rather than fail.
 
 ## Adding one

@@ -137,7 +137,7 @@
                     },
                     "launchToOnStartup": {
                         "title": "Открыть при запуске",
-                        "subtitle": "Выберите страницу, которая будет открываться при запуске TizenTube"
+                        "subtitle": "Выберите страницу, которая будет открываться при запуске TizenTube 9"
                     },
                     "sortSubscriptionsByAlphabet": "Сортировать подписки по алфавиту",
                     "disableChannelsOnSidebar": "Отключить каналы в боковой панели",
@@ -153,8 +153,8 @@
                 }
             },
             "updater": {
-                "title": "Обновление TizenTube Cobalt",
-                "menuSubtitle": "Управление обновлениями TizenTube Cobalt",
+                "title": "Обновление TizenTube 9",
+                "menuSubtitle": "Управление обновлениями TizenTube 9",
                 "versionSubtitle": "Текущая версия: {{version}}",
                 "options": {
                     "checkForUpdates": "Проверить обновления",
@@ -163,26 +163,23 @@
             }
         },
         "ttSettings": {
-            "title": "Настройки TizenTube",
+            "title": "Настройки TizenTube 9",
             "madeByText": "Сделано Reis Can (reisxd) с ❤️",
-            "summary": "Открыть настройки TizenTube"
+            "summary": "Открыть настройки TizenTube 9"
         },
         "supportTT": {
-            "title": "Поддержать TizenTube",
-            "subtitle": "❤️ Поддержите TizenTube и его разработку",
+            "title": "Поддержать TizenTube 9",
+            "subtitle": "❤️ Поддержите TizenTube 9 и его разработку",
             "content": {
-                "1": "Если вам нравится использовать TizenTube и вы хотите поддержать его развитие, рассмотрите следующие варианты:",
+                "1": "Если вам нравится использовать TizenTube 9 и вы хотите поддержать его развитие, рассмотрите следующие варианты:",
                 "2": "1. Поставьте звезду репозиторию на GitHub, чтобы повысить его видимость.",
-                "3": "2. Поделитесь TizenTube с другими.",
-                "4": "Если вы хотите поддержать проект финансово, рассмотрите возможность пожертвования:",
-                "5": "- Buy Me A Coffee: https://www.buymeacoffee.com/reisxd (preferably)",
-                "6": "- GitHub Sponsors: https://github.com/sponsors/reisxd"
+                "3": "2. Поделитесь TizenTube 9 с другими."
             }
         }
     },
     "welcomeMsg": {
-        "title": "Добро пожаловать в TizenTube",
-        "subtitle": "Перейдите в настройки и нажмите «Настройки TizenTube»."
+        "title": "Добро пожаловать в TizenTube 9",
+        "subtitle": "Перейдите в настройки и нажмите «Настройки TizenTube 9»."
     },
     "sponsorblock": {
         "segments": {
