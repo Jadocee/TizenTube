@@ -1,0 +1,40 @@
+/* TizenTube 9 clock.
+   Was fifteen individual element.style assignments in clock.ts; only the corner
+   is a runtime decision, and that is a class now rather than four properties
+   being cleared and re-set on every change.
+
+   The offsets clear the 5% title-safe line on sets that still overscan.
+   YouTube's TV app sizes its root font at a fixed fraction of the viewport, so
+   rem lands in the same place whatever resolution the set reports. */
+
+#tizentube-clock {
+  position: fixed;
+  /* Below .ytaf-ui-container (1000) so TizenTube's own panels are never stamped
+     over, but composited so the video plane cannot occlude it. */
+  z-index: 900;
+  transform: translateZ(0);
+
+  padding-block: 0.35rem;
+  padding-inline: 0.85rem;
+  border-radius: 0.75rem;
+
+  font-size: 2rem;
+  font-weight: 500;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  pointer-events: none;
+
+  /* A dark scrim plus a shadow: white text alone disappears over a snowy or
+     daylight frame, and TV gamma blooms the highlights on top of that. 0.6 puts
+     white-on-scrim at 5.7:1 over a white frame; 0.45 measured only 3.4:1, which
+     is the large-text floor with nothing left for TV gamma. A darker scrim
+     costs nothing over dark content, where it is invisible. */
+  background-color: rgb(0 0 0 / 60%);
+  text-shadow: 0 0.125rem 0.375rem rgb(0 0 0 / 90%), 0 0 0.125rem rgb(0 0 0 / 90%);
+
+  &.tt-clock-top-left { inset-block-start: 3rem; inset-inline-start: 4rem; }
+  &.tt-clock-top-right { inset-block-start: 3rem; inset-inline-end: 4rem; }
+  &.tt-clock-bottom-left { inset-block-end: 3rem; inset-inline-start: 4rem; }
+  &.tt-clock-bottom-right { inset-block-end: 3rem; inset-inline-end: 4rem; }
+}

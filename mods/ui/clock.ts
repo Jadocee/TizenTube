@@ -1,6 +1,13 @@
 import { configChangeEmitter, configRead } from '../config.js';
 import { t } from 'i18next';
 import { whenBodyReady } from '../utils/domReady.js';
+import { setStyleBlock } from './styleSheet.js';
+import clockCss from './clock.css';
+
+// Registered on evaluation, not from ui.ts's startup path: that one waits for a
+// <video> to exist, and the clock can be in the document from DOMContentLoaded
+// -- which would show it unstyled until the video arrived.
+setStyleBlock('clock', clockCss);
 
 configChangeEmitter.addEventListener('configChange', (e) => {
     if (e.detail.key === 'enableClock') {
@@ -11,19 +18,11 @@ configChangeEmitter.addEventListener('configChange', (e) => {
     }
 });
 
-// YouTube's TV app sizes its root font at a fixed fraction of the viewport
-// (its own progress bar spans 4rem + 72rem + 4rem), so rem offsets land in the
-// same place whatever resolution the set reports. 3rem/4rem clears the 5%
-// title-safe line on TVs that still overscan.
-type ClockSide = 'top' | 'right' | 'bottom' | 'left';
-type ClockOffsets = Partial<Record<ClockSide, string>>;
-
-const POSITIONS: Record<string, ClockOffsets> = {
-    'top-left': { top: '3rem', left: '4rem' },
-    'top-right': { top: '3rem', right: '4rem' },
-    'bottom-left': { bottom: '3rem', left: '4rem' },
-    'bottom-right': { bottom: '3rem', right: '4rem' }
-};
+// The offsets themselves live in ui.css; this only names the corner.
+const POSITIONS = ['top-left', 'top-right', 'bottom-left', 'bottom-right'] as const;
+const DEFAULT_POSITION = 'top-right';
+const positionClass = (position: string): string =>
+    `tt-clock-${(POSITIONS as readonly string[]).includes(position) ? position : DEFAULT_POSITION}`;
 
 const CLOCK_ID = 'tizentube-clock';
 
@@ -31,22 +30,14 @@ let actualClock: HTMLDivElement | null | undefined;
 let clockTimeout: ReturnType<typeof setTimeout> | null | undefined;
 let lastText: string | null | undefined;
 
-// String.prototype.padStart only landed in Chrome 57 and nothing polyfills it
-// here, so the build's Chrome 47 target has to pad by hand.
 function pad2(value: number): string {
-    return value < 10 ? `0${value}` : `${value}`;
+    return String(value).padStart(2, '0');
 }
 
 function placeClock(): void {
     if (!actualClock) return;
-    const position = POSITIONS[configRead('clockPosition')] || POSITIONS['top-right'];
-    actualClock.style.top = '';
-    actualClock.style.right = '';
-    actualClock.style.bottom = '';
-    actualClock.style.left = '';
-    for (const side in position) {
-        actualClock.style[side as ClockSide] = position[side as ClockSide]!;
-    }
+    // One class swap, rather than clearing four properties and re-setting two.
+    actualClock.className = positionClass(configRead('clockPosition'));
 }
 
 function updateClock(): void {
@@ -113,26 +104,7 @@ function toggleClock(value: unknown): void {
     actualClock = document.createElement('div');
     actualClock.id = CLOCK_ID;
 
-    actualClock.style.position = 'fixed';
-    // Below .ytaf-ui-container (1000) so TizenTube's own panels are never
-    // stamped over, but composited so the video plane cannot occlude it.
-    actualClock.style.zIndex = '900';
-    actualClock.style.transform = 'translateZ(0)';
-    actualClock.style.fontSize = '2rem';
-    actualClock.style.fontWeight = '500';
-    actualClock.style.lineHeight = '1';
-    actualClock.style.color = '#fff';
-    actualClock.style.padding = '0.25rem 0.75rem';
-    actualClock.style.borderRadius = '0.5rem';
-    // A dark scrim plus a shadow: white text alone disappears over a snowy or
-    // daylight frame, and TV gamma blooms the highlights on top of that.
-    // 0.6 puts white-on-scrim at 5.7:1 over a white frame; 0.45 measured only
-    // 3.4:1, which is the large-text floor with nothing left for TV gamma. A
-    // darker scrim costs nothing over dark content, where it is invisible.
-    actualClock.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
-    actualClock.style.textShadow = '0 2px 6px rgba(0, 0, 0, 0.9), 0 0 2px rgba(0, 0, 0, 0.9)';
-    actualClock.style.pointerEvents = 'none';
-
+    // Everything static is in ui.css under #tizentube-clock.
     placeClock();
     // Deferred: at injection time the parser has not reached <body> yet.
     whenBodyReady(() => {
