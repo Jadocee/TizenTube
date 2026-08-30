@@ -67,16 +67,24 @@ on those TVs — it supports Tizen 3.0 and newer.
 TizenTube 9 can run two ways. The TizenBrew module is the simpler one; the
 standalone app is a normal Tizen app with no TizenBrew dependency.
 
+> ⚠️ **This fork does not publish builds yet.** The npm package and the release
+> `.wgt` linked below are the *upstream* project's, so following either section
+> as written installs upstream TizenTube, not TizenTube 9. Until this fork
+> publishes its own, build from source — see
+> [Building it yourself](#building-it-yourself) — and read the two sections
+> below for the install mechanics, which are the same either way.
+
 ### As a TizenBrew module
 
 1. Install TizenBrew from [here](https://github.com/reisxd/TizenBrew) and follow the instructions.
 
-2. TizenTube 9 is installed to TizenBrew by default. It should be in the home screen. If not, add `@foxreis/tizentube` as a NPM module in TizenBrew module manager.
+2. Add `@foxreis/tizentube` as an NPM module in the TizenBrew module manager. Note that this is upstream's package — TizenBrew has no published module for this fork, and `@foxreis/tizentube` is kept as the module name only because the running code sends it to TizenBrew and the update check fetches it.
 
 ### As a standalone app
 
-The standalone app is a signed `.wgt` attached to every
-[release](https://github.com/reisxd/TizenTube/releases/latest). Installing it
+The standalone app is a signed `.wgt`. Upstream attaches one to every
+[release](https://github.com/reisxd/TizenTube/releases/latest); this fork has
+cut none yet, so build your own. Installing it
 means sideloading, which needs Developer Mode on the TV and Samsung's `sdb`
 tool on a computer (it ships with
 [Tizen Studio](https://developer.tizen.org/development/tizen-studio/download)).
