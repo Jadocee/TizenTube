@@ -136,7 +136,7 @@
                     },
                     "launchToOnStartup": {
                         "title": "Početna stranica pri pokretanju",
-                        "subtitle": "Izaberite podrazumevanu stranicu koja se otvara pri pokretanju TizenTube-a"
+                        "subtitle": "Izaberite podrazumevanu stranicu koja se otvara pri pokretanju TizenTube 9-a"
                     },
                     "sortSubscriptionsByAlphabet": "Sortiraj pretplate po azbuci",
                     "disableChannelsOnSidebar": "Onemogući kanale na bočnoj traci",
@@ -152,8 +152,8 @@
                 }
             },
             "updater": {
-                "title": "TizenTube Cobalt ažuriranje",
-                "menuSubtitle": "Upravljajte TizenTube Cobalt ažuriranjima",
+                "title": "TizenTube 9 ažuriranje",
+                "menuSubtitle": "Upravljajte TizenTube 9 ažuriranjima",
                 "versionSubtitle": "Trenutna verzija: {{version}}",
                 "options": {
                     "checkForUpdates": "Proveri ažuriranja",
@@ -162,26 +162,23 @@
             }
         },
         "ttSettings": {
-            "title": "TizenTube podešavanja",
+            "title": "TizenTube 9 podešavanja",
             "madeByText": "Autor: Reis Can (reisxd) uz ❤️",
-            "summary": "Otvori TizenTube podešavanja"
+            "summary": "Otvori TizenTube 9 podešavanja"
         },
         "supportTT": {
-            "title": "Podrži TizenTube",
-            "subtitle": "❤️ Podržite razvoj TizenTube projekta",
+            "title": "Podrži TizenTube 9",
+            "subtitle": "❤️ Podržite razvoj TizenTube 9 projekta",
             "content": {
-                "1": "Ako uživate u korišćenju TizenTube-a i želite da podržite njegov razvoj, razmislite o sledeće:",
+                "1": "Ako uživate u korišćenju TizenTube 9-a i želite da podržite njegov razvoj, razmislite o sledeće:",
                 "2": "1. Označite repozitorijum zvezdicom (Star) na GitHub-u radi bolje vidljivosti.",
-                "3": "2. Podelite TizenTube sa drugima.",
-                "4": "Ako želite da pomognete finansijski, razmislite o donaciji:",
-                "5": "- Buy Me A Coffee: https://www.buymeacoffee.com/reisxd (preporučeno)",
-                "6": "- GitHub Sponsors: https://github.com/sponsors/reisxd"
+                "3": "2. Podelite TizenTube 9 sa drugima."
             }
         }
     },
     "welcomeMsg": {
-        "title": "Dobrodošli u TizenTube",
-        "subtitle": "Idite u podešavanja i kliknite na 'TizenTube podešavanja' za konfiguraciju."
+        "title": "Dobrodošli u TizenTube 9",
+        "subtitle": "Idite u podešavanja i kliknite na 'TizenTube 9 podešavanja' za konfiguraciju."
     },
     "sponsorblock": {
         "segments": {

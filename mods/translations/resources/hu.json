@@ -1,5 +1,7 @@
 {
-    "__contributors": ["reisxd"],
+    "__contributors": [
+        "reisxd"
+    ],
     "settings": {
         "options": {
             "socialMedia": {
@@ -53,7 +55,7 @@
                     "longPress": "Hosszan lenyomva tartott funkciók",
                     "shorts": "Short-ok bekapcsolása",
                     "videoPreviews": "Videó előnézet kapcsolása",
-                    "ttWelcomeMsg": "TizenTube indítóüzenet megjelenítése",
+                    "ttWelcomeMsg": "TizenTube 9 indítóüzenet megjelenítése",
                     "guestSignInReminder": "Vendég fiók bejelentkezés emlékeztető megjelenítése",
                     "reloadHomeOnStartup": "Kezdőképernyő újratöltése indításkor"
                 }
@@ -132,12 +134,12 @@
                     },
                     "launchToOnStartup": {
                         "title": "Kiválasztott kezdőoldal indításkor",
-                        "subtitle": "Válaszd ki azt az oldalt, amit a TizenTube nyit meg indításkor"
+                        "subtitle": "Válaszd ki azt az oldalt, amit a TizenTube 9 nyit meg indításkor"
                     }
                 },
                 "updater": {
-                    "title": "TizenTube Cobalt frissítő",
-                    "menuSubtitle": "TizenTube Cobalt frissítések kezelése",
+                    "title": "TizenTube 9 frissítő",
+                    "menuSubtitle": "TizenTube 9 frissítések kezelése",
                     "versionSubtitle": "Jelenlegi verzió: {{version}}",
                     "options": {
                         "checkForUpdates": "Frissítések keresése",
@@ -147,26 +149,23 @@
             }
         },
         "ttSettings": {
-            "title": "TizenTube beállítások",
+            "title": "TizenTube 9 beállítások",
             "madeByText": "Készítette: Reis Can (reisxd) csupa ❤️-vel",
-            "summary": "Nyisd meg a TizenTube beállításokat"
+            "summary": "Nyisd meg a TizenTube 9 beállításokat"
         },
         "supportTT": {
-            "title": "Támogasd a TizenTube-ot",
-            "subtitle": "❤️ Fejezd ki a köszöneted a TizenTube és azok fejlesztései felé",
+            "title": "Támogasd a TizenTube 9-ot",
+            "subtitle": "❤️ Fejezd ki a köszöneted a TizenTube 9 és azok fejlesztései felé",
             "content": {
-                "1": "Ha tetszik a TizenTube és támogatnád a fejlesztését:",
+                "1": "Ha tetszik a TizenTube 9 és támogatnád a fejlesztését:",
                 "2": "1. Csillagozd be a GitHub-on, hogy többekhez eljusson",
-                "3": "2. Oszd meg a TizenTube-ot másokkal",
-                "4": "Ha anyagilag is szeretnéd támogatni, a következő linkeken megteheted:",
-                "5": "- Hívj meg egy kávéra: https://www.buymeacoffee.com/reisxd (inkább ezen)",
-                "6": "- GitHub szponzorok: https://github.com/sponsors/reisxd"
+                "3": "2. Oszd meg a TizenTube 9-ot másokkal"
             }
         }
     },
     "welcomeMsg": {
-        "title": "Üdvözöl a TizenTube!",
-        "subtitle": "A testreszabáshoz navigálj a TizenTube beállításokra"
+        "title": "Üdvözöl a TizenTube 9!",
+        "subtitle": "A testreszabáshoz navigálj a TizenTube 9 beállításokra"
     },
     "sponsorblock": {
         "segments": {

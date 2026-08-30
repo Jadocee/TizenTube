@@ -251,7 +251,7 @@ function customAction(action: string, parameters?: any): void {
             window.h5vcc!.tizentube!.EnterPIP();
             break;
         case 'SHOW_TOAST':
-            showToast('TizenTube', parameters);
+            showToast('TizenTube 9', parameters);
             break;
         case 'ADD_TO_QUEUE': {
             // videoQueuing advances by findIndex on contentId, which always
@@ -262,7 +262,7 @@ function customAction(action: string, parameters?: any): void {
             if (!contentId || !window.queuedVideos.videos.some(v => v.tileRenderer?.contentId === contentId)) {
                 window.queuedVideos.videos.push(parameters);
             }
-            showToast('TizenTube', t('toasts.videoAddedToQueue'));
+            showToast('TizenTube 9', t('toasts.videoAddedToQueue'));
             break;
         }
         case 'CLEAR_QUEUE':
@@ -270,7 +270,7 @@ function customAction(action: string, parameters?: any): void {
             // Cleared with the queue: a surviving id from the previous queue
             // resolves against the new one and silently skips or destroys it.
             window.queuedVideos.lastVideoId = null;
-            showToast('TizenTube', t('toasts.videoQueueCleared'));
+            showToast('TizenTube 9', t('toasts.videoQueueCleared'));
             break;
         case 'CHECK_FOR_UPDATES':
             checkForUpdates(true);

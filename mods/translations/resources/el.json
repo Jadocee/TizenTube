@@ -55,7 +55,7 @@
                     "longPress": "Ενεργοποίηση ενεργειών με παρατεταμένο πάτημα",
                     "shorts": "Ενεργοποίηση Shorts",
                     "videoPreviews": "Ενεργοποιήστε τις προεπισκοπήσεις βίντεο",
-                    "ttWelcomeMsg": "Εμφάνιση μηνύματος καλωσορίσματος TizenTube",
+                    "ttWelcomeMsg": "Εμφάνιση μηνύματος καλωσορίσματος TizenTube 9",
                     "guestSignInReminder": "Εμφάνιση υπενθύμισης σύνδεσης επισκέπτη",
                     "reloadHomeOnStartup": "Επαναφόρτωση αρχικής σελίδας κατά την εκκίνηση"
                 }
@@ -134,14 +134,14 @@
                     },
                     "launchToOnStartup": {
                         "title": "Εκκίνηση σε κατά την έναρξη",
-                        "subtitle": "Επιλέξτε την εξ'ορισμού σελίδα στην οποία ανοίγει το TizenTube κατά την έναρξη"
+                        "subtitle": "Επιλέξτε την εξ'ορισμού σελίδα στην οποία ανοίγει το TizenTube 9 κατά την έναρξη"
                     },
                     "sortSubscriptionsByAlphabet": "Ταξινόμηση εγγραφών αλφαβητικά"
                 }
             },
             "updater": {
-                "title": "Ενημερωτής TizenTube Cobalt",
-                "menuSubtitle": "Διαχειριστείτε τις ενημερώσεις του TizenTube Cobalt",
+                "title": "Ενημερωτής TizenTube 9",
+                "menuSubtitle": "Διαχειριστείτε τις ενημερώσεις του TizenTube 9",
                 "versionSubtitle": "Τρέχουσα έκδοση: {{version}}",
                 "options": {
                     "checkForUpdates": "Έλεγχος ενημερώσεων",
@@ -150,26 +150,23 @@
             }
         },
         "ttSettings": {
-            "title": "Έναρξη TizenTube",
+            "title": "Έναρξη TizenTube 9",
             "madeByText": "Φτιαγμένο από τον Reis Can (reisxd) με ❤️",
-            "summary": "Άνοιγμα ρυθμίσεων TizenTube"
+            "summary": "Άνοιγμα ρυθμίσεων TizenTube 9"
         },
         "supportTT": {
-            "title": "Υποστηρίξτε το TizenTube",
-            "subtitle": "❤️ Δείξτε υποστήριξη για το TizenTube και την ανάπτυξή του",
+            "title": "Υποστηρίξτε το TizenTube 9",
+            "subtitle": "❤️ Δείξτε υποστήριξη για το TizenTube 9 και την ανάπτυξή του",
             "content": {
-                "1": "Εάν σας αρέσει να χρησιμοποιείτε το TizenTube και θέλετε να υποστηρίξετε την ανάπτυξή του, λάβετε υπ'όψη τα εξής:",
+                "1": "Εάν σας αρέσει να χρησιμοποιείτε το TizenTube 9 και θέλετε να υποστηρίξετε την ανάπτυξή του, λάβετε υπ'όψη τα εξής:",
                 "2": "1. Βάλτε αστέρι στο αποθετήριο GitHub για να αυξήσετε την ορατότητά του.",
-                "3": "2. Μοιραστείτε το TizenTube με άλλους.",
-                "4": "Εάν θέλετε να συνεισφέρετε οικονομικά, σκεφτείτε να δωρίσετε:",
-                "5": "- Buy Me A Coffee: https://www.buymeacoffee.com/reisxd (κατά προτίμηση)",
-                "6": "- Χορηγοί GitHub: https://github.com/sponsors/reisxd"
+                "3": "2. Μοιραστείτε το TizenTube 9 με άλλους."
             }
         }
     },
     "welcomeMsg": {
-        "title": "Καλώς ήρθατε στο TizenTube",
-        "subtitle": "Μεταβείτε στις ρυθμίσεις και κάντε κλικ στις ρυθμίσεις TizenTube για επιλογές."
+        "title": "Καλώς ήρθατε στο TizenTube 9",
+        "subtitle": "Μεταβείτε στις ρυθμίσεις και κάντε κλικ στις ρυθμίσεις TizenTube 9 για επιλογές."
     },
     "sponsorblock": {
         "segments": {

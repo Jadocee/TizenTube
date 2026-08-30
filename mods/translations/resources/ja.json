@@ -137,7 +137,7 @@
                     },
                     "launchToOnStartup": {
                         "title": "起動時に開くページ",
-                        "subtitle": "TizenTube の起動時にデフォルトで表示するページを選択してください"
+                        "subtitle": "TizenTube 9 の起動時にデフォルトで表示するページを選択してください"
                     },
                     "sortSubscriptionsByAlphabet": "登録しているチャンネルをアルファベット順に並べ替える",
                     "disableChannelsOnSidebar": "サイドバーのチャンネルを無効化する",
@@ -153,8 +153,8 @@
                 }
             },
             "updater": {
-                "title": "TizenTube Cobalt の更新",
-                "menuSubtitle": "TizenTube Cobalt の更新を管理します",
+                "title": "TizenTube 9 の更新",
+                "menuSubtitle": "TizenTube 9 の更新を管理します",
                 "versionSubtitle": "現在のバージョン: {{version}}",
                 "options": {
                     "checkForUpdates": "更新を確認する",
@@ -163,26 +163,23 @@
             }
         },
         "ttSettings": {
-            "title": "TizenTube の設定",
+            "title": "TizenTube 9 の設定",
             "madeByText": "Made by Reis Can (reisxd) with ❤️",
-            "summary": "TizenTube の設定を開きます"
+            "summary": "TizenTube 9 の設定を開きます"
         },
         "supportTT": {
-            "title": "TizenTube をサポート",
-            "subtitle": "❤️ TizenTube と開発をサポートしましょう",
+            "title": "TizenTube 9 をサポート",
+            "subtitle": "❤️ TizenTube 9 と開発をサポートしましょう",
             "content": {
-                "1": "TizenTube を使用して気に入ったならば、以下をご検討ください:",
+                "1": "TizenTube 9 を使用して気に入ったならば、以下をご検討ください:",
                 "2": "1. GitHub のリポジトリに Star を付けて、認知度の向上にご協力ください。",
-                "3": "2. TizenTube を他の人へ共有しましょう。",
-                "4": "金銭的なサポートをご希望の方は、寄付をご検討ください:",
-                "5": "- Buy Me A Coffee: https://www.buymeacoffee.com/reisxd (可能であれば)",
-                "6": "- GitHub Sponsors: https://github.com/sponsors/reisxd"
+                "3": "2. TizenTube 9 を他の人へ共有しましょう。"
             }
         }
     },
     "welcomeMsg": {
-        "title": "TizenTube へようこそ",
-        "subtitle": "設定画面から「TizenTube の設定」を選択して設定を行ってください。"
+        "title": "TizenTube 9 へようこそ",
+        "subtitle": "設定画面から「TizenTube 9 の設定」を選択して設定を行ってください。"
     },
     "sponsorblock": {
         "segments": {

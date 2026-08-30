@@ -9,8 +9,7 @@
                 "qrCodeScanMessage": "You can visit the {{name}} page by scanning the QR code below.",
                 "announcements": "Announcements",
                 "group": "Group",
-                "website": "Website",
-                "githubSponsors": "GitHub Sponsors"
+                "website": "Website"
             },
             "adBlock": "Ad Block",
             "sponsorblock": {
@@ -149,7 +148,7 @@
                     },
                     "launchToOnStartup": {
                         "title": "Launch To on Startup",
-                        "subtitle": "Choose the default page TizenTube opens to on startup",
+                        "subtitle": "Choose the default page TizenTube 9 opens to on startup",
                         "none": "None (open where YouTube normally starts)"
                     },
                     "categories": {
@@ -209,8 +208,8 @@
                 }
             },
             "updater": {
-                "title": "TizenTube Cobalt Updater",
-                "menuSubtitle": "Manage TizenTube Cobalt updates",
+                "title": "TizenTube 9 Updater",
+                "menuSubtitle": "Manage TizenTube 9 updates",
                 "versionSubtitle": "Current version: {{version}}",
                 "options": {
                     "checkForUpdates": "Check for updates",
@@ -218,7 +217,7 @@
                 },
                 "updateAvailable": {
                     "title": "Update Available",
-                    "subtitle": "A new version of TizenTube Cobalt is available: {{latestVersion}}, current: {{currentVersion}}"
+                    "subtitle": "A new version of TizenTube 9 is available: {{latestVersion}}, current: {{currentVersion}}"
                 },
                 "releaseDate": "Release Date: {{date}}",
                 "updateNow": {
@@ -230,15 +229,15 @@
                     "subtitle": "Check for updates later."
                 },
                 "upToDate": {
-                    "title": "TizenTube is up to date",
-                    "subtitle": "You are using the latest version ({{version}}) of TizenTube Cobalt."
+                    "title": "TizenTube 9 is up to date",
+                    "subtitle": "You are using the latest version ({{version}}) of TizenTube 9."
                 },
                 "checkFailed": {
-                    "title": "TizenTube update check failed",
+                    "title": "TizenTube 9 update check failed",
                     "subtitle": "Could not check for updates."
                 },
                 "downloading": {
-                    "title": "TizenTube Update",
+                    "title": "TizenTube 9 Update",
                     "subtitle": "Downloading update, please wait..."
                 }
             },
@@ -246,39 +245,36 @@
                 "title": "Button Shortcuts",
                 "subtitle": "What the colored buttons on your remote do",
                 "content": {
-                    "1": "GREEN — Open TizenTube Settings.",
-                    "2": "RED — Open the TizenTube theme panel, where a colour can be typed in by hand.",
+                    "1": "GREEN — Open TizenTube 9 Settings.",
+                    "2": "RED — Open the TizenTube 9 theme panel, where a colour can be typed in by hand.",
                     "3": "BLUE — Open the playback speed controls.",
-                    "4": "TizenTube Settings is also the first entry in YouTube's own Settings screen."
+                    "4": "TizenTube 9 Settings is also the first entry in YouTube's own Settings screen."
                 }
             },
             "startupError": {
                 "title": "Startup Error",
-                "subtitle": "TizenTube did not start cleanly on this launch. Please report this text.",
+                "subtitle": "TizenTube 9 did not start cleanly on this launch. Please report this text.",
                 "occurrences": "Occurred {{count}} time(s)"
             }
         },
         "ttSettings": {
-            "title": "TizenTube Settings",
+            "title": "TizenTube 9 Settings",
             "madeByText": "Made by Reis Can (reisxd) with ❤️",
-            "summary": "Open TizenTube Settings"
+            "summary": "Open TizenTube 9 Settings"
         },
         "supportTT": {
-            "title": "Support TizenTube",
-            "subtitle": "❤️ Show support for TizenTube and its development",
+            "title": "Support TizenTube 9",
+            "subtitle": "❤️ Show support for TizenTube 9 and its development",
             "content": {
-                "1": "If you enjoy using TizenTube and would like to support its development, consider the following:",
+                "1": "If you enjoy using TizenTube 9 and would like to support its development, consider the following:",
                 "2": "1. Star the GitHub repository to help increase its visibility.",
-                "3": "2. Share TizenTube with others.",
-                "4": "If you would like to contribute financially, consider donating:",
-                "5": "- Buy Me A Coffee: https://www.buymeacoffee.com/reisxd (preferably)",
-                "6": "- GitHub Sponsors: https://github.com/sponsors/reisxd"
+                "3": "2. Share TizenTube 9 with others."
             }
         }
     },
     "welcomeMsg": {
-        "title": "Welcome to TizenTube",
-        "subtitle": "Go to settings and click on TizenTube Settings for settings."
+        "title": "Welcome to TizenTube 9",
+        "subtitle": "Go to settings and click on TizenTube 9 Settings for settings."
     },
     "sponsorblock": {
         "segments": {
@@ -309,7 +305,7 @@
         "pictureInPicture": "Picture in Picture",
         "previous": "Previous",
         "next": "Next",
-        "withTizenTube": "with TizenTube"
+        "withTizenTube": "with TizenTube 9"
     },
     "toasts": {
         "videoAddedToQueue": "Video added to queue.",
@@ -327,8 +323,8 @@
         "videoOptions": "Video options"
     },
     "themePanel": {
-        "title": "TizenTube Theme",
-        "subtitle": "Colors are applied as soon as you confirm them. Presets are also available under TizenTube Settings.",
+        "title": "TizenTube 9 Theme",
+        "subtitle": "Colors are applied as soon as you confirm them. Presets are also available under TizenTube 9 Settings.",
         "barColor": "Navigation Bar Color",
         "routeColor": "Main Content Color",
         "hint": "Press BACK to close"
