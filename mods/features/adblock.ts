@@ -1,4 +1,5 @@
 import { configRead, configWrite } from '../config.js';
+import { recordVideoContext } from './videoContext.js';
 import Chapters from '../ui/chapters.js';
 import resolveCommand from '../resolveCommand.js';
 import { timelyAction, longPressData, MenuServiceItemRenderer, ShelfRenderer, TileRenderer, ButtonRenderer } from '../ui/ytUI.js';
@@ -31,6 +32,11 @@ const origParse = JSON.parse;
 JSON.parse = function () {
   const r = origParse.apply(this, arguments as any);
   try {
+    // Every player response the page parses comes through here, and it is the
+    // only place the current video's channel is visible. SponsorBlock's
+    // per-channel opt-out reads what this records.
+    recordVideoContext(r);
+
     const adBlockEnabled = configRead('enableAdBlock');
     const signinReminderEnabled = configRead('enableSigninReminder');
 

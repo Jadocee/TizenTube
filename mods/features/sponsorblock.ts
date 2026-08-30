@@ -1,5 +1,6 @@
 import sha256 from '../tiny-sha256.js';
 import { configRead } from '../config.js';
+import { channelOf, isChannelDisabled } from './videoContext.js';
 import { showToast } from '../ui/ytUI.js';
 import { t } from 'i18next';
 
@@ -158,6 +159,11 @@ class SponsorBlockHandler {
 
     if (!result || !result.segments || !result.segments.length) {
       console.info(this.videoID, 'No segments found.');
+      return;
+    }
+
+    if (isChannelDisabled(channelOf(this.videoID))) {
+      console.info(this.videoID, 'SponsorBlock is off for this channel; no segments drawn');
       return;
     }
 
@@ -421,6 +427,15 @@ class SponsorBlockHandler {
     this.nextSkipTimeout = setTimeout(() => {
       if (this.video!.paused) {
         console.info(this.videoID, 'Currently paused, ignoring...');
+        return;
+      }
+      // Checked here rather than only at init: the channel comes from the
+      // player response, which can land either side of the hashchange that
+      // starts this handler. Re-reading it at skip time means the opt-out
+      // holds whichever order they arrive in, and picks up a channel the
+      // user disables mid-video without needing a reload.
+      if (isChannelDisabled(channelOf(this.videoID))) {
+        console.info(this.videoID, 'SponsorBlock is off for this channel, not skipping');
         return;
       }
       if (!this.skippableCategories.includes(segment.category)) {

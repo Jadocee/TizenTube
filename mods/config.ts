@@ -13,6 +13,11 @@ const defaultConfig = {
   enableSponsorBlockMusicOfftopic: true,
   enableSponsorBlockFiller: false,
   enableSponsorBlockHighlight: true,
+  // One entry per channel, stored as "<channelId> <display name>". Channel ids
+  // never contain a space, so the first one splits the two unambiguously and the
+  // name survives for the settings list -- which would otherwise have to show
+  // people a column of raw UC... ids.
+  sponsorBlockDisabledChannels: [] as string[],
   videoSpeed: 1,
   preferredVideoQuality: 'auto' as string,
   enableDeArrow: true,

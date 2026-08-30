@@ -59,6 +59,7 @@ let settings = readRepo('mods', 'ui', 'settings.ts')
     .replace("from './ytUI.js'", "from './stubs.mjs'")
     .replace("from 'i18next'", "from './stubs.mjs'")
     .replace("from './startupError.js'", "from './startupError.generated.mts'")
+    .replace("from '../features/videoContext.js'", "from './stubs.mjs'")
     .replace(/^import type .*?;\n/gm, '');
 out('settings/settings.generated.mts', settings);
 
@@ -110,6 +111,10 @@ if (!/^export \{ startDebugger, canConnectToDaemon \};$/m.test(injector)) {
 injector = injector.replace(/^export \{ startDebugger, canConnectToDaemon \};$/m,
     'export { startDebugger, canConnectToDaemon, connectToDebugger };\nexport const readIsConnecting = () => isConnecting;');
 out('injector/mod.generated.mts', injector);
+
+// videoContext.ts, which decides whether SponsorBlock is off for a channel.
+out('sponsorblock-channels/mod.generated.mts',
+    readRepo('mods', 'features', 'videoContext.ts').replace("from '../config.js'", "from './stub.mjs'"));
 
 // styleSheet.ts, spliced into the CSP test page.
 const sheet = transpile(readRepo('mods', 'ui', 'styleSheet.ts'), 'styleSheet.ts').replace(/export function /g, 'function ');

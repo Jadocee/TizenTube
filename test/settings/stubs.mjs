@@ -32,3 +32,16 @@ export const scrollPaneRenderer = (items) => ({ scrollPaneRenderer: { content: {
 export const overlayMessageRenderer = (simpleText) => ({ overlayMessageRenderer: { title: { simpleText } } });
 export const QrCodeRenderer = (url) => ({ qrCodeRenderer: { qrCodeImage: { thumbnails: [{ url }] } } });
 export const qrcode = { qrcode: () => ({ addData(){}, make(){}, createImgTag: () => 'src="data:image/gif;base64,AAA"' }) };
+
+// --- videoContext -----------------------------------------------------------
+// The SponsorBlock channel opt-out builds its rows from whatever is playing, so
+// the walk needs a channel to find. Set nowPlaying to null to exercise the
+// nothing-is-playing case.
+export let nowPlaying = { id: 'UCtestchannelid00000001', name: 'Test Channel' };
+export const setNowPlaying = (v) => { nowPlaying = v; };
+export const channelOf = () => nowPlaying;
+export const channelEntry = (c) => `${c.id} ${c.name}`;
+export const parseChannelEntry = (entry) => {
+    const space = entry.indexOf(' ');
+    return space < 0 ? { id: entry, name: entry } : { id: entry.slice(0, space), name: entry.slice(space + 1) };
+};

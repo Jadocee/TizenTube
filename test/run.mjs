@@ -24,6 +24,7 @@ const HARNESSES = [
     { name: 'splash state machine',  dir: 'splash',        file: 'test.mjs' },
     { name: 'injector attach',       dir: 'injector',      file: 'test.mjs',       types: true },
     { name: 'strict service bundle', dir: 'strict-bundle', file: 'test.mjs' },
+    { name: 'sponsorblock channels', dir: 'sponsorblock-channels', file: 'test.mjs', types: true },
 ];
 
 const filter = process.argv[2];
