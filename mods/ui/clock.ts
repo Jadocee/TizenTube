@@ -18,7 +18,7 @@ configChangeEmitter.addEventListener('configChange', (e) => {
     }
 });
 
-// The offsets themselves live in ui.css; this only names the corner.
+// The offsets themselves live in clock.css; this only names the corner.
 const POSITIONS = ['top-left', 'top-right', 'bottom-left', 'bottom-right'] as const;
 const DEFAULT_POSITION = 'top-right';
 const positionClass = (position: string): string =>
@@ -104,7 +104,7 @@ function toggleClock(value: unknown): void {
     actualClock = document.createElement('div');
     actualClock.id = CLOCK_ID;
 
-    // Everything static is in ui.css under #tizentube-clock.
+    // Everything static is in clock.css under #tizentube-clock.
     placeClock();
     // Deferred: at injection time the parser has not reached <body> yet.
     whenBodyReady(() => {
