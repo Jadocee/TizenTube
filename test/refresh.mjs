@@ -59,6 +59,7 @@ let settings = readRepo('mods', 'ui', 'settings.ts')
     .replace("from './ytUI.js'", "from './stubs.mjs'")
     .replace("from 'i18next'", "from './stubs.mjs'")
     .replace("from './startupError.js'", "from './startupError.generated.mts'")
+    .replace("from '../features/videoContext.js'", "from './stubs.mjs'")
     .replace(/^import type .*?;\n/gm, '');
 out('settings/settings.generated.mts', settings);
 
@@ -91,6 +92,29 @@ const region = adblock.match(/^let jsonPatchAttempts[\s\S]*?^patchYttvJson\(\);$
 if (!region) fail('cannot find the patchYttvJson region in adblock.ts; fix test/refresh.mjs');
 out('adblock/block.generated.js',
     transpile('declare const window: any;\n' + region[0], 'block.ts').replace(/^\n+/, ''));
+
+// injector.ts, with its four imports repointed at the stub and the attach path
+// exported. isConnecting is module-private and is exactly what the harness has
+// to watch -- it is what the splash polls, and clearing it too early is what
+// made the app exit out from under its own attach.
+let injector = readRepo('standalone', 'service', 'injector.ts')
+    .replace("import * as adbhost from 'adbhost';", "import { adbhost } from './stub.mjs';")
+    .replace("import CDP from 'chrome-remote-interface';", "import CDP from './stub.mjs';")
+    .replace("import nodeFetch from 'node-fetch';", "import { nodeFetch } from './stub.mjs';")
+    .replace("import * as userScript from './userScript.js';", "import { userScript } from './stub.mjs';");
+for (const gone of ['adbhost', 'chrome-remote-interface', 'node-fetch', './userScript.js']) {
+    if (injector.includes(`'${gone}'`)) fail(`injector.ts import of ${gone} no longer matches; fix test/refresh.mjs`);
+}
+if (!/^export \{ startDebugger, canConnectToDaemon \};$/m.test(injector)) {
+    fail('injector.ts no longer ends with the expected export list; fix test/refresh.mjs');
+}
+injector = injector.replace(/^export \{ startDebugger, canConnectToDaemon \};$/m,
+    'export { startDebugger, canConnectToDaemon, connectToDebugger };\nexport const readIsConnecting = () => isConnecting;');
+out('injector/mod.generated.mts', injector);
+
+// videoContext.ts, which decides whether SponsorBlock is off for a channel.
+out('sponsorblock-channels/mod.generated.mts',
+    readRepo('mods', 'features', 'videoContext.ts').replace("from '../config.js'", "from './stub.mjs'"));
 
 // styleSheet.ts, spliced into the CSP test page.
 const sheet = transpile(readRepo('mods', 'ui', 'styleSheet.ts'), 'styleSheet.ts').replace(/export function /g, 'function ');

@@ -40,8 +40,24 @@ function registerOnNewDocument(client: CDPClient, source: string): Promise<strin
 function connectToDebugger(host: string, port: number, args: string, attempt: number = 0): void {
     nodeFetch(`http://${host}:${port}`).then(() => {
         const notifier = CDP({ host, port, local: true }, (client: CDPClient) => {
-            isConnecting = false;
-
+            // isConnecting is deliberately NOT cleared here. Connecting is not
+            // attaching: the userscript still has to be read and uploaded --
+            // half a megabyte over CDP -- and the page still has to be
+            // navigated. Clearing it on connect told the splash the attach was
+            // finished while all of that was outstanding, and the splash's
+            // "daemon reachable, idle" branch fires /tizentube/debugger and then
+            // exits the app.
+            //
+            // That is a loop, not a one-off: `sdb shell debug` relaunches the
+            // app, so the relaunched splash polls, sees the flag already
+            // cleared, and exits the app out from under the attach that is
+            // still uploading -- which starts another one. Nothing on the
+            // device breaks the cycle, which is exactly why recovering from it
+            // took a reboot.
+            //
+            // The 45s generation-checked watchdog in startDebugger is the
+            // backstop, so a chain that never settles still cannot latch the
+            // flag forever and leave the splash waiting.
             Promise.all([client.Runtime.enable(), client.Page.enable()])
                 // Before navigating, so the very first document is covered.
                 .then(() => client.Page.setBypassCSP({ enabled: true }).catch(() => { }))
@@ -61,10 +77,16 @@ function connectToDebugger(host: string, port: number, args: string, attempt: nu
                         return client.Page.navigate({ url: watchUrl(args) });
                     });
                 })
+                // The attach is over only here: the script is registered for
+                // every future document and the page has been sent to YouTube.
+                .then(() => { isConnecting = false; })
                 .catch((e: Error) => {
                     console.error('[TizenTube] Could not install the userscript:', e && e.message);
-                    // Still show YouTube rather than leaving a blank app.
-                    client.Page.navigate({ url: watchUrl(args) }).catch(() => { });
+                    // Still show YouTube rather than leaving a blank app, and
+                    // only report the attach finished once that has been sent.
+                    client.Page.navigate({ url: watchUrl(args) })
+                        .catch(() => { })
+                        .then(() => { isConnecting = false; });
                 });
         });
 

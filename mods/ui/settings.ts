@@ -3,6 +3,7 @@ import { showModal, buttonItem, overlayPanelItemListRenderer, scrollPaneRenderer
 import qrcode from 'qrcode-npm';
 import { t } from 'i18next';
 import { readStartupError } from './startupError.js';
+import { channelOf, channelEntry, parseChannelEntry } from '../features/videoContext.js';
 import type { Config, ConfigKey } from '../config.js';
 import type { CompactLinkRenderer, Command, Renderer } from '../types/youtube';
 
@@ -163,6 +164,37 @@ function themeColorOptions(configKey: ConfigKey): ChoiceRow[] {
             value: color.value
         };
     });
+}
+
+/**
+ * The channels SponsorBlock is turned off for, plus the one playing now.
+ *
+ * Built per render rather than declared, because the list is whatever the user
+ * has collected. Both jobs are the same toggle: the rows are members of one
+ * array setting, so ticking the current channel adds it and unticking a stored
+ * one removes it. Nothing here needs a separate "add" action.
+ */
+function disabledChannelOptions(): ArrayMemberRow[] {
+    const stored = configRead('sponsorBlockDisabledChannels');
+    const rows: ArrayMemberRow[] = stored.map((entry): ArrayMemberRow => {
+        const channel = parseChannelEntry(entry);
+        return { name: channel.name, value: entry, icon: 'ACCOUNT_CIRCLE' };
+    });
+
+    // The channel on screen, if it is not already in the list. This is the only
+    // way to add one: a TV has no text entry worth using, so the current video
+    // is the input.
+    const playing = channelOf(null);
+    if (playing && !stored.some((entry) => parseChannelEntry(entry).id === playing.id)) {
+        rows.unshift({
+            name: playing.name,
+            value: channelEntry(playing),
+            subtitle: t('settings.options.sponsorblock.options.channels.nowPlaying'),
+            icon: 'ACCOUNT_CIRCLE'
+        });
+    }
+
+    return rows;
 }
 
 export default function modernUI(update?: boolean, parameters?: number[]): void {
@@ -396,6 +428,18 @@ export default function modernUI(update?: boolean, parameters?: number[]): void 
                 {
                     name: t('settings.options.sponsorblock.options.showSBToasts'),
                     value: 'enableSponsorBlockToasts'
+                },
+                {
+                    name: t('settings.options.sponsorblock.options.channels.title'),
+                    subtitle: t('settings.options.sponsorblock.options.channels.subtitle'),
+                    value: null,
+                    arrayToEdit: 'sponsorBlockDisabledChannels',
+                    menuId: 'tt-sponsorblock-channels',
+                    menuHeader: {
+                        title: t('settings.options.sponsorblock.options.channels.title'),
+                        subtitle: t('settings.options.sponsorblock.title')
+                    },
+                    options: disabledChannelOptions()
                 }
             ]
         },

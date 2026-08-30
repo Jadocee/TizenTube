@@ -1,6 +1,6 @@
 # Harnesses
 
-Twelve regression harnesses. They exist because the things that break TizenTube
+Fifteen regression harnesses. They exist because the things that break TizenTube
 mostly cannot be caught by a typechecker or by reading a diff: a renderer shape
 that only appears at runtime, a focus trap you only find with a D-pad, a
 stylesheet that works until CSP is enforced, a script that behaves differently
@@ -28,6 +28,9 @@ here (no browser, no built bundle) report as *skipped*, not passed.
 | `injection/proxy.test.mjs` | Where the proxy injects the userscript tag, and that the loader prefers the packaged copy. |
 | `injection/docstart.mjs` | Loads the **real built bundle** in Chromium as the first script in `<head>`, before `<body>` exists, and asserts it boots with no uncaught errors. |
 | `injection/late.mjs` | The same bundle injected last in `<body>`. |
+| `injector/test.mjs` | The standalone injector's attach, against a fake sdbd and a fake CDP endpoint: that `isConnecting` stays true from the attach starting until the page is navigated, across a slow upload, the legacy-register fallback and an empty userscript. Clearing it early is what let the splash exit the app out from under its own attach. |
+| `strict-bundle/test.mjs` | Parses the shipped service bundle and fails on any assignment to an undeclared name. The bundle is strict, so each one is a latent ReferenceError -- which is how a dependency's implicit global silently killed debugger injection on every launch. |
+| `sponsorblock-channels/test.mjs` | The per-channel SponsorBlock opt-out: recording the channel from a player response, looking it up by video id when the two events race, matching by id so a renamed channel stays disabled, surviving junk payloads, and keeping the map bounded. |
 | `panel-style/test.mjs` | The theme panel's stylesheet in Chromium, rendered with the inline `display` `ui.ts` actually sets: that the nesting parsed, that rows stay separated and corners rounded, that text clears 3:1 at 24px, that focus lights the whole row, that the four YouTube override rules still land, and that the panel stays inside the title-safe inset on each axis. |
 | `splash/test.mjs` | The standalone launch page's state machine over all four service states, its retry path, and that a rejected TV key cannot abort the launch. |
 

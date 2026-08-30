@@ -9,31 +9,46 @@ let PlayerService: any = null;
 let pipLoadAttempts = 0;
 
 function pipLoad(): void {
-    // window._yttv is published by YouTube's own bundle. Every other feature in
-    // the mod retries for it; this one assumed it was already there, which threw
-    // "Cannot convert undefined or null to object" out of the load handler and
-    // took the rest of this module's setup with it.
-    const mappings = window._yttv && Object.values(window._yttv).find(a => a && a.mappings);
-    if (!mappings) {
-        if (++pipLoadAttempts <= 240) setTimeout(pipLoad, 250);
-        return;
-    }
+    // Everything in here is wrapped, because of where this runs from. When the
+    // document is already loaded -- which is how TizenBrew injects, and how the
+    // standalone app's fallback path injects -- the call below happens at MODULE
+    // SCOPE, and a throw at module scope aborts every module imported after this
+    // one. This is the ninth of thirty-nine, so the casualties would include ad
+    // blocking, SponsorBlock, the stylesheet and the settings panel: an app that
+    // launches and looks fine while most of the mod is simply absent.
+    //
+    // Picture-in-picture failing to hook is worth a warning. It is not worth
+    // taking the rest of the mod with it.
+    try {
+        // window._yttv is published by YouTube's own bundle. Every other feature
+        // in the mod retries for it; this one assumed it was already there,
+        // which threw "Cannot convert undefined or null to object".
+        const mappings = window._yttv && Object.values(window._yttv).find(a => a && a.mappings);
+        // Having a `mappings` property does not make an entry the registry:
+        // `get` was called unguarded, so any other object carrying that property
+        // name threw "mappings.get is not a function" from here.
+        if (!mappings || typeof mappings.get !== 'function') {
+            if (++pipLoadAttempts <= 240) setTimeout(pipLoad, 250);
+            return;
+        }
 
-    PlayerService = mappings.get('PlayerService');
-    const PlaybackPreviewService = mappings.get('PlaybackPreviewService');
-    if (!PlaybackPreviewService) return;
-    const PlaybackPreviewServiceStart = PlaybackPreviewService.start;
-    const PlaybackPreviewServiceStop = PlaybackPreviewService.stop;
+        PlayerService = mappings.get('PlayerService');
+        const PlaybackPreviewService = mappings.get('PlaybackPreviewService');
+        if (!PlaybackPreviewService) return;
+        const PlaybackPreviewServiceStart = PlaybackPreviewService.start;
+        const PlaybackPreviewServiceStop = PlaybackPreviewService.stop;
 
+        PlaybackPreviewService.start = function (this: any, ...args: any[]) {
+            if (window.isPipPlaying) return;
+            return PlaybackPreviewServiceStart.apply(this, args);
+        }
 
-    PlaybackPreviewService.start = function (this: any, ...args: any[]) {
-        if (window.isPipPlaying) return;
-        return PlaybackPreviewServiceStart.apply(this, args);
-    }
-
-    PlaybackPreviewService.stop = function (this: any, ...args: any[]) {
-        if (window.isPipPlaying) return;
-        return PlaybackPreviewServiceStop.apply(this, args);
+        PlaybackPreviewService.stop = function (this: any, ...args: any[]) {
+            if (window.isPipPlaying) return;
+            return PlaybackPreviewServiceStop.apply(this, args);
+        }
+    } catch (err) {
+        console.warn('[TizenTube] Picture-in-Picture could not hook the player:', err);
     }
 }
 

@@ -29,7 +29,12 @@
                         "music_offtopic": "Skip Off-Topic Music Segments",
                         "highlights": "Enable Highlights"
                     },
-                    "showSBToasts": "Show SponsorBlock Toasts"
+                    "showSBToasts": "Show SponsorBlock Toasts",
+                    "channels": {
+                        "title": "Channels",
+                        "subtitle": "Turn SponsorBlock off for specific channels",
+                        "nowPlaying": "Now playing"
+                    }
                 }
             },
             "dearrow": {
