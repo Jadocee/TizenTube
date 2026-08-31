@@ -52,6 +52,44 @@ if (errors.length) errors.slice(0, 6).forEach(e => console.log('        ' + e));
 check('JSON.parse was replaced', early.jsonPatched, true);
 check('queue global installed', early.hasQueue, true);
 check('PiP global installed', early.pipFlag, 'boolean');
+// --- the Response.json() route ----------------------------------------------
+// JSON.parse was the only interception point. YouTube's TV app reads InnerTube
+// responses with Response.json() whenever the server-side bedrock-networking
+// flag is off, and the engine parses those internally -- never touching
+// JSON.parse. Every payload taking that route arrived with its ads intact.
+const viaResponse = await page.evaluate(async () => {
+  const body = JSON.stringify({
+    adPlacements: [{ ad: 1 }],
+    playerAds: [{ ad: 2 }],
+    watchNext: { adPlacements: [{ ad: 3 }] },
+    contents: [{ tileRenderer: { id: 'real' } }, { adSlotRenderer: {} }],
+  });
+  const parsed = await new Response(body).json();
+  return {
+    hooked: Response.prototype.json.toString().indexOf('native code') === -1,
+    top: parsed.adPlacements.length,
+    nested: parsed.watchNext.adPlacements.length,
+    playerAds: parsed.playerAds,
+    kept: parsed.contents.length,
+    keptId: parsed.contents[0]?.tileRenderer?.id,
+  };
+});
+
+console.log('\nRead through Response.json(), which used to bypass the mod entirely:');
+check('Response.prototype.json is hooked', viaResponse.hooked, true);
+check('top-level adPlacements emptied', viaResponse.top, 0);
+check('nested adPlacements emptied', viaResponse.nested, 0);
+check('playerAds neutralised', viaResponse.playerAds, false);
+check('the promoted tile is dropped', viaResponse.kept, 1);
+check('the real tile survives', viaResponse.keptId, 'real');
+
+// A non-JSON body must still behave like a Response.
+const nonJson = await page.evaluate(async () => {
+  try { await new Response('not json').json(); return 'resolved'; }
+  catch (e) { return 'rejected'; }
+});
+check('a non-JSON body still rejects', nonJson, 'rejected');
+
 console.log('\nAfter the DOM exists and the deferred work has run:');
 check('TizenTube stylesheet applied', late.ttStyle, true);
 check('theme panel built', late.panel, true);
