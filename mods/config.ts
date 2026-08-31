@@ -75,6 +75,10 @@ const defaultConfig = {
   reloadHomeOnStartup: true,
   disabledSidebarContents: [] as string[],
   disableChannelsOnSidebar: false,
+  // Watch Later is an account-level row, so it only appears in the guide when
+  // signed in -- which is why the option exists rather than the row simply being
+  // in disabledSidebarContents alongside the topic entries.
+  hideWatchLaterInSidebar: false,
   // Selecting the sidebar entry for the page you are already on. The app itself
   // does nothing there; see features/guideReselect.ts.
   refreshOnReselect: true,

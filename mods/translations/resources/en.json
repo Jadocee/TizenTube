@@ -177,6 +177,7 @@
                     },
                     "sortSubscriptionsByAlphabet": "Sort Subscriptions Alphabetically",
                     "disableChannelsOnSidebar": "Disable Channels on Sidebar",
+                    "hideWatchLater": "Hide Watch Later from the sidebar",
                     "refreshOnReselect": "Refresh the page when you re-select it in the sidebar",
                     "clock": {
                         "title": "Clock",

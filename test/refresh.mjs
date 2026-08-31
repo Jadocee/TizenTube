@@ -157,6 +157,8 @@ for (const [file, dir, landmarks] of [
                                        'export function bestThumbnailTime', 'CACHE_LIMIT']],
     ['guideReselect.ts', 'guide-reselect', ['export function shouldArm', 'export function decide',
                                             'export function isRefreshableRoute', 'RESELECT_WINDOW_MS']],
+    ['guideFilter.ts', 'guide-filter', ['export function filterGuide', 'export function shouldRemoveEntry',
+                                        'export function isWatchLaterEntry', 'WATCH_LATER_BROWSE_IDS']],
     ['tileMenu.ts', 'tile-menu', ['export function menuItems', 'export function tileIdentity',
                                   'export function offeredRows', 'export function isChannelHidden',
                                   'export function tileIsHidden', 'RENDERABLE_SERVICE_ENDPOINTS']],

@@ -1063,6 +1063,10 @@ export default function modernUI(update?: boolean, parameters?: number[]): void 
                     value: 'disableChannelsOnSidebar'
                 },
                 {
+                    name: t('settings.options.uiSettings.options.hideWatchLater'),
+                    value: 'hideWatchLaterInSidebar'
+                },
+                {
                     name: t('settings.options.uiSettings.options.refreshOnReselect'),
                     value: 'refreshOnReselect'
                 },
