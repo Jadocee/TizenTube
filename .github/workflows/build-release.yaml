@@ -139,13 +139,28 @@ jobs:
           EVENT_BEFORE: ${{ github.event.before }}
         run: bash .github/scripts/release-gate.sh
 
+      # Also decides whether this repository signs at all. Publishing a .wgt is
+      # opt-in: the TizenBrew module route needs no certificate, so a repository
+      # that only ships that way emits signed=false here and the three steps
+      # below skip -- rather than turning main red on every version bump. A
+      # secret that is set but unusable still fails, loudly, at this step.
+      #
+      # In a script so it can be tested, and because of how it failed the first
+      # time it ran: neither secret was set, so this wrote a ZERO-BYTE .p12,
+      # exited 0, and the packager reported "Too few bytes to parse DER" half a
+      # minute later. test/release-gate/cert.test.mjs covers that case and the
+      # rest, including a real generated certificate.
       - name: Prepare Tizen Certificate
+        id: cert
         if: steps.gate.outputs.release == 'true'
-        run: |
-          echo "${{ secrets.TIZEN_AUTHOR_KEY }}" | base64 -d > "${GITHUB_WORKSPACE}/TizenTube-author.p12"
+        env:
+          TIZEN_AUTHOR_KEY: ${{ secrets.TIZEN_AUTHOR_KEY }}
+          TIZEN_AUTHOR_KEY_PW: ${{ secrets.TIZEN_AUTHOR_KEY_PW }}
+          CERT_PATH: ${{ github.workspace }}/TizenTube-author.p12
+        run: bash .github/scripts/prepare-certificate.sh
 
       - name: Build TizenTube
-        if: steps.gate.outputs.release == 'true'
+        if: steps.gate.outputs.release == 'true' && steps.cert.outputs.signed == 'true'
         working-directory: standalone
         run: |
           # npm deliberately: a global CLI, not a workspace dependency.
@@ -158,14 +173,14 @@ jobs:
           tizenjs build . -t wgt -o release/TizenTube.wgt --author "${GITHUB_WORKSPACE}/TizenTube-author.p12" --authorPwd '${{ secrets.TIZEN_AUTHOR_KEY_PW }}' -p public --ignore node_modules,/.*\.wgt$/,/userwidget/,/release/
 
       - name: Upload TizenTube package artifact
-        if: steps.gate.outputs.release == 'true'
+        if: steps.gate.outputs.release == 'true' && steps.cert.outputs.signed == 'true'
         uses: actions/upload-artifact@v4
         with:
             name: app-${{ github.sha }}.wgt
             path: standalone/release/TizenTube.wgt
 
       - name: Release TizenTube Build Results
-        if: steps.gate.outputs.release == 'true'
+        if: steps.gate.outputs.release == 'true' && steps.cert.outputs.signed == 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.gate.outputs.tag }}

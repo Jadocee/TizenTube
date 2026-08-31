@@ -1,6 +1,6 @@
 # Harnesses
 
-Seventeen regression harnesses. They exist because the things that break TizenTube
+Eighteen regression harnesses. They exist because the things that break TizenTube
 mostly cannot be caught by a typechecker or by reading a diff: a renderer shape
 that only appears at runtime, a focus trap you only find with a D-pad, a
 stylesheet that works until CSP is enforced, a script that behaves differently
@@ -33,6 +33,7 @@ here (no browser, no built bundle) report as *skipped*, not passed.
 | `strict-bundle/test.mjs` | Parses the shipped service bundle and fails on any assignment to an undeclared name. The bundle is strict, so each one is a latent ReferenceError -- which is how a dependency's implicit global silently killed debugger injection on every launch. |
 | `sponsorblock-channels/test.mjs` | The per-channel SponsorBlock opt-out: recording the channel from a player response, looking it up by video id when the two events race, matching by id so a renamed channel stays disabled, surviving junk payloads, and keeping the map bounded. |
 | `panel-style/test.mjs` | The theme panel's stylesheet in Chromium, rendered with the inline `display` `ui.ts` actually sets: that the nesting parsed, that rows stay separated and corners rounded, that text clears 3:1 at 24px, that focus lights the whole row, that the four YouTube override rules still land, and that the panel stays inside the title-safe inset on each axis. |
+| `release-gate/cert.test.mjs` | `.github/scripts/prepare-certificate.sh`, which turns the signing secrets into a `.p12`: unset secrets, empty secrets, a key with no password, base64 that decodes to something far too small, invalid base64, and a real generated certificate with both the right password and a wrong one. The first release failed because an unset secret produced a zero-byte file and the packager reported "Too few bytes to parse DER". |
 | `json-prune/test.mjs` | The path matcher behind ad filtering, and the rules `adblock.ts` actually ships (lifted, not copied): `*` and `**` matching, replace vs delete, dropping a promoted item from a list while keeping the real ones, and the cases the old hardcoded branches missed — a nested `adPlacements`, and an ad in a grid surface. Also the cheap source-text pre-check, and that a pathological payload stays bounded. |
 | `release-gate/test.mjs` | `.github/scripts/release-gate.sh`, which decides whether a CI run publishes a signed `.wgt` and under which tag: a version bump on main, an unchanged version, a bump onto a tag that already exists, a tag push, a pull request, and a branch with no previous commit — each against a throwaway git repo with real history. |
 | `splash/test.mjs` | The standalone launch page's state machine over all four service states, its retry path, and that a rejected TV key cannot abort the launch. |

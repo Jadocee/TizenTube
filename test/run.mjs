@@ -26,6 +26,7 @@ const HARNESSES = [
     { name: 'strict service bundle', dir: 'strict-bundle', file: 'test.mjs' },
     { name: 'sponsorblock channels', dir: 'sponsorblock-channels', file: 'test.mjs', types: true },
     { name: 'release gate',          dir: 'release-gate',  file: 'test.mjs' },
+    { name: 'release certificate',   dir: 'release-gate',  file: 'cert.test.mjs' },
     { name: 'json-prune matcher',    dir: 'json-prune',    file: 'test.mjs',       types: true },
 ];
 

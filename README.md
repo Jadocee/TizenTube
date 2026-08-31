@@ -164,14 +164,35 @@ the build exits non-zero rather than producing a package without them.
 
 Releases come from the widget version. Bump `version=` on the `<widget>` element
 in [standalone/config.xml](standalone/config.xml) in your PR, and merging it
-builds, signs and publishes a `.wgt` under that version. A merge that leaves the
-version alone builds and verifies only — CI warns on a PR that changes shipped
+builds, signs and publishes a `.wgt` under that version — if signing is
+configured; see below. A merge that leaves the version alone builds and verifies
+only — CI warns on a PR that changes shipped
 code without bumping it.
 
 That version is the one a television uses for install and upgrade semantics, so
 two packages carrying the same one cannot be cleanly installed over each other.
 Pushing a `v*.*.*` tag by hand still publishes, and CI will not move a tag that
 already exists.
+
+##### Signing is opt-in
+
+A `.wgt` is a signed Tizen widget and there is no unsigned form of one, so
+publishing needs a certificate. Two repository secrets supply it:
+
+| Secret | Value |
+| --- | --- |
+| `TIZEN_AUTHOR_KEY` | `base64 -w0 author.p12` — the whole output on one line |
+| `TIZEN_AUTHOR_KEY_PW` | the password for that `.p12` |
+
+**Neither is needed to install TizenTube 9 as a TizenBrew module**, which is the
+route most people use — nothing on that path is packaged or signed. With both
+secrets absent, a version bump builds and verifies, then warns that it cannot
+sign and skips packaging; the run stays green and no release is cut. Set them
+and the same bump publishes.
+
+Setting only one of the pair fails instead, as does a value that is not a usable
+`.p12`: that is half-finished setup rather than a decision not to publish, and
+it is worth hearing about at the step that is meant to produce the certificate.
 
 ## ✨ Features
 - 📺 **Picture-in-Picture Mode**
