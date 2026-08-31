@@ -1,37 +1,71 @@
 #!/usr/bin/env bash
 # Materialises the Tizen author certificate from the repository secrets, and
-# refuses to continue unless it actually looks like one.
+# reports whether this run can sign at all.
 #
-# The check exists because of how this failed the first time it ran. Neither
-# secret was set, so `echo "" | base64 -d` produced a ZERO-BYTE .p12, the step
-# exited 0, and the packager thirty seconds later reported:
+# Two different situations look alike from inside a workflow and must not be
+# treated alike:
+#
+#   NOT CONFIGURED -- neither secret exists. Publishing a .wgt is opt-in: the
+#       TizenBrew module route needs no certificate, and a repository that only
+#       ships that way should not get a red main every time the widget version
+#       moves. Emits signed=false and exits 0; the packaging and release steps
+#       are skipped and the run stays green.
+#
+#   MISCONFIGURED -- something is set but unusable: only one of the pair, not
+#       valid base64, or a decode far too small to be a certificate. Somebody
+#       meant to sign here, so this fails loudly at the step that is supposed to
+#       produce the certificate.
+#
+# The second case exists because of how the first release actually failed. Both
+# secrets were unset, `echo "" | base64 -d` produced a ZERO-BYTE .p12, the step
+# exited 0, and the packager reported thirty seconds later:
 #
 #     Error: Too few bytes to parse DER.
 #       available: 0, remaining: 0, requested: 2
 #
-# Which is a true statement about an empty file and tells you nothing about the
-# cause. A release path that runs with signing material should say plainly when
-# that material is missing, at the step that is supposed to produce it.
+# which is a true statement about an empty file and tells you nothing about the
+# cause.
 #
 # Reads:  TIZEN_AUTHOR_KEY (base64 of a .p12), TIZEN_AUTHOR_KEY_PW
-# Writes: the decoded certificate to $CERT_PATH
+# Writes: the decoded certificate to $CERT_PATH, and signed=true|false to
+#         $GITHUB_OUTPUT
 set -euo pipefail
 
 CERT_PATH="${CERT_PATH:?CERT_PATH must be set}"
+OUT="${GITHUB_OUTPUT:-/dev/stdout}"
+emit() { echo "$1" >> "$OUT"; }
 
-if [ -z "${TIZEN_AUTHOR_KEY:-}" ]; then
-    echo "::error::TIZEN_AUTHOR_KEY is not set. The release cannot be signed without it."
-    echo "Set it under Settings > Secrets and variables > Actions as the base64 of your"
-    echo "Tizen author certificate: base64 -w0 author.p12"
+KEY="${TIZEN_AUTHOR_KEY:-}"
+PW="${TIZEN_AUTHOR_KEY_PW:-}"
+
+# Neither one set: signing was never configured on this repository.
+if [ -z "$KEY" ] && [ -z "$PW" ]; then
+    echo "::warning::No Tizen signing secrets are set, so no .wgt is built and no release is published. This run builds and verifies only."
+    echo "The standalone app is a signed Tizen widget and there is no unsigned form of one."
+    echo "To publish, set these under Settings > Secrets and variables > Actions:"
+    echo "  TIZEN_AUTHOR_KEY     base64 -w0 author.p12"
+    echo "  TIZEN_AUTHOR_KEY_PW  the password for that .p12"
+    echo "Installing as a TizenBrew module needs neither."
+    emit 'signed=false'
+    exit 0
+fi
+
+# One of the pair set, but not the other. That is half-finished setup rather
+# than a decision not to publish, so it fails instead of quietly skipping.
+if [ -z "$KEY" ]; then
+    echo "::error::TIZEN_AUTHOR_KEY_PW is set but TIZEN_AUTHOR_KEY is not, so there is no certificate to sign with."
+    echo "Set it to the base64 of your Tizen author certificate: base64 -w0 author.p12"
+    echo "To turn publishing off entirely instead, remove both secrets."
     exit 1
 fi
 
-if [ -z "${TIZEN_AUTHOR_KEY_PW:-}" ]; then
-    echo "::error::TIZEN_AUTHOR_KEY_PW is not set. It is the password for the .p12 in TIZEN_AUTHOR_KEY."
+if [ -z "$PW" ]; then
+    echo "::error::TIZEN_AUTHOR_KEY is set but TIZEN_AUTHOR_KEY_PW is not. It is the password for that .p12."
+    echo "To turn publishing off entirely instead, remove both secrets."
     exit 1
 fi
 
-printf '%s' "${TIZEN_AUTHOR_KEY}" | base64 -d > "${CERT_PATH}" 2>/dev/null || {
+printf '%s' "$KEY" | base64 -d > "${CERT_PATH}" 2>/dev/null || {
     echo "::error::TIZEN_AUTHOR_KEY is not valid base64, so no certificate could be written."
     echo "Produce it with: base64 -w0 author.p12"
     exit 1
@@ -43,7 +77,7 @@ SIZE=$(wc -c < "${CERT_PATH}" | tr -d ' ')
 # packager's ASN.1 reader.
 if [ "${SIZE}" -lt 100 ]; then
     echo "::error::The decoded certificate is ${SIZE} bytes, which is not a .p12."
-    echo "TIZEN_AUTHOR_KEY is probably empty or truncated. Re-run: base64 -w0 author.p12"
+    echo "TIZEN_AUTHOR_KEY is probably truncated. Re-run: base64 -w0 author.p12"
     exit 1
 fi
 
@@ -62,3 +96,5 @@ if command -v openssl >/dev/null 2>&1; then
         echo "build fails at signing, the password is the first thing to check."
     fi
 fi
+
+emit 'signed=true'
