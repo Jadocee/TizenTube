@@ -60,7 +60,11 @@ let settings = readRepo('mods', 'ui', 'settings.ts')
     .replace("from 'i18next'", "from './stubs.mjs'")
     .replace("from './startupError.js'", "from './startupError.generated.mts'")
     .replace("from '../features/videoContext.js'", "from './stubs.mjs'")
+    .replace("from '../features/aisList.js'", "from './stubs.mjs'")
     .replace(/^import type .*?;\n/gm, '');
+for (const gone of ['../config.js', './ytUI.js', '../features/videoContext.js', '../features/aisList.js']) {
+    if (settings.includes(`'${gone}'`)) fail(`settings.ts import of ${gone} no longer matches; fix test/refresh.mjs`);
+}
 out('settings/settings.generated.mts', settings);
 
 // startupError.ts runs for real.
@@ -157,6 +161,10 @@ for (const [file, dir, landmarks] of [
                                        'export function bestThumbnailTime', 'CACHE_LIMIT']],
     ['guideReselect.ts', 'guide-reselect', ['export function shouldArm', 'export function decide',
                                             'export function isRefreshableRoute', 'RESELECT_WINDOW_MS']],
+    ['captionPrefs.ts', 'caption-prefs', ['export function preferenceFor', 'export function commandFor',
+                                          'export function shouldApply', 'export function listHasChannel']],
+    ['aisListParse.ts', 'aislist', ['export function parseList', 'export function indexHasChannel',
+                                    'export function normaliseHandle', 'export function serialiseIndex']],
     ['guideFilter.ts', 'guide-filter', ['export function filterGuide', 'export function shouldRemoveEntry',
                                         'export function isWatchLaterEntry', 'WATCH_LATER_BROWSE_IDS']],
     ['tileMenu.ts', 'tile-menu', ['export function menuItems', 'export function tileIdentity',

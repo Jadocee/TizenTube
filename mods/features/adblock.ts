@@ -12,12 +12,14 @@ import {
   hasMembersOnlyBadge,
 } from './tileFixes.js';
 import { fetchBranding, bestTitle, bestThumbnailTime } from './dearrowCache.js';
+import { isAiChannel } from './aisList.js';
 import {
   menuItems,
   offeredRows,
   tileIdentity,
   channelEntry,
-  tileIsHidden,
+  isVideoHidden,
+  isChannelHidden,
 } from './tileMenu.js';
 import Chapters from '../ui/chapters.js';
 import resolveCommand from '../resolveCommand.js';
@@ -743,12 +745,22 @@ function dropHidden(items: any[]): any[] {
   const videos = suppressing ? configRead('hiddenVideos') : [];
   const channels = suppressing ? configRead('hiddenChannels') : [];
   const membersOnly = configRead('hideMembersOnlyVideos');
-  if (!videos.length && !channels.length && !membersOnly) return items;
+  const aiList = configRead('enableAiSList');
+  if (!videos.length && !channels.length && !membersOnly && !aiList) return items;
   return items.filter((item) => {
     const tile = item?.tileRenderer;
     if (!tile) return true;
+    // Cheapest test first: reading a badge off the metadata lines needs no
+    // identity at all.
     if (membersOnly && hasMembersOnlyBadge(tile)) return false;
-    return !tileIsHidden(tile, videos, channels);
+    if (!videos.length && !channels.length && !aiList) return true;
+    // Derived ONCE. tileIsHidden() derives it internally too, so calling both
+    // walked every tile's menu and subtitle twice per payload.
+    const identity = tileIdentity(tile);
+    if (isVideoHidden(identity.videoId, videos)) return false;
+    if (isChannelHidden(identity.channel, channels)) return false;
+    if (aiList && isAiChannel(identity.channel)) return false;
+    return true;
   });
 }
 

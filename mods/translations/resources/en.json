@@ -266,6 +266,24 @@
                 "title": "Startup Error",
                 "subtitle": "TizenTube 9 did not start cleanly on this launch. Please report this text.",
                 "occurrences": "Occurred {{count}} time(s)"
+            },
+            "captions": {
+                "title": "Captions",
+                "default": "Captions when a video starts",
+                "defaultSubtitle": "YouTube forgets this between videos",
+                "leave": "Leave as they are",
+                "on": "Turn on",
+                "off": "Turn off",
+                "alwaysOn": "Always on for these channels",
+                "alwaysOff": "Always off for these channels"
+            },
+            "aislist": {
+                "title": "Hide AI-generated channels (AiSList)",
+                "enable": "Use the AiSList blocklist",
+                "status": "{{block}} channels, list dated {{lastModified}}",
+                "warnlist": "Also use the warnlist",
+                "warnlistSubtitle": "Medium-confidence channels. Wider, and more likely to hide something you wanted.",
+                "attribution": "Community list by AiSList, CC BY-NC 4.0 - github.com/Override92/AiSList"
             }
         },
         "ttSettings": {

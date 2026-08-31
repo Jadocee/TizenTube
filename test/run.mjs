@@ -36,6 +36,8 @@ const HARNESSES = [
     { name: 'sidebar re-select',     dir: 'guide-reselect', file: 'test.mjs',      types: true },
     { name: 'tile menu suppression', dir: 'tile-menu',     file: 'test.mjs',       types: true },
     { name: 'sidebar guide filter', dir: 'guide-filter',  file: 'test.mjs',       types: true },
+    { name: 'caption preferences',   dir: 'caption-prefs', file: 'test.mjs',       types: true },
+    { name: 'aislist parsing',       dir: 'aislist',       file: 'test.mjs',       types: true },
 ];
 
 const filter = process.argv[2];

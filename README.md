@@ -201,6 +201,8 @@ it is worth hearing about at the step that is meant to produce the certificate.
 - ❗ **SponsorBlock Support**: Automatically skip sponsored segments in videos.
 - ⏭️ **Video Speed Control**: Adjust playback speed to your preference.
 - 🔺 **[DeArrow](https://dearrow.ajay.app/) Support**: Remove clickbait and misleading video titles.
+- 💬 **Caption Memory**: Remember whether closed captions should be on, globally or per channel — YouTube itself forgets between videos.
+- 🤖 **[AiSList](https://github.com/Override92/AiSList) Support**: Optionally hide channels from the community-maintained list of AI-generated content. The list is fetched on the television and never bundled: it is CC BY-NC 4.0, which GPLv3 cannot absorb.
 - ▶️ **Preview Indicator**: A small play mark while a focused thumbnail is previewing, so a running preview is never mistaken for a still — and an option to mute previews.
 - ➕ **More to come!** Request features via [issues](https://github.com/reisxd/TizenTube/issues/new).
 

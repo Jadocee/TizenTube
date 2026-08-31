@@ -45,3 +45,6 @@ export const parseChannelEntry = (entry) => {
     const space = entry.indexOf(' ');
     return space < 0 ? { id: entry, name: entry } : { id: entry.slice(0, space), name: entry.slice(space + 1) };
 };
+
+// features/aisList.js -- the settings screen reads its status for a subtitle.
+export const aisListStatus = () => ({ block: 0, warn: 0, lastModified: null, fetchedAt: 0 });

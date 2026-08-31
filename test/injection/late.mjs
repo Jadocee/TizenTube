@@ -338,6 +338,14 @@ await seeded.route('**/tv*', (route) => route.fulfill({
   hideMembersOnlyVideos: true,
   enableHideRecommendations: true,
   hiddenChannels: ['UCblocked A Blocked Channel'],
+  enableAiSList: true,
+});
+// The AiSList cache, in its own key -- deliberately NOT in the config blob,
+// which is rewritten wholesale on every settings change. Handles are stored
+// percent-decoded and case-folded, which is what the parser writes.
+localStorage['tizentube.aislist'] = JSON.stringify({
+  block: JSON.stringify({ h: ['@aislopper'], i: [], m: '2026-07-19' }),
+  fetchedAt: Date.now(),
 });</script></head><body><div id="container"></div>
 <video></video><script src="/tizentube/userScript.js"></script></body></html>`,
 }));
@@ -352,17 +360,17 @@ const filtered = await seeded.evaluate(async () => {
     ...(badge ? [{ lineItemRenderer: { badge: { metadataBadgeRenderer: { style: badge } } } }] : []),
     { lineItemRenderer: { text: { simpleText: 'A Channel' } } },
   ] } });
-  const tile = (id, badge, channelId) => ({
+  const tile = (id, badge, channelId, subtitle) => ({
     tileRenderer: {
       style: 'TILE_STYLE_YTLR_DEFAULT', contentId: id,
       onSelectCommand: { watchEndpoint: { videoId: id } },
       header: { tileHeaderRenderer: { thumbnail: { thumbnails: [{ url: 'u', width: 480, height: 360 }] } } },
       metadata: { tileMetadataRenderer: { title: { simpleText: id }, lines: [line(badge)] } },
-      ...(channelId ? { onLongPressCommand: { showMenuCommand: {
-        contentId: id, subtitle: { simpleText: 'A Channel \u2022 @achannel' },
-        menu: { menuRenderer: { items: [{ menuNavigationItemRenderer: {
+      ...(channelId || subtitle ? { onLongPressCommand: { showMenuCommand: {
+        contentId: id, subtitle: { simpleText: subtitle || 'A Channel \u2022 @achannel' },
+        menu: { menuRenderer: { items: channelId ? [{ menuNavigationItemRenderer: {
           text: { runs: [{ text: 'Go to channel' }] },
-          navigationEndpoint: { browseEndpoint: { browseId: channelId } } } }] } },
+          navigationEndpoint: { browseEndpoint: { browseId: channelId } } } }] : [] } },
       } } } : {}),
     },
   });
@@ -372,6 +380,9 @@ const filtered = await seeded.evaluate(async () => {
       tile('members', 'BADGE_STYLE_TYPE_MEMBERS_ONLY', null),
       tile('blocked', null, 'UCblocked'),
       tile('otherchan', null, 'UCallowed'),
+      // Identified only by its @handle, which is what AiSList entries are:
+      // measured, both published files are 100% handles and zero channel ids.
+      tile('aislop', null, null, 'An AI Channel \u2022 @AiSlopper'),
     ] } } } },
   ] } } });
   const parsed = await new Response(body).json();
@@ -387,6 +398,9 @@ check('the members-only tile is dropped', filtered.includes('members'), false);
 check('the hidden channel is dropped', filtered.includes('blocked'), false);
 check('an ordinary tile survives', filtered.includes('keep'), true);
 check('  ...and so does a different channel', filtered.includes('otherchan'), true);
+// Matched by @handle alone, case-insensitively: the tile says "@AiSlopper" and
+// the stored list says "@aislopper".
+check('a channel on the AiSList is dropped', filtered.includes('aislop'), false);
 check('exactly two tiles remain', filtered.length, 2);
 
 await browser.close();

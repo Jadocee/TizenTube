@@ -4,6 +4,7 @@ import qrcode from 'qrcode-npm';
 import { t } from 'i18next';
 import { readStartupError } from './startupError.js';
 import { channelOf, channelEntry, parseChannelEntry } from '../features/videoContext.js';
+import { aisListStatus } from '../features/aisList.js';
 import type { Config, ConfigKey } from '../config.js';
 import type { CompactLinkRenderer, Command, Renderer } from '../types/youtube';
 
@@ -184,6 +185,34 @@ function disabledChannelOptions(): ArrayMemberRow[] {
     // The channel on screen, if it is not already in the list. This is the only
     // way to add one: a TV has no text entry worth using, so the current video
     // is the input.
+    const playing = channelOf(null);
+    if (playing && !stored.some((entry) => parseChannelEntry(entry).id === playing.id)) {
+        rows.unshift({
+            name: playing.name,
+            value: channelEntry(playing),
+            subtitle: t('settings.options.sponsorblock.options.channels.nowPlaying'),
+            icon: 'ACCOUNT_CIRCLE'
+        });
+    }
+
+    return rows;
+}
+
+/**
+ * The channels with a caption override, plus the one playing now.
+ *
+ * Same shape and same reasoning as disabledChannelOptions() above: the rows ARE
+ * the array's members, so ticking the current channel adds it and unticking a
+ * stored one removes it. A television has no text entry worth using, so the
+ * video on screen is the only way a channel gets onto the list.
+ */
+function captionChannelOptions(key: 'captionsOnChannels' | 'captionsOffChannels'): ArrayMemberRow[] {
+    const stored = configRead(key);
+    const rows: ArrayMemberRow[] = stored.map((entry): ArrayMemberRow => {
+        const channel = parseChannelEntry(entry);
+        return { name: channel.name, value: entry, icon: 'ACCOUNT_CIRCLE' };
+    });
+
     const playing = channelOf(null);
     if (playing && !stored.some((entry) => parseChannelEntry(entry).id === playing.id)) {
         rows.unshift({
@@ -542,6 +571,28 @@ export default function modernUI(update?: boolean, parameters?: number[]): void 
                 {
                     name: t('settings.options.misc.options.hideMembersOnly'),
                     value: 'hideMembersOnlyVideos'
+                },
+                {
+                    name: t('settings.options.aislist.title'),
+                    icon: 'STAR',
+                    value: null,
+                    menuId: 'tt-aislist',
+                    menuHeader: {
+                        title: t('settings.options.aislist.title'),
+                        subtitle: t('settings.options.aislist.attribution')
+                    },
+                    options: [
+                        {
+                            name: t('settings.options.aislist.enable'),
+                            subtitle: t('settings.options.aislist.status', aisListStatus()),
+                            value: 'enableAiSList'
+                        },
+                        {
+                            name: t('settings.options.aislist.warnlist'),
+                            subtitle: t('settings.options.aislist.warnlistSubtitle'),
+                            value: 'aisListIncludeWarnlist'
+                        }
+                    ]
                 },
                 {
                     name: t('settings.options.misc.options.shorts'),
@@ -1069,6 +1120,57 @@ export default function modernUI(update?: boolean, parameters?: number[]): void 
                 {
                     name: t('settings.options.uiSettings.options.hideWatchLater'),
                     value: 'hideWatchLaterInSidebar'
+                },
+                {
+                    name: t('settings.options.captions.title'),
+                    icon: 'CAPTIONS',
+                    value: null,
+                    menuId: 'tt-caption-settings',
+                    menuHeader: {
+                        title: t('settings.options.captions.title'),
+                        subtitle: t('settings.ttSettings.title')
+                    },
+                    options: [
+                        {
+                            name: t('settings.options.captions.default'),
+                            subtitle: t('settings.options.captions.defaultSubtitle'),
+                            value: null,
+                            menuId: 'tt-captions-default',
+                            menuHeader: {
+                                title: t('settings.options.captions.default'),
+                                subtitle: t('settings.options.captions.defaultSubtitle')
+                            },
+                            options: [
+                                { name: t('settings.options.captions.leave'), key: 'captionsDefault', value: 'leave' },
+                                { name: t('settings.options.captions.on'), key: 'captionsDefault', value: 'on' },
+                                { name: t('settings.options.captions.off'), key: 'captionsDefault', value: 'off' }
+                            ]
+                        },
+                        ...(captionChannelOptions('captionsOnChannels').length ? [{
+                            name: t('settings.options.captions.alwaysOn'),
+                            icon: 'ACCOUNT_CIRCLE',
+                            value: null,
+                            arrayToEdit: 'captionsOnChannels' as const,
+                            menuId: 'tt-captions-on-channels',
+                            menuHeader: {
+                                title: t('settings.options.captions.alwaysOn'),
+                                subtitle: t('settings.options.captions.title')
+                            },
+                            options: captionChannelOptions('captionsOnChannels')
+                        }] : []),
+                        ...(captionChannelOptions('captionsOffChannels').length ? [{
+                            name: t('settings.options.captions.alwaysOff'),
+                            icon: 'ACCOUNT_CIRCLE',
+                            value: null,
+                            arrayToEdit: 'captionsOffChannels' as const,
+                            menuId: 'tt-captions-off-channels',
+                            menuHeader: {
+                                title: t('settings.options.captions.alwaysOff'),
+                                subtitle: t('settings.options.captions.title')
+                            },
+                            options: captionChannelOptions('captionsOffChannels')
+                        }] : [])
+                    ]
                 },
                 {
                     name: t('settings.options.uiSettings.options.refreshOnReselect'),

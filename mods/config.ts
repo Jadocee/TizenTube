@@ -63,6 +63,19 @@ const defaultConfig = {
   // them, so for anyone who is not a member they are a row of tiles that cannot
   // be played.
   hideMembersOnlyVideos: false,
+  // Captions. The app persists caption STYLING but nothing about the on/off
+  // state, so it resets every video; 'leave' is the default so the feature is
+  // inert until asked for. Per-channel entries use the same "<key> <name>" form
+  // as the other channel lists and beat the global default.
+  captionsDefault: 'leave' as string,
+  captionsOnChannels: [] as string[],
+  captionsOffChannels: [] as string[],
+  // AiSList: a community list of channels publishing AI-generated content.
+  // Fetched at runtime, never bundled -- see features/aisList.ts for why that is
+  // a licence requirement. Off by default: it is third-party data that hides
+  // things.
+  enableAiSList: false,
+  aisListIncludeWarnlist: false,
   enableHideWatchedVideos: false,
   hideWatchedVideosThreshold: 80,
   hideWatchedVideosPages: [] as string[],
