@@ -62,4 +62,14 @@ for (const h of selected) {
 
 console.log(`\n${'='.repeat(52)}`);
 console.log(`${passed} passed, ${failed} failed, ${skipped} skipped`);
-process.exit(failed ? 1 : 0);
+
+// A skipped harness is not a passing one. Skipping is the right default on a
+// developer's machine -- no Chromium is not a defect in the code under test --
+// but in CI it is a hole: if the browser install fails, four harnesses skip and
+// the run still goes green, reporting coverage that never ran. TT_STRICT_SKIP
+// makes CI refuse that.
+const strictSkip = process.env.TT_STRICT_SKIP === '1';
+if (strictSkip && skipped) {
+    console.log(`TT_STRICT_SKIP is set, so ${skipped} skipped harness${skipped === 1 ? '' : 'es'} count as failures.`);
+}
+process.exit(failed || (strictSkip && skipped) ? 1 : 0);

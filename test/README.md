@@ -54,6 +54,11 @@ that was fixed, so the harness can show the before and after side by side.
 - Playwright with Chromium, for the four browser harnesses. Without it they
   skip rather than fail.
 
+Set `TT_STRICT_SKIP=1` to make a skipped harness count as a failure. Skipping is
+the right default here — no Chromium on your machine is not a defect in the code
+under test — but CI sets it, because there a skip is a hole: a failed browser
+install would otherwise leave four harnesses unrun and the whole suite green.
+
 ## Adding one
 
 Put it in its own directory, have it print `ok`/`FAIL` lines, and **exit

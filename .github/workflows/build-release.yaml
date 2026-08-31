@@ -1,25 +1,111 @@
 name: Build TizenTube Standalone and Release
 
-
+# Runs on every pull request and every push to main, not only on release tags.
+# Until now this fired on `v*.*.*` alone, and the repository has no tags -- so
+# nothing here had ever executed, and no change had ever been checked by CI. The
+# harnesses are the only gate this project has; they need to run before a merge,
+# not after a release.
+#
+# The release half is gated on the tag, because it needs the signing secrets and
+# publishes a package. A pull request builds and verifies everything, and stops
+# short of signing.
 on:
+  pull_request:
   push:
+    branches:
+      - main
     tags:
       - 'v*.*.*'
+
+# A pull request that is pushed to again does not need the superseded run
+# finished. Tag and main runs are left alone: those produce artefacts.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      # Used only by the release step, which cannot run outside a tag.
+      contents: write
+    env:
+      # Every step below that signs or publishes is gated on this.
+      IS_RELEASE: ${{ startsWith(github.ref, 'refs/tags/v') }}
     steps:
       - name: Clone repo with full history and tags
         uses: actions/checkout@v4
         with:
           fetch-depth: 0 # fetch full history for tags
           fetch-tags: true
-      
-      - name: Fetch tags (safety)
+
+      # Pinned deliberately. Seven harnesses run under
+      # --experimental-strip-types, which needs Node 22.6+, and the workflow
+      # previously took whatever the runner image happened to ship: on Node 20
+      # those seven fail before running a single assertion.
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
+
+      # npm install, not npm ci, and that is not an oversight. .gitignore has a
+      # bare `package-lock.json` rule, so of the four trees only mods/ and
+      # service/ have a lockfile in git -- those two predate the rule, and
+      # gitignore does not affect already-tracked files. On a fresh checkout the
+      # other two have no lockfile at all and `npm ci` exits EUSAGE.
+      #
+      # Tracking all four and switching to npm ci would be the better answer:
+      # this repository ships a signed package to televisions, and a transitive
+      # dependency moving underneath a release is exactly the kind of bug that
+      # only shows up on a device. That is a dependency-policy change rather
+      # than a CI change, so it is deliberately not made here.
+      - name: Install dependencies
         run: |
-          git fetch --tags --force --prune
+          for dir in . mods service standalone/service; do
+            echo "--- $dir ---"
+            (cd "$dir" && npm install --no-audit --no-fund)
+          done
+
+      - name: Typecheck
+        run: |
+          for dir in mods service standalone/service; do
+            echo "--- $dir ---"
+            (cd "$dir" && npm run typecheck)
+          done
+
+      # Build order is load-bearing: the app's service inlines both the DIAL
+      # service and the userscript, so both have to exist before it runs. If
+      # either is missing that build exits non-zero rather than quietly
+      # producing a package without them.
+      - name: Build the DIAL service
+        working-directory: service
+        run: npm run build
+
+      - name: Build the userscript
+        working-directory: mods
+        run: npm run build
+
+      - name: Build the app's service
+        working-directory: standalone/service
+        run: npm run build
+
+      - name: Run the harnesses
+        env:
+          # A skipped harness is not a passing one. Four of them drive a browser
+          # and two load the real built bundle; if the Chromium install fails or
+          # a bundle is missing, they skip and the run would otherwise go green
+          # reporting coverage that never happened.
+          TT_STRICT_SKIP: '1'
+        run: |
+          npx playwright install --with-deps chromium
+          npm test
+
+      # ---- everything below runs only for a release tag ---------------------
+
       - name: Determine release tag
+        if: env.IS_RELEASE == 'true'
         id: version
         run: |
           TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
@@ -39,59 +125,32 @@ jobs:
           fi
           echo "RELEASE_VERSION=$TAG" >> $GITHUB_ENV
 
-      - name: Typecheck
-        run: |
-          for dir in mods service standalone/service; do
-            echo "--- $dir ---"
-            (cd "$dir" && npm install --no-audit --no-fund && npm run typecheck)
-          done
-
-      - name: Install modules, transpile service and build service for DIAL
-        working-directory: service
-        run: |
-          npm install
-          npm run build
-
-      - name: Build the userscript so it can be packaged into the app
-        working-directory: mods
-        run: |
-          npm install
-          npm run build
-
-      - name: Install modules, transpile service and build service
-        working-directory: standalone/service
-        run: |
-          npm install
-          npm install -g https://github.com/reisxd/tizen.js/tarball/main
-          npm run build
-          rm -rf node_modules
-
-      - name: Run the harnesses
-        run: |
-          # After the builds: two harnesses load the real built bundle and four
-          # drive a browser. Without Chromium those four skip rather than fail,
-          # but a release is worth the ninety seconds it takes to install.
-          npm install
-          npx playwright install --with-deps chromium
-          npm test
-
       - name: Prepare Tizen Certificate
+        if: env.IS_RELEASE == 'true'
         run: |
           echo "${{ secrets.TIZEN_AUTHOR_KEY }}" | base64 -d > "${GITHUB_WORKSPACE}/TizenTube-author.p12"
 
       - name: Build TizenTube
+        if: env.IS_RELEASE == 'true'
         working-directory: standalone
         run: |
+          npm install -g https://github.com/reisxd/tizen.js/tarball/main
+          # Dropped before packaging as well as ignored below: the app ships the
+          # built bundle, and there is no reason for a dependency tree to be
+          # anywhere near the .wgt.
+          rm -rf service/node_modules
           mkdir release
           tizenjs build . -t wgt -o release/TizenTube.wgt --author "${GITHUB_WORKSPACE}/TizenTube-author.p12" --authorPwd '${{ secrets.TIZEN_AUTHOR_KEY_PW }}' -p public --ignore node_modules,/.*\.wgt$/,/userwidget/,/release/
 
       - name: Upload TizenTube package artifact
+        if: env.IS_RELEASE == 'true'
         uses: actions/upload-artifact@v4
         with:
             name: app-${{ github.sha }}.wgt
             path: standalone/release/TizenTube.wgt
-      
+
       - name: Release TizenTube Build Results
+        if: env.IS_RELEASE == 'true'
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ env.RELEASE_VERSION }}
