@@ -11,6 +11,13 @@ import {
   shelfIsEmpty,
 } from './tileFixes.js';
 import { fetchBranding, bestTitle, bestThumbnailTime } from './dearrowCache.js';
+import {
+  menuItems,
+  offeredRows,
+  tileIdentity,
+  channelEntry,
+  tileIsHidden,
+} from './tileMenu.js';
 import Chapters from '../ui/chapters.js';
 import resolveCommand from '../resolveCommand.js';
 import { timelyAction, longPressData, MenuServiceItemRenderer, ShelfRenderer, TileRenderer, ButtonRenderer } from '../ui/ytUI.js';
@@ -148,6 +155,7 @@ function processResponse(r: any, sourceText?: unknown): any {
       // long-press and watched-hiding but no thumbnails and no previews, so the
       // same tile behaved differently depending on which surface you found it
       // on.
+      grid.items = dropHidden(grid.items);
       deArrowify(grid.items);
       hqify(grid.items);
       addLongPress(grid.items);
@@ -184,6 +192,7 @@ function processResponse(r: any, sourceText?: unknown): any {
     }
 
     if (r?.continuationContents?.horizontalListContinuation?.items) {
+      r.continuationContents.horizontalListContinuation.items = dropHidden(r.continuationContents.horizontalListContinuation.items);
       deArrowify(r.continuationContents.horizontalListContinuation.items);
       hqify(r.continuationContents.horizontalListContinuation.items);
       addLongPress(r.continuationContents.horizontalListContinuation.items);
@@ -199,6 +208,7 @@ function processResponse(r: any, sourceText?: unknown): any {
 
     if (r?.continuationContents?.gridContinuation?.items) {
       // Grid continuations got neither thumbnails nor previews either.
+      r.continuationContents.gridContinuation.items = dropHidden(r.continuationContents.gridContinuation.items);
       deArrowify(r.continuationContents.gridContinuation.items);
       hqify(r.continuationContents.gridContinuation.items);
       addLongPress(r.continuationContents.gridContinuation.items);
@@ -229,6 +239,7 @@ function processResponse(r: any, sourceText?: unknown): any {
             section.tabs[index].tabRenderer.content.tvSurfaceContentRenderer.content.sectionListRenderer.contents = clone;
           }
           if (content?.gridRenderer?.items) {
+            content.gridRenderer.items = dropHidden(content.gridRenderer.items);
             deArrowify(content.gridRenderer.items);
             hqify(content.gridRenderer.items);
             addLongPress(content.gridRenderer.items);
@@ -481,6 +492,7 @@ function processShelves(shelves: any[], shouldAddPreviews = true) {
     const shelve = shelves[i];
     if (shelve.shelfRenderer) {
       if (!shelve.shelfRenderer.content?.horizontalListRenderer?.items) continue;
+      shelve.shelfRenderer.content.horizontalListRenderer.items = dropHidden(shelve.shelfRenderer.content.horizontalListRenderer.items);
       deArrowify(shelve.shelfRenderer.content.horizontalListRenderer.items);
       hqify(shelve.shelfRenderer.content.horizontalListRenderer.items);
       addLongPress(shelve.shelfRenderer.content.horizontalListRenderer.items);
@@ -604,13 +616,67 @@ function hqify(items: any[]) {
   }
 }
 
+/**
+ * The suppression rows the mod appends to a tile's long-press menu.
+ *
+ * The serviceEndpoint has to be one of six kinds the app will render --
+ * RENDERABLE_SERVICE_ENDPOINTS lists them, resolved out of the shipped bundle --
+ * or the row is dropped with nothing on screen to say so.
+ * `playlistEditEndpoint.customAction` is the one ADD_TO_QUEUE already rides and
+ * that resolveCommand.ts already intercepts, so it is the proven vehicle.
+ */
+function suppressionRows(tile: any): any[] {
+  const offered = offeredRows(tile, configRead('enableHideRecommendations'));
+  if (!offered.video && !offered.channel) return [];
+  const identity = tileIdentity(tile);
+  const rows: any[] = [];
+  if (offered.video) {
+    const title = tile?.metadata?.tileMetadataRenderer?.title?.simpleText;
+    rows.push(MenuServiceItemRenderer(t('longPress.hideVideo'), {
+      clickTrackingParams: null,
+      playlistEditEndpoint: {
+        customAction: {
+          action: 'TT_HIDE_VIDEO',
+          parameters: { videoId: identity.videoId, title: typeof title === 'string' ? title : '' },
+        },
+      },
+    }));
+  }
+  if (offered.channel) {
+    rows.push(MenuServiceItemRenderer(
+      t('longPress.hideChannel', { channel: identity.channel?.name || identity.channel?.handle || '' }), {
+      clickTrackingParams: null,
+      playlistEditEndpoint: {
+        customAction: {
+          action: 'TT_HIDE_CHANNEL',
+          parameters: { entry: channelEntry(identity.channel), videoId: identity.videoId },
+        },
+      },
+    }));
+  }
+  return rows;
+}
+
 function addLongPress(items: any[]) {
+  if (!Array.isArray(items)) return;
   for (const item of items) {
-    if (!item.tileRenderer) continue;
-    if (item.tileRenderer.style !== 'TILE_STYLE_YTLR_DEFAULT') continue;
-    if (item.tileRenderer.onLongPressCommand?.showMenuCommand?.menu?.menuRenderer?.items) {
+    const tile = item?.tileRenderer;
+    if (!tile) continue;
+    if (tile.style !== TILE_STYLE_DEFAULT) continue;
+
+    // The live path. Every one of the 223 default tiles in the captured browse
+    // responses arrived with a server-supplied menu, so this branch is what
+    // actually runs -- and it runs BEFORE the enableLongPress check below, which
+    // is why that setting does not control whether long press works. It only
+    // controls whether a menu is synthesised for a tile that arrived without one.
+    //
+    // Read through menuItems(), which prefers tileRenderer.menu exactly as the
+    // app does: appending to the showMenuCommand's list on a tile that has both
+    // adds rows to a list nothing renders.
+    const existing = menuItems(tile);
+    if (existing) {
       const copiedItem = cloneJson(item);
-      item.tileRenderer.onLongPressCommand.showMenuCommand.menu.menuRenderer.items.push(MenuServiceItemRenderer(t('longPress.addToQueue'), {
+      existing.push(MenuServiceItemRenderer(t('longPress.addToQueue'), {
         clickTrackingParams: null,
         playlistEditEndpoint: {
           customAction: {
@@ -619,26 +685,62 @@ function addLongPress(items: any[]) {
           }
         }
       }));
+      for (const row of suppressionRows(tile)) existing.push(row);
       continue;
     }
+
     if (!configRead('enableLongPress')) continue;
-    if (!item.tileRenderer?.metadata?.tileMetadataRenderer) continue;
-    if (!item.tileRenderer?.header?.tileHeaderRenderer?.thumbnail?.thumbnails) continue;
-    if (!item.tileRenderer.onSelectCommand?.watchEndpoint) continue;
+    // A showMenuCommand with no items is left alone rather than overwritten: it
+    // carries the server's own title, subtitle, thumbnail and contentId, and the
+    // wholesale assignment at the end of this function would discard all of them.
+    if (tile.onLongPressCommand?.showMenuCommand) continue;
+    const metadata = tile.metadata?.tileMetadataRenderer;
+    if (!metadata) continue;
+    if (!tile.header?.tileHeaderRenderer?.thumbnail?.thumbnails) continue;
+    if (!tile.onSelectCommand?.watchEndpoint) continue;
     const copiedItem = cloneJson(item);
     const subtitleNode = copiedItem.tileRenderer.metadata.tileMetadataRenderer.lines?.[0]?.lineRenderer?.items?.[0]?.lineItemRenderer?.text;
     if (!subtitleNode) continue;
-    const subtitle = subtitleNode;
+    // Both of these were unguarded reads. `.title.simpleText` assumed a title on
+    // a metadata object only proved to exist, and `subtitle.runs[0].text`
+    // assumed a non-empty runs array -- an empty one is truthy. Either throw is
+    // swallowed by processResponse's catch, which abandons EVERY remaining
+    // transform for the whole payload: the grid pass, the endscreen removal, the
+    // settings patch, the watch-next shelves. One malformed tile costs all of it.
+    const title = copiedItem.tileRenderer.metadata.tileMetadataRenderer.title?.simpleText;
+    if (typeof title !== 'string') continue;
+    const subtitle = Array.isArray(subtitleNode.runs)
+      ? subtitleNode.runs[0]?.text
+      : subtitleNode.simpleText;
+    if (typeof subtitle !== 'string') continue;
     const data = longPressData({
       videoId: copiedItem.tileRenderer.contentId,
       thumbnails: copiedItem.tileRenderer.header.tileHeaderRenderer.thumbnail.thumbnails,
-      title: copiedItem.tileRenderer.metadata.tileMetadataRenderer.title.simpleText,
-      subtitle: subtitle.runs ? subtitle.runs[0].text : subtitle.simpleText,
+      title,
+      subtitle,
       watchEndpointData: copiedItem.tileRenderer.onSelectCommand.watchEndpoint,
-      item: copiedItem
+      item: copiedItem,
+      extraRows: suppressionRows(tile),
     });
-    item.tileRenderer.onLongPressCommand = data;
+    tile.onLongPressCommand = data;
   }
+}
+
+/**
+ * Drops tiles the user has hidden from this television.
+ *
+ * Applied before every other per-tile pass, so a hidden tile never pays for a
+ * synthesised menu, an inline-preview command or a DeArrow request. Separate
+ * from hideVideo(), which is page-gated and about watched progress -- a
+ * different question with a different answer.
+ */
+function dropHidden(items: any[]): any[] {
+  if (!Array.isArray(items)) return items;
+  if (!configRead('enableHideRecommendations')) return items;
+  const videos = configRead('hiddenVideos');
+  const channels = configRead('hiddenChannels');
+  if (!videos.length && !channels.length) return items;
+  return items.filter((item) => !tileIsHidden(item?.tileRenderer, videos, channels));
 }
 
 function hideVideo(items: any[]) {

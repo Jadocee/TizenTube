@@ -61,6 +61,7 @@
                     "fixUI": "Fix UI",
                     "hqThumbnails": "Enable High Quality Thumbnails",
                     "longPress": "Enable Long Press Actions",
+                    "hideRecommendations": "Apply videos and channels hidden from the long-press menu",
                     "shorts": "Enable Shorts",
                     "videoPreviews": "Enable Video Previews",
                     "previewIndicator": "Show a play icon while a thumbnail is previewing",
@@ -176,6 +177,7 @@
                     },
                     "sortSubscriptionsByAlphabet": "Sort Subscriptions Alphabetically",
                     "disableChannelsOnSidebar": "Disable Channels on Sidebar",
+                    "refreshOnReselect": "Refresh the page when you re-select it in the sidebar",
                     "clock": {
                         "title": "Clock",
                         "subtitle": "Display a clock on the screen",
@@ -316,7 +318,9 @@
     },
     "toasts": {
         "videoAddedToQueue": "Video added to queue.",
-        "videoQueueCleared": "Video queue cleared."
+        "videoQueueCleared": "Video queue cleared.",
+        "videoHidden": "Hidden on this TV. Nothing was sent to YouTube.",
+        "channelHidden": "{{channel}} will not be recommended on this TV. Nothing was sent to YouTube."
     },
     "common": {
         "back": "Back"
@@ -327,6 +331,8 @@
         "removeFromWatchLater": "Remove from Watch Later",
         "saveToPlaylist": "Save to Playlist",
         "addToQueue": "Add to Queue",
+        "hideVideo": "Hide this video on this TV",
+        "hideChannel": "Don't recommend {{channel}} on this TV",
         "videoOptions": "Video options"
     },
     "themePanel": {

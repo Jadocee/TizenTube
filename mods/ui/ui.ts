@@ -19,6 +19,7 @@ import { recordStartupError, clearStartupError } from './startupError.js';
 import { setStyleBlock } from './styleSheet.js';
 import { startFocusMotion } from '../features/focusMotion.js';
 import { notePreviewMove } from './previewIndicator.js';
+import { armReselect } from '../features/guideReselectRuntime.js';
 import { t } from 'i18next';
 
 /**
@@ -376,6 +377,11 @@ function execute_once_dom_loaded(): void {
       // file's own comment records that the page is carrying six listeners
       // already.
       notePreviewMove();
+      // OK, on the sidebar. The app deliberately dispatches nothing when you
+      // select the entry for the page you are already on, so there is no command
+      // to intercept -- this arms a check that notices the absence. Same
+      // listener as above; nothing new is registered.
+      if (evt.keyCode === 13) armReselect();
     }
     if (evt.keyCode == 403) {
       console.info('Taking over!');

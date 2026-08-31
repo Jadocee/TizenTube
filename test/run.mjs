@@ -33,6 +33,8 @@ const HARNESSES = [
     { name: 'home tile fixes',       dir: 'tile-fixes',    file: 'test.mjs',       types: true },
     { name: 'dearrow request cache', dir: 'tile-fixes',    file: 'dearrow.mjs',    types: true },
     { name: 'focus motion switches', dir: 'focus-motion',  file: 'test.mjs',       types: true },
+    { name: 'sidebar re-select',     dir: 'guide-reselect', file: 'test.mjs',      types: true },
+    { name: 'tile menu suppression', dir: 'tile-menu',     file: 'test.mjs',       types: true },
 ];
 
 const filter = process.argv[2];

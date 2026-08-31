@@ -155,6 +155,11 @@ for (const [file, dir, landmarks] of [
                                     'export function shelfIsEmpty']],
     ['dearrowCache.ts', 'tile-fixes', ['export function fetchBranding', 'export function bestTitle',
                                        'export function bestThumbnailTime', 'CACHE_LIMIT']],
+    ['guideReselect.ts', 'guide-reselect', ['export function shouldArm', 'export function decide',
+                                            'export function isRefreshableRoute', 'RESELECT_WINDOW_MS']],
+    ['tileMenu.ts', 'tile-menu', ['export function menuItems', 'export function tileIdentity',
+                                  'export function offeredRows', 'export function isChannelHidden',
+                                  'export function tileIsHidden', 'RENDERABLE_SERVICE_ENDPOINTS']],
 ]) {
     const source = readRepo('mods', 'features', file);
     for (const landmark of landmarks) {

@@ -108,6 +108,25 @@ const home = await page.evaluate(async () => {
     },
   });
   const shelf = (items) => ({ shelfRenderer: { content: { horizontalListRenderer: { items } } } });
+  // A tile shaped like the ones YouTube actually sends: every one of the 223
+  // default tiles in the captured browse responses arrived WITH a server menu,
+  // so this is the live path -- and until now no fixture had ever given a tile
+  // one, so only the synthesise branch was ever exercised.
+  const servedTile = (id, channelId) => {
+    const t = videoTile(id);
+    t.tileRenderer.onLongPressCommand = { showMenuCommand: {
+      contentId: id,
+      title: { simpleText: id },
+      subtitle: { simpleText: `A Channel \u2022 @achannel` },
+      menu: { menuRenderer: { items: [
+        { menuNavigationItemRenderer: { text: { runs: [{ text: 'Play' }] },
+          navigationEndpoint: { watchEndpoint: { videoId: id } } } },
+        { menuNavigationItemRenderer: { text: { runs: [{ text: 'Go to channel' }] },
+          navigationEndpoint: { browseEndpoint: { browseId: channelId } } } },
+      ] } },
+    } };
+    return t;
+  };
   const body = JSON.stringify({
     contents: { sectionListRenderer: { contents: [
       shelf([videoTile('keep')]),
@@ -135,6 +154,14 @@ const home = await page.evaluate(async () => {
   // The tiles a shelf pages in as you scroll along it arrive as their own
   // response, and that path never got previews at all -- so they worked for the
   // first screenful of each shelf and silently stopped.
+  // The append branch, end to end through the real bundle.
+  const served = await new Response(JSON.stringify({
+    contents: { sectionListRenderer: { contents: [shelf([servedTile('served', 'UCtest123')])] } },
+  })).json();
+  const servedMenu = served.contents.sectionListRenderer.contents[0]
+    .shelfRenderer.content.horizontalListRenderer.items[0].tileRenderer
+    .onLongPressCommand.showMenuCommand.menu.menuRenderer.items;
+
   const continued = await new Response(JSON.stringify({
     continuationContents: { horizontalListContinuation: { items: [videoTile('later')] } },
   })).json();
@@ -142,9 +169,23 @@ const home = await page.evaluate(async () => {
     continuationContents: { gridContinuation: { items: [videoTile('grid')] } },
   })).json();
 
+  const rowText = (r) => (r.menuServiceItemRenderer || r.menuNavigationItemRenderer)?.text?.runs?.[0]?.text || '';
+  const rowEndpoints = (r) => Object.keys(
+    (r.menuServiceItemRenderer || r.menuNavigationItemRenderer)?.serviceEndpoint || {}).filter((k) => k !== 'clickTrackingParams');
+
   return {
     shelfCount: shelves.length,
     reentries,
+    servedRowCount: servedMenu.length,
+    servedKeepsServerRows: servedMenu.slice(0, 2).map(rowText).join('|'),
+    servedAddedRows: servedMenu.slice(2).map(rowText),
+    // Every appended row must ride an endpoint the app will render, or it is
+    // dropped with nothing on screen to say so.
+    servedAddedEndpoints: servedMenu.slice(2).map(rowEndpoints).map((e) => e.join(',')),
+    // The synthesise branch must NOT run on a tile that already has a menu.
+    servedNotOverwritten: !!served.contents.sectionListRenderer.contents[0]
+      .shelfRenderer.content.horizontalListRenderer.items[0].tileRenderer
+      .onLongPressCommand.showMenuCommand.contentId,
     continuationHasPreview:
       !!continued.continuationContents.horizontalListContinuation.items[0].tileRenderer.onFocusCommand
         ?.startInlinePlaybackCommand,
@@ -172,6 +213,18 @@ check('  ...and so do grid continuations', home.gridHasPreview, true);
 // touched at all while handling this payload. Anything above zero is a tile
 // clone re-entering the whole pass.
 check('cloning a tile does not re-run the response pass', home.reentries, 0);
+
+console.log('\nThe append branch -- what runs on every real tile:');
+check('the server\'s own rows are kept', home.servedKeepsServerRows, 'Play|Go to channel');
+check('  ...and its showMenuCommand is not overwritten', home.servedNotOverwritten, true);
+check('three rows are appended', home.servedAddedRows.length, 3);
+check('  ...Add to Queue first', home.servedAddedRows[0], 'Add to Queue');
+check('  ...then the two suppression rows',
+      home.servedAddedRows.slice(1).every((t) => /Hide this video|recommend/.test(t)), true);
+// A row carrying anything outside the app's six-endpoint allowlist renders as
+// nothing at all. playlistEditEndpoint is the one the mod already rides.
+check('every appended row rides a renderable endpoint',
+      home.servedAddedEndpoints.every((e) => e === 'playlistEditEndpoint'), true);
 
 // A non-JSON body must still behave like a Response.
 const nonJson = await page.evaluate(async () => {

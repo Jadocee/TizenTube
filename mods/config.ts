@@ -50,6 +50,15 @@ const defaultConfig = {
   // answerable only by waiting.
   enablePreviewIndicator: true,
   mutePreviews: false,
+  // Suppression the user applies from a tile's long-press menu. Both lists ship
+  // empty, so the feature is inert until used; the master toggle exists so it
+  // can be turned off without emptying them.
+  enableHideRecommendations: true,
+  // "<videoId> <title>" and "<channelId-or-@handle> <display name>". The key
+  // never contains a space, so the first one splits it from the label -- the
+  // same shape sponsorBlockDisabledChannels already uses.
+  hiddenVideos: [] as string[],
+  hiddenChannels: [] as string[],
   enableHideWatchedVideos: false,
   hideWatchedVideosThreshold: 80,
   hideWatchedVideosPages: [] as string[],
@@ -66,6 +75,9 @@ const defaultConfig = {
   reloadHomeOnStartup: true,
   disabledSidebarContents: [] as string[],
   disableChannelsOnSidebar: false,
+  // Selecting the sidebar entry for the page you are already on. The app itself
+  // does nothing there; see features/guideReselect.ts.
+  refreshOnReselect: true,
   enableUpdater: true,
   autoFrameRate: false,
   autoFrameRatePauseVideoFor: 0,

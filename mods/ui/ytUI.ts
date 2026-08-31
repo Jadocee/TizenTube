@@ -35,6 +35,10 @@ interface LongPressSource {
     subtitle: string;
     watchEndpointData: { playlistId?: string; [key: string]: any };
     item: any;
+    /** Rows the caller wants after the four standard ones. Appended last so a
+     *  destructive action is never adjacent to Play, which is index 0 and the
+     *  one a stray press lands on. */
+    extraRows?: any[];
 }
 
 /** A category in YouTube's own settings list. */
@@ -305,6 +309,7 @@ function longPressData(data: LongPressSource): Command {
                                 }
                             }
                         }),
+                        ...(Array.isArray(data.extraRows) ? data.extraRows : []),
                     ],
                     trackingParams: null,
                     accessibility: {

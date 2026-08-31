@@ -3,6 +3,8 @@ import { enablePip } from './features/pictureInPicture.js';
 import modernUI, { optionShow } from './ui/settings.js';
 import { speedSettings } from './ui/speedUI.js';
 import { showToast, buttonItem } from './ui/ytUI.js';
+import { addEntry, parseEntry } from './features/tileMenu.js';
+import { noteCommand } from './features/commandCounter.js';
 import checkForUpdates from './features/updater.js';
 import { t } from 'i18next';
 import type { Command, SettingData } from './types/youtube';
@@ -48,6 +50,14 @@ export function patchResolveCommand(): void {
 
             const ogResolve = window._yttv[key].instance.resolveCommand;
             window._yttv[key].instance.resolveCommand = function (this: any, cmd: Command, _?: any): any {
+                // First statement, before any branch that returns early: the
+                // sidebar refresh works by noticing that a press dispatched
+                // NOTHING, so the counter has to move for every command the app
+                // routes, whatever this wrapper then decides to do with it. The
+                // guide dispatches through this same object -- its `this.ka` is
+                // `_.ck()`, which returns `window._yttv.Bx.instance` -- so a real
+                // navigation is always visible here.
+                noteCommand();
                 if (cmd.setClientSettingEndpoint) {
                     // Command to change client settings. Use TizenTube configuration to change settings.
                     // One pass. There used to be an inner loop over the same
@@ -210,6 +220,23 @@ export function patchResolveCommand(): void {
     }
 }
 
+/**
+ * Removes the tile the user just acted on.
+ *
+ * `removeItemAction.childId` is the tile's contentId: the app builds its menu
+ * with the tile's contentId as the child key, so that is what identifies the row
+ * to remove. Wrapped because it is cosmetic -- the tile is gone from the next
+ * fetch either way -- and a throw here would lose the toast that confirms the
+ * choice was recorded.
+ */
+function dismissTile(videoId: string): void {
+    try {
+        resolveCommand({ removeItemAction: { childId: videoId } });
+    } catch (e) {
+        console.warn('[TizenTube] could not dismiss the tile', e);
+    }
+}
+
 function customAction(action: string, parameters?: any): void {
     switch (action) {
         case 'SETTINGS_UPDATE':
@@ -275,5 +302,33 @@ function customAction(action: string, parameters?: any): void {
         case 'CHECK_FOR_UPDATES':
             checkForUpdates(true);
             break;
+        case 'TT_HIDE_VIDEO': {
+            // Validated because these arrive inside a payload the app hands back
+            // to us; a malformed one must be inert rather than writing junk into
+            // the stored list.
+            const videoId = parameters?.videoId;
+            if (typeof videoId !== 'string' || !videoId) break;
+            const label = typeof parameters?.title === 'string' && parameters.title ? parameters.title : videoId;
+            configWrite('hiddenVideos', addEntry(configRead('hiddenVideos'), `${videoId} ${label}`));
+            // The app contributes only CLOSE_POPUP for a customAction endpoint --
+            // its native removeItemAction is reserved for real playlist edits --
+            // so without this the tile stays on screen and the press is
+            // indistinguishable at ten feet from having done nothing.
+            dismissTile(videoId);
+            showToast('TizenTube 9', t('toasts.videoHidden'));
+            break;
+        }
+        case 'TT_HIDE_CHANNEL': {
+            const entry = parameters?.entry;
+            if (typeof entry !== 'string' || !entry) break;
+            configWrite('hiddenChannels', addEntry(configRead('hiddenChannels'), entry));
+            if (typeof parameters?.videoId === 'string') dismissTile(parameters.videoId);
+            // The channel's OTHER tiles are already on screen and this filter
+            // runs on the payload, not the DOM -- so without a refetch a
+            // channel-wide action produces a one-tile effect.
+            resolveCommand({ signalAction: { signal: 'SOFT_RELOAD_PAGE' } });
+            showToast('TizenTube 9', t('toasts.channelHidden', { channel: parseEntry(entry).name }));
+            break;
+        }
     }
 }
