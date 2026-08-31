@@ -63,6 +63,8 @@
                     "longPress": "Enable Long Press Actions",
                     "shorts": "Enable Shorts",
                     "videoPreviews": "Enable Video Previews",
+                    "previewIndicator": "Show a play icon while a thumbnail is previewing",
+                    "mutePreviews": "Mute video previews",
                     "ttWelcomeMsg": "Show TT Welcome Message",
                     "guestSignInReminder": "Show Guest Sign In Reminder",
                     "reloadHomeOnStartup": "Reload Home on Startup"

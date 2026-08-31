@@ -23,6 +23,8 @@ import "./ui/settings.js";
 import "./ui/disableWhosWatching.js";
 import "./features/moreSubtitles.js";
 import "./features/updater.js";
+// Before pictureInPicture.js, which registers its preview veto with this module.
+import "./features/playbackPreview.js";
 import "./features/pictureInPicture.js";
 import "./features/preferredVideoQuality.js";
 import "./features/videoQueuing.js";
@@ -31,3 +33,4 @@ import "./ui/customUI.js";
 import "./ui/customGuideAction.js";
 import "./features/autoFrameRate.js";
 import "./ui/clock.js";
+import "./ui/previewIndicator.js";

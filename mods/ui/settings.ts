@@ -545,6 +545,15 @@ export default function modernUI(update?: boolean, parameters?: number[]): void 
                     value: 'enablePreviews'
                 },
                 {
+                    name: t('settings.options.misc.options.previewIndicator'),
+                    icon: 'PLAY_ARROW',
+                    value: 'enablePreviewIndicator'
+                },
+                {
+                    name: t('settings.options.misc.options.mutePreviews'),
+                    value: 'mutePreviews'
+                },
+                {
                     name: t('settings.options.misc.options.ttWelcomeMsg'),
                     value: 'showWelcomeToast',
                 },

@@ -1,6 +1,16 @@
 import { configRead, configWrite } from '../config.js';
 import { recordVideoContext } from './videoContext.js';
 import { prune, pruneTokens, textCouldMatch, type PruneRule } from './jsonPrune.js';
+import {
+  TILE_STYLE_DEFAULT,
+  DEFAULT_PREVIEW_DURATION_MS,
+  bestThumbnail,
+  previewableTile,
+  startInlinePlayback,
+  pageNameFromHash,
+  shelfIsEmpty,
+} from './tileFixes.js';
+import { fetchBranding, bestTitle, bestThumbnailTime } from './dearrowCache.js';
 import Chapters from '../ui/chapters.js';
 import resolveCommand from '../resolveCommand.js';
 import { timelyAction, longPressData, MenuServiceItemRenderer, ShelfRenderer, TileRenderer, ButtonRenderer } from '../ui/ytUI.js';
@@ -89,11 +99,6 @@ function processResponse(r: any, sourceText?: unknown): any {
     const adBlockEnabled = configRead('enableAdBlock');
     const signinReminderEnabled = configRead('enableSigninReminder');
 
-    if (r?.playbackContext?.contentPlaybackContext) {
-      // Handle inline playback without ads
-      console.log(r.playbackContext.contentPlaybackContext);
-    }
-
     // The whole ad pass, at any depth. Skipped outright when the source text
     // cannot contain any of the keys, which is the common case.
     if (adBlockEnabled && textCouldMatch(sourceText, AD_TOKENS)) {
@@ -138,9 +143,16 @@ function processResponse(r: any, sourceText?: unknown): any {
       r?.contents?.tvBrowseRenderer?.content?.tvSurfaceContentRenderer?.content
         ?.gridRenderer?.items
     ) {
-      addLongPress(r.contents.tvBrowseRenderer.content.tvSurfaceContentRenderer.content.gridRenderer.items);
-      r.contents.tvBrowseRenderer.content.tvSurfaceContentRenderer.content.gridRenderer.items =
-        hideVideo(r.contents.tvBrowseRenderer.content.tvSurfaceContentRenderer.content.gridRenderer.items);
+      const grid = r.contents.tvBrowseRenderer.content.tvSurfaceContentRenderer.content.gridRenderer;
+      // Grid surfaces -- a channel's videos, a playlist, the topic pages -- got
+      // long-press and watched-hiding but no thumbnails and no previews, so the
+      // same tile behaved differently depending on which surface you found it
+      // on.
+      deArrowify(grid.items);
+      hqify(grid.items);
+      addLongPress(grid.items);
+      addPreviews(grid.items);
+      grid.items = hideVideo(grid.items);
     }
 
     if (r.endscreen && configRead('enableHideEndScreenCards')) {
@@ -175,11 +187,22 @@ function processResponse(r: any, sourceText?: unknown): any {
       deArrowify(r.continuationContents.horizontalListContinuation.items);
       hqify(r.continuationContents.horizontalListContinuation.items);
       addLongPress(r.continuationContents.horizontalListContinuation.items);
+      // Previews were never attached here. A shelf pages in more tiles as you
+      // scroll along it, and every tile past that boundary arrived without an
+      // onFocusCommand -- so previews worked for the first screenful of each
+      // shelf and silently stopped, which reads as the feature being broken
+      // rather than as a boundary. The indicator makes that boundary visible,
+      // so it is closed in the same pass.
+      addPreviews(r.continuationContents.horizontalListContinuation.items);
       r.continuationContents.horizontalListContinuation.items = hideVideo(r.continuationContents.horizontalListContinuation.items);
     }
 
     if (r?.continuationContents?.gridContinuation?.items) {
+      // Grid continuations got neither thumbnails nor previews either.
+      deArrowify(r.continuationContents.gridContinuation.items);
+      hqify(r.continuationContents.gridContinuation.items);
       addLongPress(r.continuationContents.gridContinuation.items);
+      addPreviews(r.continuationContents.gridContinuation.items);
       r.continuationContents.gridContinuation.items = hideVideo(r.continuationContents.gridContinuation.items);
     }
 
@@ -206,7 +229,10 @@ function processResponse(r: any, sourceText?: unknown): any {
             section.tabs[index].tabRenderer.content.tvSurfaceContentRenderer.content.sectionListRenderer.contents = clone;
           }
           if (content?.gridRenderer?.items) {
+            deArrowify(content.gridRenderer.items);
+            hqify(content.gridRenderer.items);
             addLongPress(content.gridRenderer.items);
+            addPreviews(content.gridRenderer.items);
             content.gridRenderer.items = hideVideo(content.gridRenderer.items);
           }
         }
@@ -340,6 +366,20 @@ JSON.parse = function () {
 };
 
 /**
+ * A deep copy that does NOT re-enter this module.
+ *
+ * `JSON.parse(JSON.stringify(x))` is the idiom the tile helpers used, and after
+ * the line above it means the patched parse -- so every clone of a single tile
+ * ran the entire response pass again: the ad prune, the shelf walk, DeArrow.
+ * The `processed` WeakSet cannot stop it either, because a clone is by
+ * definition an object the set has never seen. Captured before the patch, so
+ * this is the engine's own parse.
+ */
+function cloneJson<T>(value: T): T {
+  return origParse(JSON.stringify(value));
+}
+
+/**
  * The same treatment for fetch responses read with .json().
  *
  * JSON.parse was the only interception point, which is fine only while
@@ -457,36 +497,42 @@ function processShelves(shelves: any[], shouldAddPreviews = true) {
 
         shelve.shelfRenderer.content.horizontalListRenderer.items = shelve.shelfRenderer.content.horizontalListRenderer.items.filter((item: any) => !item.tileRenderer?.onSelectCommand?.reelWatchEndpoint);
       }
+
+      // A shelf every filter emptied is worse than one that was never there:
+      // the heading still renders, so "Continue watching" sits above a blank
+      // strip and reads as a failed load rather than as a filter doing its job.
+      // The Shorts branch above only splices shelves the app TYPED as Shorts, so
+      // a mixed shelf whose items all turned out to be reels, or one whose tiles
+      // hideVideo removed as watched, ends up here.
+      //
+      // Never the last one: a surface with no shelves at all is a worse outcome
+      // than one empty heading, and it is indistinguishable from a broken feed.
+      if (shelfIsEmpty(shelve) && shelves.length > 1) {
+        shelves.splice(i, 1);
+      }
     }
   }
 }
 
 function addPreviews(items: any[]) {
   if (!configRead('enablePreviews')) return;
+  if (!Array.isArray(items)) return;
+  const muted = configRead('mutePreviews');
   for (const item of items) {
-    if (item.tileRenderer) {
-      if (item.tileRenderer.onFocusCommand?.playbackEndpoint) continue;
-      if (item.tileRenderer.onFocusCommand?.commandExecutorCommand) continue;
-      // Cloned only after the guards, and only when there is something to clone:
-      // JSON.stringify(undefined) returns undefined, and JSON.parse(undefined)
-      // stringifies it to "undefined" and throws, which aborted the whole
-      // response for every tile without an onSelectCommand.
-      const watchEndpoint = item.tileRenderer.onSelectCommand;
-      if (!watchEndpoint) continue;
-      const copiedEndpoint = JSON.parse(JSON.stringify(watchEndpoint));
-      item.tileRenderer.onFocusCommand = {
-        startInlinePlaybackCommand: {
-          blockAdoption: true,
-          caption: false,
-          delayMs: 3000,
-          durationMs: 40000,
-          muted: false,
-          restartPlaybackBeforeSeconds: 10,
-          resumeVideo: true,
-          playbackEndpoint: copiedEndpoint
-        }
-      };
-    }
+    // Every guard now lives in previewableTile(), which a Node harness covers
+    // directly. It also adds two the inline version did not have: a tile that
+    // already carries our command (so a payload reaching both JSON.parse and
+    // Response.json cannot be processed twice), and a tile whose select command
+    // is not a watchEndpoint -- a channel or playlist tile, where an inline
+    // playback command cannot start anything and, now that there is an
+    // indicator, would claim something is playing when nothing is.
+    if (!previewableTile(item)) continue;
+    // Cloned through the captured parse, not the patched one.
+    const endpoint = cloneJson(item.tileRenderer.onSelectCommand);
+    item.tileRenderer.onFocusCommand = startInlinePlayback(endpoint, {
+      durationMs: DEFAULT_PREVIEW_DURATION_MS,
+      muted,
+    });
   }
 }
 
@@ -502,20 +548,30 @@ function deArrowify(items: any[]) {
     if (!item.tileRenderer) continue;
     if (configRead('enableDeArrow')) {
       const videoID = item.tileRenderer.contentId;
-      fetch(`https://sponsor.ajay.app/api/branding?videoID=${videoID}`).then(res => res.json()).then(data => {
-        if (data.titles.length > 0) {
-          const mostVoted = data.titles.reduce((max: any, title: any) => max.votes > title.votes ? max : title);
-          item.tileRenderer.metadata.tileMetadataRenderer.title.simpleText = mostVoted.title;
+      // One request per video rather than one per tile. This used to fire an
+      // uncached, undeduplicated fetch for every tile it walked -- on the order
+      // of a hundred and fifty outbound requests for a first home screen, again
+      // for every continuation, and twice for a video appearing on two shelves.
+      //
+      // The response shape is also read defensively now: `data.titles.length`
+      // threw for the 404 that is the normal answer for a video nobody has
+      // submitted branding for, and the throw landed in the .catch() below,
+      // where it was indistinguishable from a network failure.
+      fetchBranding(videoID).then(data => {
+        if (!data) return;
+        const title = bestTitle(data);
+        if (title && item.tileRenderer?.metadata?.tileMetadataRenderer?.title) {
+          item.tileRenderer.metadata.tileMetadataRenderer.title.simpleText = title;
         }
 
-        if (data.thumbnails.length > 0 && configRead('enableDeArrowThumbnails')) {
-          const mostVotedThumbnail = data.thumbnails.reduce((max: any, thumbnail: any) => max.votes > thumbnail.votes ? max : thumbnail);
-          if (mostVotedThumbnail.timestamp) {
+        if (configRead('enableDeArrowThumbnails')) {
+          const time = bestThumbnailTime(data);
+          if (time !== null && item.tileRenderer?.header?.tileHeaderRenderer?.thumbnail) {
             item.tileRenderer.header.tileHeaderRenderer.thumbnail.thumbnails = [
               {
-                url: `https://dearrow-thumb.ajay.app/api/v1/getThumbnail?videoID=${videoID}&time=${mostVotedThumbnail.timestamp}`,
+                url: `https://dearrow-thumb.ajay.app/api/v1/getThumbnail?videoID=${encodeURIComponent(videoID)}&time=${time}`,
                 width: 1280,
-                height: 640
+                height: 720
               }
             ]
           }
@@ -527,22 +583,24 @@ function deArrowify(items: any[]) {
 
 
 function hqify(items: any[]) {
+  if (!Array.isArray(items)) return;
+  if (!configRead('enableHqThumbnails')) return;
   for (const item of items) {
-    if (!item.tileRenderer) continue;
-    if (item.tileRenderer.style !== 'TILE_STYLE_YTLR_DEFAULT') continue;
-    if (configRead('enableHqThumbnails')) {
-      if (!item.tileRenderer.onSelectCommand?.watchEndpoint?.videoId) continue;
-      if (!item.tileRenderer.header?.tileHeaderRenderer?.thumbnail?.thumbnails?.[0]?.url) continue;
-      const videoID = item.tileRenderer.onSelectCommand.watchEndpoint.videoId;
-      const queryArgs = item.tileRenderer.header.tileHeaderRenderer.thumbnail.thumbnails[0].url.split('?')[1];
-      item.tileRenderer.header.tileHeaderRenderer.thumbnail.thumbnails = [
-        {
-          url: `https://i.ytimg.com/vi/${videoID}/sddefault.jpg${queryArgs ? `?${queryArgs}` : ''}`,
-          width: 640,
-          height: 480
-        }
-      ];
-    }
+    if (!item?.tileRenderer) continue;
+    if (item.tileRenderer.style !== TILE_STYLE_DEFAULT) continue;
+    const thumbnail = item.tileRenderer.header?.tileHeaderRenderer?.thumbnail;
+    // Pick the largest entry YouTube actually served, rather than synthesising
+    // a URL. The synthesised one was `.../sddefault.jpg` at a declared 640x480:
+    // a 4:3 frame announced as fact to a renderer laying out a 16:9 tile, and
+    // carrying a query string lifted from a DIFFERENT variant's URL -- an `sqp`
+    // parameter is signed for the image it was issued for, so re-attaching one
+    // can fail validation and render nothing at all. bestThumbnail returns
+    // something the payload already contained, so it can neither 404 nor fail a
+    // signature check; when the payload holds only one entry it is a no-op,
+    // which is the right way for this to fail.
+    const best = bestThumbnail(thumbnail?.thumbnails);
+    if (!best) continue;
+    thumbnail.thumbnails = [best];
   }
 }
 
@@ -551,7 +609,7 @@ function addLongPress(items: any[]) {
     if (!item.tileRenderer) continue;
     if (item.tileRenderer.style !== 'TILE_STYLE_YTLR_DEFAULT') continue;
     if (item.tileRenderer.onLongPressCommand?.showMenuCommand?.menu?.menuRenderer?.items) {
-      const copiedItem = JSON.parse(JSON.stringify(item));
+      const copiedItem = cloneJson(item);
       item.tileRenderer.onLongPressCommand.showMenuCommand.menu.menuRenderer.items.push(MenuServiceItemRenderer(t('longPress.addToQueue'), {
         clickTrackingParams: null,
         playlistEditEndpoint: {
@@ -567,7 +625,7 @@ function addLongPress(items: any[]) {
     if (!item.tileRenderer?.metadata?.tileMetadataRenderer) continue;
     if (!item.tileRenderer?.header?.tileHeaderRenderer?.thumbnail?.thumbnails) continue;
     if (!item.tileRenderer.onSelectCommand?.watchEndpoint) continue;
-    const copiedItem = JSON.parse(JSON.stringify(item));
+    const copiedItem = cloneJson(item);
     const subtitleNode = copiedItem.tileRenderer.metadata.tileMetadataRenderer.lines?.[0]?.lineRenderer?.items?.[0]?.lineItemRenderer?.text;
     if (!subtitleNode) continue;
     const subtitle = subtitleNode;
@@ -591,8 +649,13 @@ function hideVideo(items: any[]) {
     if (!configRead('enableHideWatchedVideos')) return true;
     const pages = configRead('hideWatchedVideosPages');
     if (!pages.length) return true;
-    const hash = location.hash.substring(1);
-    const pageName = hash === '/' ? 'home' : hash.startsWith('/search') ? 'search' : hash.split('?')[1]?.split('&')[0]?.split('=')[1]?.replace('FE', '')?.replace('topics_', '') ?? '';
+    // Same derivation, moved so a harness can reach it -- plus the one case it
+    // was missing. An empty hash is the home page: it is what the app has on a
+    // cold launch and after a launchToOnStartup navigation that leaves none.
+    // It fell through every branch to '', which matches nothing in the list, so
+    // "hide watched videos on the home page" did nothing until the user had
+    // navigated away and come back.
+    const pageName = pageNameFromHash(location.hash);
     if (!pages.includes(pageName)) return true;
 
     const percentWatched = (progressBar.percentDurationWatched || 0);
