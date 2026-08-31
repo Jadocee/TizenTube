@@ -166,7 +166,7 @@ jobs:
 
       - name: Release TizenTube Build Results
         if: steps.gate.outputs.release == 'true'
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.gate.outputs.tag }}
           target_commitish: ${{ github.sha }}

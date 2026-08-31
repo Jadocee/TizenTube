@@ -63,5 +63,25 @@ check('loader prefers the packaged copy', loader.includes("require('./userScript
 check('loader falls back to whatever it already has', loader.includes('// Whatever we already have beats nothing.'), true);
 check('update check compares versions before downloading', loader.includes('isNewer(manifest.version, version)'), true);
 
+// --- the self-updater must never point at another project --------------------
+// It fetched @foxreis/tizentube from jsdelivr, which is UPSTREAM's package. The
+// mechanism goes by version number alone, so the first upstream release above
+// the packaged version would have replaced this fork's userscript on every
+// installed TV with a build targeting a different platform floor. A self-updater
+// aimed at someone else's package is a supply chain, not a feature.
+//
+// Matched against the code with comments stripped, so the explanation of the
+// hazard does not itself trip the check.
+const loaderCode = loader
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
+check('the updater does not fetch upstream\'s package', /foxreis/.test(loaderCode), false);
+check('the updater has no hardcoded CDN url', /cdn\.jsdelivr\.net/.test(loaderCode), false);
+// Off because this fork publishes no userscript of its own yet. If that changes,
+// UPDATE_SOURCE points at a source THIS fork controls -- and this assertion is
+// what makes repointing it a deliberate act rather than an edit nobody notices.
+check('updates are off until there is a source this fork owns',
+      /const UPDATE_SOURCE[^=]*=\s*null;/.test(loaderCode), true);
+
 console.log(fail ? `\n${fail} FAILURES` : '\nALL PASS');
 process.exit(fail ? 1 : 0);
