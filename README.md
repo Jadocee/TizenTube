@@ -160,6 +160,19 @@ the build exits non-zero rather than producing a package without them.
 
 `pnpm test` runs the regression harnesses; see [test/README.md](test/README.md).
 
+#### Cutting a release
+
+Releases come from the widget version. Bump `version=` on the `<widget>` element
+in [standalone/config.xml](standalone/config.xml) in your PR, and merging it
+builds, signs and publishes a `.wgt` under that version. A merge that leaves the
+version alone builds and verifies only — CI warns on a PR that changes shipped
+code without bumping it.
+
+That version is the one a television uses for install and upgrade semantics, so
+two packages carrying the same one cannot be cleanly installed over each other.
+Pushing a `v*.*.*` tag by hand still publishes, and CI will not move a tag that
+already exists.
+
 ## ✨ Features
 - 📺 **Picture-in-Picture Mode**
 - 🛑 **Ad Blocker**: Enjoy your favourite streaming website without interruptions from ads.

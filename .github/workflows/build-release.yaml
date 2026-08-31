@@ -6,9 +6,12 @@ name: Build TizenTube Standalone and Release
 # harnesses are the only gate this project has; they need to run before a merge,
 # not after a release.
 #
-# The release half is gated on the tag, because it needs the signing secrets and
-# publishes a package. A pull request builds and verifies everything, and stops
-# short of signing.
+# The release half needs the signing secrets and publishes a package, so it is
+# gated: .github/scripts/release-gate.sh decides. A tag push always publishes; a
+# push to main publishes only when standalone/config.xml's widget version changed
+# in that push, since that is the version a television uses for upgrade
+# semantics. A pull request builds and verifies everything and stops short of
+# signing.
 on:
   pull_request:
   push:
@@ -29,9 +32,6 @@ jobs:
     permissions:
       # Used only by the release step, which cannot run outside a tag.
       contents: write
-    env:
-      # Every step below that signs or publishes is gated on this.
-      IS_RELEASE: ${{ startsWith(github.ref, 'refs/tags/v') }}
     steps:
       - name: Clone repo with full history and tags
         uses: actions/checkout@v4
@@ -97,36 +97,55 @@ jobs:
           pnpm exec playwright install --with-deps chromium
           pnpm test
 
-      # ---- everything below runs only for a release tag ---------------------
-
-      - name: Determine release tag
-        if: env.IS_RELEASE == 'true'
-        id: version
+      # A nudge, not a gate. Merging a PR that changes what ships without
+      # bumping the widget version publishes nothing, and the .wgt it would
+      # eventually produce does not read as an upgrade on a television. Plenty
+      # of PRs legitimately ship nothing -- docs, tests, CI -- so this warns
+      # rather than fails.
+      - name: Warn if shipped code changed without a version bump
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
-          TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
-          if [ -z "$TAG" ]; then
-            echo "No tags found; deriving from config.xml or fallback"
-            if [ -f standalone/config.xml ]; then
-              # Extract version from config.xml's version attribute
-              CFG_VER=$(sed -n 's/.*version="\([^"]*\)".*/\1/p' standalone/config.xml | head -n1)
-              if [ -n "$CFG_VER" ]; then
-                TAG=v$CFG_VER
-              else
-                TAG=v0.0.0-${GITHUB_SHA:0:7}
-              fi
-            else
-              TAG=v0.0.0-${GITHUB_SHA:0:7}
-            fi
+          set -euo pipefail
+          widget_version() { sed -n 's/.*<widget[^>]*version="\([^"]*\)".*/\1/p' | head -n1; }
+          if ! git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
+            echo "base ${BASE_SHA} is not in this checkout; skipping the check"
+            exit 0
           fi
-          echo "RELEASE_VERSION=$TAG" >> $GITHUB_ENV
+          CHANGED=$(git diff --name-only "${BASE_SHA}...HEAD" -- mods service standalone | wc -l)
+          BEFORE=$(git show "${BASE_SHA}:standalone/config.xml" 2>/dev/null | widget_version || true)
+          AFTER=$(widget_version < standalone/config.xml)
+          echo "shipped files changed: ${CHANGED}; widget version ${BEFORE:-<absent>} -> ${AFTER}"
+          if [ "${CHANGED}" -gt 0 ] && [ "${BEFORE}" = "${AFTER}" ]; then
+            echo "::warning::This PR changes shipped code but leaves the widget version at ${AFTER}, so merging it publishes nothing. Bump version= on the <widget> element in standalone/config.xml if this should cut a release."
+          fi
+
+      # ---- publishing --------------------------------------------------------
+
+      # The logic lives in a script rather than inline here so it can be tested:
+      # test/release-gate drives it through a bump, an unchanged version, an
+      # existing tag, a tag push, a pull request and a new branch, against real
+      # git history. This runs with the signing certificate available and can
+      # create a tag people download a package from, so it is the last place in
+      # the repository that should be untested -- and until now the whole release
+      # path had never executed once.
+      - name: Decide whether this run publishes
+        id: gate
+        env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_REF_TYPE: ${{ github.ref_type }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          EVENT_BEFORE: ${{ github.event.before }}
+        run: bash .github/scripts/release-gate.sh
 
       - name: Prepare Tizen Certificate
-        if: env.IS_RELEASE == 'true'
+        if: steps.gate.outputs.release == 'true'
         run: |
           echo "${{ secrets.TIZEN_AUTHOR_KEY }}" | base64 -d > "${GITHUB_WORKSPACE}/TizenTube-author.p12"
 
       - name: Build TizenTube
-        if: env.IS_RELEASE == 'true'
+        if: steps.gate.outputs.release == 'true'
         working-directory: standalone
         run: |
           # npm deliberately: a global CLI, not a workspace dependency.
@@ -139,17 +158,17 @@ jobs:
           tizenjs build . -t wgt -o release/TizenTube.wgt --author "${GITHUB_WORKSPACE}/TizenTube-author.p12" --authorPwd '${{ secrets.TIZEN_AUTHOR_KEY_PW }}' -p public --ignore node_modules,/.*\.wgt$/,/userwidget/,/release/
 
       - name: Upload TizenTube package artifact
-        if: env.IS_RELEASE == 'true'
+        if: steps.gate.outputs.release == 'true'
         uses: actions/upload-artifact@v4
         with:
             name: app-${{ github.sha }}.wgt
             path: standalone/release/TizenTube.wgt
 
       - name: Release TizenTube Build Results
-        if: env.IS_RELEASE == 'true'
+        if: steps.gate.outputs.release == 'true'
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ env.RELEASE_VERSION }}
+          tag_name: ${{ steps.gate.outputs.tag }}
           target_commitish: ${{ github.sha }}
           files: |
             standalone/release/*
