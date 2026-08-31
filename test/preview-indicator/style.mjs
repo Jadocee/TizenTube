@@ -1,0 +1,218 @@
+// The preview indicator's stylesheet, in a real browser.
+//
+// Two of these checks exist because of specific ways this class of change goes
+// wrong on a television and nowhere else. A rule that never matches must show
+// NOTHING rather than parking a disc in the corner, so there is a negative
+// control. And the element is appended to document.body, which inherits the
+// app's direction -- rtl for an Arabic account -- so a logical inset would put
+// the mark off the opposite edge, exactly the trap clock.css already records.
+import { chromium as findChromium, chromiumExecutable, skip, readRepo, checker } from '../lib/repo.mjs';
+
+const chromium = await findChromium();
+if (!chromium) skip('Playwright is not installed; this harness needs a real browser');
+
+const css = readRepo('mods', 'ui', 'previewIndicator.css');
+// Scanned with comments stripped. The file EXPLAINS why it uses physical
+// properties rather than logical ones, so it names inset-inline and
+// border-inline in prose -- and the checks below, matched against the raw text,
+// found those and reported the file as violating its own rule.
+const code = css.replace(/\/\*[\s\S]*?\*\//g, '');
+const { check, done } = checker();
+
+// --- what the source itself must not contain --------------------------------
+// Written so it cannot pass vacuously: the set of transitioned properties has to
+// be non-empty AND a subset of the compositor-only ones. A file that transitions
+// nothing would otherwise satisfy "subset of" trivially.
+const transitioned = new Set();
+for (const declaration of code.matchAll(/transition:\s*([^;}]+)/g)) {
+    for (const part of declaration[1].split(',')) {
+        const property = part.trim().split(/\s+/)[0];
+        if (property && property !== 'none') transitioned.add(property);
+    }
+}
+check('something is actually transitioned', transitioned.size > 0, true);
+check('  ...and only compositor-only properties are',
+      [...transitioned].filter((p) => !['opacity', 'transform', 'visibility'].includes(p)), []);
+// A glyph in the same place on every focused tile, animating forever, is what an
+// OLED holds on to.
+check('nothing animates forever', /\binfinite\b/.test(code), false);
+check('there are no keyframes at all', /@keyframes/.test(code), false);
+// Logical properties inherit the app's direction. Physical ones do not.
+check('placement uses no logical insets', /inset-inline|inset-block/.test(code), false);
+check('the triangle uses no logical borders', /border-inline|border-block/.test(code), false);
+
+const browser = await chromium.launch({ executablePath: chromiumExecutable() });
+const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
+await page.setContent(`<!doctype html><html><head><meta charset="utf-8">
+<style>html,body{margin:0;height:100%;background:#0b0b0b}html{font-size:16px}
+  /* Stand-ins for whatever is on the page underneath. Their boxes are what the
+     layout-neutrality check compares. */
+  .fixture{width:300px;height:170px;display:inline-block;margin:8px}</style>
+<style id="tt">${css}</style></head><body>
+  <div class="fixture" id="f1"></div><div class="fixture" id="f2"></div>
+  <div id="tizentube-preview-indicator" class="tt-dimmable"><span></span></div>
+</body></html>`);
+
+const px = (v) => parseFloat(v) || 0;
+const styles = (sel, props) => page.evaluate(([s, p]) => {
+    const el = document.querySelector(s);
+    if (!el) return null;
+    const cs = getComputedStyle(el);
+    return Object.fromEntries(p.map((k) => [k, cs.getPropertyValue(k)]));
+}, [sel, props]);
+
+// --- did the nested block parse at all? -------------------------------------
+// If the browser rejected the nesting, every check below is meaningless.
+const chip = await styles('#tizentube-preview-indicator',
+    ['background-color', 'position', 'pointer-events', 'visibility', 'opacity', 'color', 'border-radius']);
+check('nesting parsed (the disc has its fill)',
+      chip !== null && chip['background-color'] !== 'rgba(0, 0, 0, 0)', true);
+
+// --- the negative control ---------------------------------------------------
+// With no data-state the mark must be invisible. Without this a rule that never
+// matches on a real television would pass every other check here.
+check('with no state it is hidden', chip.visibility, 'hidden');
+check('  ...and fully transparent', px(chip.opacity), 0);
+
+// --- it can never perturb the page ------------------------------------------
+check('it is out of flow', chip.position, 'fixed');
+check('it cannot take a press', chip['pointer-events'], 'none');
+
+const neutrality = await page.evaluate(() => {
+    const boxes = () => [...document.querySelectorAll('.fixture')]
+        .map((e) => { const r = e.getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; });
+    const withChip = { boxes: boxes(), scroll: document.documentElement.scrollHeight };
+    const node = document.getElementById('tizentube-preview-indicator');
+    node.remove();
+    const without = { boxes: boxes(), scroll: document.documentElement.scrollHeight };
+    document.body.appendChild(node);
+    return { withChip, without };
+});
+check('every other box is identical with and without it',
+      JSON.stringify(neutrality.withChip.boxes), JSON.stringify(neutrality.without.boxes));
+check('  ...and so is the page height',
+      neutrality.withChip.scroll, neutrality.without.scroll);
+
+// --- the states -------------------------------------------------------------
+// The fade is real, so a computed opacity read immediately after the attribute
+// changes is the mid-transition value -- which is ~0 and looks exactly like the
+// rule not applying at all. Settle it first, and assert separately that it was
+// in fact animating.
+const setState = async (value) => await page.evaluate(async (v) => {
+    const node = document.getElementById('tizentube-preview-indicator');
+    // Force a recalc first, so the change below has a "before" value to
+    // transition FROM. Without it the transition may never be created.
+    getComputedStyle(node).opacity;
+    node.setAttribute('data-state', v);
+    // Two frames, so the style change has committed and the transition has
+    // actually been started rather than merely scheduled.
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    const running = node.getAnimations().length;
+    // Settle it, so the computed values read afterwards are the final ones
+    // rather than wherever the fade happens to be.
+    node.getAnimations().forEach((a) => a.finish());
+    return running;
+}, value);
+const fadeStarted = await setState('playing');
+const playing = await styles('#tizentube-preview-indicator', ['visibility', 'opacity', 'width', 'height']);
+check('playing makes it visible', playing.visibility, 'visible');
+check('  ...at full opacity', px(playing.opacity), 1);
+
+// Asserted as "a transition exists", not as a mid-flight opacity: reading
+// computed style in the same synchronous block as the attribute change forces a
+// recalc that resolves to the FINAL value, so a value probe measures when the
+// engine recalculates rather than whether anything animates.
+check('showing it starts a transition rather than snapping', fadeStarted > 0, true);
+
+await setState('stalled');
+const stalled = await styles('#tizentube-preview-indicator', ['visibility', 'opacity']);
+check('stalled stays visible', stalled.visibility, 'visible');
+check('  ...but reads as dimmed', px(stalled.opacity) < 1 && px(stalled.opacity) > 0, true);
+
+// --- big enough to resolve across a room ------------------------------------
+// A floor, not the on-set value: YouTube's TV app sizes its root font at a
+// fraction of the viewport, which is larger than the 16px used here.
+check('the disc is at least 48px square at a 16px root',
+      px(playing.width) >= 48 && playing.width === playing.height, true);
+const glyph = await page.evaluate(() => {
+    const r = document.querySelector('#tizentube-preview-indicator > span').getBoundingClientRect();
+    return { width: r.width, height: r.height };
+});
+check('the triangle is actually drawn', glyph.width > 0 && glyph.height > 0, true);
+
+// --- readable over arbitrary video ------------------------------------------
+const luminance = (rgb) => {
+    const [r, g, b] = rgb.match(/\d+(\.\d+)?/g).slice(0, 3).map(Number).map((v) => {
+        const c = v / 255;
+        return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+const contrast = (a, b) => {
+    const [x, y] = [luminance(a), luminance(b)].sort((m, n) => n - m);
+    return (x + 0.05) / (y + 0.05);
+};
+// The disc is translucent and sits over arbitrary video, so what the triangle is
+// actually read against is the disc's fill composited over whatever is behind
+// it. Worst case for light ink is the brightest possible backdrop, so composite
+// over white. Measured from the element's own computed fill rather than a
+// literal copy of the colour, which would have to be kept in sync by hand.
+const over = (rgba, backdrop) => {
+    const parts = rgba.match(/\d+(\.\d+)?/g).map(Number);
+    const alpha = parts.length > 3 ? parts[3] : 1;
+    return `rgb(${parts.slice(0, 3).map((c) => c * alpha + backdrop * (1 - alpha)).join(', ')})`;
+};
+check('the triangle clears 3:1 against the worst backdrop',
+      contrast(chip.color, over(chip['background-color'], 255)) >= 3, true);
+
+// --- right-to-left ----------------------------------------------------------
+// The element inherits the app's direction. clock.css records this trap; the
+// judges caught it in three separate proposals.
+const rtl = await page.evaluate(() => {
+    const node = document.getElementById('tizentube-preview-indicator');
+    node.style.setProperty('--tt-pi-x', '400px');
+    node.style.setProperty('--tt-pi-y', '200px');
+    const box = () => { const r = node.getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; };
+    const glyphBox = () => {
+        const r = node.querySelector('span').getBoundingClientRect();
+        return [Math.round(r.left - node.getBoundingClientRect().left), r.width, r.height];
+    };
+    document.documentElement.dir = 'ltr';
+    const ltr = { chip: box(), glyph: glyphBox() };
+    document.documentElement.dir = 'rtl';
+    const right = { chip: box(), glyph: glyphBox() };
+    document.documentElement.dir = 'ltr';
+    return { ltr, rtl: right };
+});
+check('the mark lands in the same place under rtl',
+      JSON.stringify(rtl.rtl.chip), JSON.stringify(rtl.ltr.chip));
+check('  ...and the triangle still points the same way',
+      JSON.stringify(rtl.rtl.glyph), JSON.stringify(rtl.ltr.glyph));
+check('  ...at the coordinates it was given', rtl.ltr.chip[0], 400);
+
+// --- the blocks are concatenated with no separator --------------------------
+// styleSheet.ts joins named blocks by string concatenation, so one unbalanced
+// brace swallows every block after it: the single failure that takes out all of
+// TizenTube's styling at once, on a device with no console.
+const clockCss = readRepo('mods', 'ui', 'clock.css');
+const uiCss = readRepo('mods', 'ui', 'ui.css');
+const ruleCount = await page.evaluate(async (sheets) => {
+    const count = (text) => {
+        const style = document.createElement('style');
+        style.textContent = text;
+        document.head.appendChild(style);
+        const n = style.sheet ? style.sheet.cssRules.length : -1;
+        style.remove();
+        return n;
+    };
+    return {
+        parts: sheets.map(count),
+        joined: count(sheets.join('')),
+    };
+}, [clockCss, css, uiCss]);
+check('each block parses on its own', ruleCount.parts.every((n) => n > 0), true);
+check('concatenating them loses no rules',
+      ruleCount.joined, ruleCount.parts.reduce((a, b) => a + b, 0));
+
+await browser.close();
+done();

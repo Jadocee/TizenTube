@@ -44,6 +44,12 @@ const defaultConfig = {
   enableMPButton: true,
   enableSwapMPWithPIP: false,
   enablePreviews: true,
+  // A focused tile starts playing after three seconds with nothing at all to
+  // say so, which leaves "is this a still or is it running?" -- and, since
+  // previews are unmuted by default, "where is that audio coming from?" --
+  // answerable only by waiting.
+  enablePreviewIndicator: true,
+  mutePreviews: false,
   enableHideWatchedVideos: false,
   hideWatchedVideosThreshold: 80,
   hideWatchedVideosPages: [] as string[],

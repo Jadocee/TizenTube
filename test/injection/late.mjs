@@ -83,6 +83,96 @@ check('playerAds neutralised', viaResponse.playerAds, false);
 check('the promoted tile is dropped', viaResponse.kept, 1);
 check('the real tile survives', viaResponse.keptId, 'real');
 
+// --- the home surface, end to end through the real bundle -------------------
+// The only evidence obtainable without a television that the shelf pass runs at
+// all: a home-shaped payload read the way the app reads one, checked for the
+// preview command the tile did not arrive with and for the shelf that every
+// filter emptied.
+const home = await page.evaluate(async () => {
+  const videoTile = (id) => ({
+    tileRenderer: {
+      style: 'TILE_STYLE_YTLR_DEFAULT',
+      contentId: id,
+      onSelectCommand: { watchEndpoint: { videoId: id } },
+      header: { tileHeaderRenderer: { thumbnail: { thumbnails: [
+        { url: `https://i.ytimg.com/vi/${id}/default.jpg`, width: 120, height: 90 },
+        { url: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`, width: 480, height: 360 },
+      ] } } },
+      // `lines` is what addLongPress reads for the subtitle, and without it that
+      // pass bails before it clones -- which quietly made the re-entry check
+      // below cover only half of what clones a tile.
+      metadata: { tileMetadataRenderer: {
+        title: { simpleText: id },
+        lines: [{ lineRenderer: { items: [{ lineItemRenderer: { text: { simpleText: 'A Channel' } } }] } }],
+      } },
+    },
+  });
+  const shelf = (items) => ({ shelfRenderer: { content: { horizontalListRenderer: { items } } } });
+  const body = JSON.stringify({
+    contents: { sectionListRenderer: { contents: [
+      shelf([videoTile('keep')]),
+      // Every item here is a promoted tile, so the ad rules empty the list and
+      // leave a heading above a blank strip.
+      shelf([{ adSlotRenderer: {} }, { adSlotRenderer: {} }]),
+    ] } },
+  });
+  // Count re-entry. The tile helpers clone with JSON.parse(JSON.stringify(x)),
+  // and after the mod patches JSON.parse that idiom means the PATCHED one -- so
+  // every clone of a single tile ran the whole response pass again: the ad
+  // prune, the shelf walk, DeArrow. The `processed` WeakSet cannot stop it
+  // either, because a clone is by definition an object it has never seen. The
+  // wrapper goes on AFTER the mod's, so it counts only what the mod itself
+  // calls while handling this payload.
+  const patched = JSON.parse;
+  let reentries = 0;
+  JSON.parse = function (...a) { reentries++; return patched.apply(this, a); };
+
+  const parsed = await new Response(body).json();
+  JSON.parse = patched;
+  const shelves = parsed.contents.sectionListRenderer.contents;
+  const tile = shelves[0]?.shelfRenderer?.content?.horizontalListRenderer?.items?.[0]?.tileRenderer;
+
+  // The tiles a shelf pages in as you scroll along it arrive as their own
+  // response, and that path never got previews at all -- so they worked for the
+  // first screenful of each shelf and silently stopped.
+  const continued = await new Response(JSON.stringify({
+    continuationContents: { horizontalListContinuation: { items: [videoTile('later')] } },
+  })).json();
+  const gridded = await new Response(JSON.stringify({
+    continuationContents: { gridContinuation: { items: [videoTile('grid')] } },
+  })).json();
+
+  return {
+    shelfCount: shelves.length,
+    reentries,
+    continuationHasPreview:
+      !!continued.continuationContents.horizontalListContinuation.items[0].tileRenderer.onFocusCommand
+        ?.startInlinePlaybackCommand,
+    gridHasPreview:
+      !!gridded.continuationContents.gridContinuation.items[0].tileRenderer.onFocusCommand
+        ?.startInlinePlaybackCommand,
+    hasPreview: !!tile?.onFocusCommand?.startInlinePlaybackCommand,
+    duration: tile?.onFocusCommand?.startInlinePlaybackCommand?.durationMs,
+    endpointVideoId: tile?.onFocusCommand?.startInlinePlaybackCommand?.playbackEndpoint?.watchEndpoint?.videoId,
+    // The clone must not be the same object as the select command, or the app
+    // mutating one would mutate both.
+    endpointIsCopy: tile?.onFocusCommand?.startInlinePlaybackCommand?.playbackEndpoint !== tile?.onSelectCommand,
+  };
+});
+
+console.log('\nA home payload, read the way the app reads one:');
+check('a video tile gains the inline playback command', home.hasPreview, true);
+check('  ...with a real duration', typeof home.duration === 'number' && home.duration > 0, true);
+check('  ...aimed at that tile\'s own video', home.endpointVideoId, 'keep');
+check('  ...through a clone, not the select command itself', home.endpointIsCopy, true);
+check('the shelf every filter emptied is dropped', home.shelfCount, 1);
+check('tiles paged into a shelf get previews too', home.continuationHasPreview, true);
+check('  ...and so do grid continuations', home.gridHasPreview, true);
+// Response.json parses internally, so the mod's own JSON.parse should not be
+// touched at all while handling this payload. Anything above zero is a tile
+// clone re-entering the whole pass.
+check('cloning a tile does not re-run the response pass', home.reentries, 0);
+
 // A non-JSON body must still behave like a Response.
 const nonJson = await page.evaluate(async () => {
   try { await new Response('not json').json(); return 'resolved'; }

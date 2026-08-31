@@ -141,6 +141,39 @@ out('injection/inject.generated.mjs',
 // jsonPrune.ts has no imports, so it runs as-is.
 out('json-prune/mod.generated.mts', readRepo('mods', 'features', 'jsonPrune.ts'));
 
+// previewState.ts and tileFixes.ts likewise. Both are deliberately
+// dependency-free so the harness runs the shipping code rather than a stub of
+// it -- and the guard below is what keeps that true: the moment either grows an
+// import, the copy stops being the real thing and the whole suite says so
+// instead of quietly passing against a module that no longer resolves.
+for (const [file, dir, landmarks] of [
+    ['previewState.ts', 'preview-indicator', ['export function reduce', 'export function chipOrigin',
+                                              'export function anchorUsable', 'export function shouldAnchor',
+                                              'MOVE_GRACE_MS', 'WATCHDOG_SLACK_MS']],
+    ['tileFixes.ts', 'tile-fixes', ['export function bestThumbnail', 'export function previewableTile',
+                                    'export function startInlinePlayback', 'export function pageNameFromHash',
+                                    'export function shelfIsEmpty']],
+    ['dearrowCache.ts', 'tile-fixes', ['export function fetchBranding', 'export function bestTitle',
+                                       'export function bestThumbnailTime', 'CACHE_LIMIT']],
+]) {
+    const source = readRepo('mods', 'features', file);
+    for (const landmark of landmarks) {
+        if (!source.includes(landmark)) fail(`${file} no longer contains ${landmark}; fix test/refresh.mjs`);
+    }
+    if (/^\s*import\s/m.test(source)) {
+        fail(`${file} gained an import; the harness runs it as-is. Keep it dependency-free or fix test/refresh.mjs.`);
+    }
+    out(`${dir}/${file.replace(/\.ts$/, '')}.generated.mts`, source);
+}
+
+// focusMotion.ts reads config, so its one import is repointed at a stub -- the
+// videoContext recipe below.
+const focusMotion = readRepo('mods', 'features', 'focusMotion.ts')
+    .replace("from '../config.js'", "from './stub.mjs'");
+if (focusMotion.includes("'../config.js'")) fail('focusMotion.ts import of ../config.js no longer matches; fix test/refresh.mjs');
+if (!focusMotion.includes('export function applyFocusMotion')) fail('focusMotion.ts no longer exports applyFocusMotion; fix test/refresh.mjs');
+out('focus-motion/mod.generated.mts', focusMotion);
+
 // The AD_RULES block, lifted out of adblock.ts so the harness exercises the
 // rules the mod actually ships rather than a copy of them.
 const adblockSrc = readRepo('mods', 'features', 'adblock.ts');

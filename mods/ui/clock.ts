@@ -21,8 +21,12 @@ configChangeEmitter.addEventListener('configChange', (e) => {
 // The offsets themselves live in clock.css; this only names the corner.
 const POSITIONS = ['top-left', 'top-right', 'bottom-left', 'bottom-right'] as const;
 const DEFAULT_POSITION = 'top-right';
+// `tt-dimmable` rides along because placeClock() assigns className WHOLESALE,
+// so anything not in this string is dropped the moment the position changes --
+// and ui.ts's idle dimming now finds its overlays by that class rather than by
+// this element's id.
 const positionClass = (position: string): string =>
-    `tt-clock-${(POSITIONS as readonly string[]).includes(position) ? position : DEFAULT_POSITION}`;
+    `tt-dimmable tt-clock-${(POSITIONS as readonly string[]).includes(position) ? position : DEFAULT_POSITION}`;
 
 const CLOCK_ID = 'tizentube-clock';
 

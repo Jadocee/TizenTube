@@ -17,6 +17,8 @@ import { pipToFullscreen } from '../features/pictureInPicture.js';
 import getCommandExecutor from './customCommandExecution.js';
 import { recordStartupError, clearStartupError } from './startupError.js';
 import { setStyleBlock } from './styleSheet.js';
+import { startFocusMotion } from '../features/focusMotion.js';
+import { notePreviewMove } from './previewIndicator.js';
 import { t } from 'i18next';
 
 /**
@@ -88,10 +90,13 @@ function isValidColor(value: string): boolean {
 function setIdleOpacity(value: string): void {
   const container = document.getElementById('container');
   if (container) container.style.setProperty('opacity', value, 'important');
-  // The clock is a sibling of #container, so dimming would otherwise skip the
-  // one element that is bright, static and in a fixed position for hours.
-  const clock = document.getElementById('tizentube-clock');
-  if (clock) clock.style.setProperty('opacity', value, 'important');
+  // The mod's own overlays are siblings of #container, so dimming would
+  // otherwise skip exactly the elements that are bright, static and in a fixed
+  // position for hours. Found by class rather than by id: this used to look the
+  // clock up by name, so the next overlay added -- the preview indicator -- would
+  // silently have been the one thing left lit on a dimmed screen.
+  const overlays = document.querySelectorAll<HTMLElement>('.tt-dimmable');
+  for (const overlay of overlays) overlay.style.setProperty('opacity', value, 'important');
 }
 
 function isVideoPlaying(): boolean {
@@ -145,17 +150,15 @@ function execute_once_dom_loaded(): void {
   setStyleBlock('ui', css);
 
   // Fix UI issues.
-  const ui = configRead('enableFixedUI');
-  if (ui) {
-    try {
-      window.tectonicConfig!.featureSwitches.isLimitedMemory = false;
-      window.tectonicConfig!.clientData.legacyApplicationQuality = 'full-animation';
-      window.tectonicConfig!.featureSwitches.enableAnimations = true;
-      window.tectonicConfig!.featureSwitches.enableOnScrollLinearAnimation = true;
-      window.tectonicConfig!.featureSwitches.enableListAnimations = true;
-      window.tectonicConfig!.featureSwitches.supportsLongPress = true;
-    } catch (e) { }
-  }
+  //
+  // These six switches decide whether the home page glides between tiles or
+  // jumps, which is the single most-felt property of the surface on a D-pad.
+  // They used to be six statements in one bare try/catch, each dereferencing
+  // window.tectonicConfig -- so if the app had not published that object by the
+  // time this ran, the first line threw and the other five never happened,
+  // silently, on a device with no console. They now apply independently and
+  // retry while the object fills in.
+  startFocusMotion();
 
   var ARROW_KEY_CODE: Record<number, 'left' | 'up' | 'right' | 'down'> = { 37: 'left', 38: 'up', 39: 'right', 40: 'down' };
 
@@ -367,6 +370,12 @@ function execute_once_dom_loaded(): void {
     // timer once per press is enough.
     if (evt.type === 'keydown') {
       resetScreenDimming();
+      // A real D-pad press, as opposed to the focus move the app makes for
+      // itself when it starts a preview. Fed in here rather than from a
+      // listener of our own: this handler already sees every keydown, and the
+      // file's own comment records that the page is carrying six listeners
+      // already.
+      notePreviewMove();
     }
     if (evt.keyCode == 403) {
       console.info('Taking over!');

@@ -2,8 +2,18 @@
 
 import resolveCommand from "../resolveCommand.js";
 import { whenBodyReady } from "../utils/domReady.js";
+import { addPreviewVeto } from "./playbackPreview.js";
 
 window.isPipPlaying = false;
+
+// Suppressing inline previews while picture-in-picture is up used to be a
+// second, independent wrap of PlaybackPreviewService.start/.stop installed from
+// pipLoad(). Two wrappers on the same two methods is a race decided by module
+// order, so the behaviour now goes through the single owner in
+// playbackPreview.ts. It is the same rule -- while PiP is playing, neither
+// start nor stop is forwarded -- and it no longer needs the service to exist at
+// the moment this module is evaluated.
+addPreviewVeto(() => !!window.isPipPlaying);
 let PlayerService: any = null;
 
 let pipLoadAttempts = 0;
@@ -33,19 +43,15 @@ function pipLoad(): void {
         }
 
         PlayerService = mappings.get('PlayerService');
-        const PlaybackPreviewService = mappings.get('PlaybackPreviewService');
-        if (!PlaybackPreviewService) return;
-        const PlaybackPreviewServiceStart = PlaybackPreviewService.start;
-        const PlaybackPreviewServiceStop = PlaybackPreviewService.stop;
-
-        PlaybackPreviewService.start = function (this: any, ...args: any[]) {
-            if (window.isPipPlaying) return;
-            return PlaybackPreviewServiceStart.apply(this, args);
-        }
-
-        PlaybackPreviewService.stop = function (this: any, ...args: any[]) {
-            if (window.isPipPlaying) return;
-            return PlaybackPreviewServiceStop.apply(this, args);
+        // Same reasoning as the guard above: the registry fills in as the app
+        // boots, so a present registry with an absent service is a "not yet",
+        // not a "never". Returning here discarded the retry the lines above had
+        // just established, and every path that needs PlayerService -- entering
+        // PiP, returning to fullscreen -- silently did nothing for the rest of
+        // the session.
+        if (!PlayerService) {
+            if (++pipLoadAttempts <= 240) setTimeout(pipLoad, 250);
+            return;
         }
     } catch (err) {
         console.warn('[TizenTube] Picture-in-Picture could not hook the player:', err);
