@@ -1,5 +1,6 @@
 import { configRead, configWrite } from '../config.js';
 import { recordVideoContext } from './videoContext.js';
+import { prune, pruneTokens, textCouldMatch, type PruneRule } from './jsonPrune.js';
 import Chapters from '../ui/chapters.js';
 import resolveCommand from '../resolveCommand.js';
 import { timelyAction, longPressData, MenuServiceItemRenderer, ShelfRenderer, TileRenderer, ButtonRenderer } from '../ui/ytUI.js';
@@ -28,9 +29,57 @@ interface SponsorBlockSegments {
  *
  * Seems like for now dropping just the adPlacements is enough for YouTube TV
  */
-const origParse = JSON.parse;
-JSON.parse = function () {
-  const r = origParse.apply(this, arguments as any);
+/**
+ * The ad rules, as paths rather than branches.
+ *
+ * `**` means "at any depth", which is the point of the rewrite: the previous
+ * code tested `r.adPlacements` and friends at the top level only, so the same
+ * properties inside a continuation, a watch-next payload or any nested response
+ * went through untouched. One rule now covers every position they can occupy.
+ *
+ * Arrays are emptied rather than deleted because YouTube's renderers read
+ * `.length` off them; `playerAds` is set false because that is what the field is
+ * when there are none.
+ */
+const AD_RULES: PruneRule[] = [
+    { path: '**.adPlacements', replaceWith: [] },
+    { path: '**.adSlots', replaceWith: [] },
+    { path: '**.playerAds', replaceWith: false },
+    // Promoted tiles sit beside real ones inside a list, so the element goes and
+    // the list stays. Previously done for exactly two hardcoded paths -- the
+    // home sectionList and a shelf's horizontalList -- which is why grid
+    // surfaces, continuations and every other list kept their ads.
+    { path: '**.contents', dropItemsWith: 'adSlotRenderer' },
+    { path: '**.items', dropItemsWith: 'adSlotRenderer' },
+    { path: '**.entries', dropItemsWith: 'command.reelWatchEndpoint.adClientParams.isAd' },
+];
+
+/** The literal keys AD_RULES can match, computed once. */
+const AD_TOKENS = pruneTokens(AD_RULES);
+
+/**
+ * Objects already processed, so the same payload cannot be run through twice.
+ *
+ * There are two entry points now -- JSON.parse and Response.json -- and nothing
+ * says a given response reaches only one of them. Several of the steps below are
+ * not idempotent (pushing a highlight button onto promotedActions, for one), so
+ * without this a payload seen by both would get them applied twice.
+ */
+const processed = new WeakSet<object>();
+
+/**
+ * Everything the mod does to a parsed InnerTube payload.
+ *
+ * `sourceText` is the raw JSON when the caller has it, purely as a cheap filter:
+ * a key absent from the text cannot be in the object, so the ad pass can be
+ * skipped without walking the tree. Response.json has no text to offer and
+ * passes undefined, which simply runs the pass.
+ */
+function processResponse(r: any, sourceText?: unknown): any {
+  if (r !== null && typeof r === 'object') {
+    if (processed.has(r)) return r;
+    processed.add(r);
+  }
   try {
     // Every player response the page parses comes through here, and it is the
     // only place the current video's channel is visible. SponsorBlock's
@@ -45,18 +94,10 @@ JSON.parse = function () {
       console.log(r.playbackContext.contentPlaybackContext);
     }
 
-    if (r.adPlacements && adBlockEnabled) {
-      r.adPlacements = [];
-    }
-
-    // Also set playerAds to false, just incase.
-    if (r.playerAds && adBlockEnabled) {
-      r.playerAds = false;
-    }
-
-    // Also set adSlots to an empty array, emptying only the adPlacements won't work.
-    if (r.adSlots && adBlockEnabled) {
-      r.adSlots = [];
+    // The whole ad pass, at any depth. Skipped outright when the source text
+    // cannot contain any of the keys, which is the common case.
+    if (adBlockEnabled && textCouldMatch(sourceText, AD_TOKENS)) {
+      prune(r, AD_RULES);
     }
 
     if (r.paidContentOverlay && !configRead('enablePaidPromotionOverlay')) {
@@ -86,21 +127,9 @@ JSON.parse = function () {
           );
       }
 
-      if (adBlockEnabled) {
-        r.contents.tvBrowseRenderer.content.tvSurfaceContentRenderer.content.sectionListRenderer.contents =
-          r.contents.tvBrowseRenderer.content.tvSurfaceContentRenderer.content.sectionListRenderer.contents.filter(
-            (elm: any) => !elm.adSlotRenderer
-          );
-
-        for (const shelve of r.contents.tvBrowseRenderer.content.tvSurfaceContentRenderer.content.sectionListRenderer.contents) {
-          if (shelve.shelfRenderer && shelve.shelfRenderer.content?.horizontalListRenderer?.items) {
-            shelve.shelfRenderer.content.horizontalListRenderer.items =
-              shelve.shelfRenderer.content.horizontalListRenderer.items.filter(
-                (item: any) => !item.adSlotRenderer
-              );
-          }
-        }
-      }
+      // The promoted tiles these two loops used to strip -- the home section
+      // list and each shelf's horizontal list -- are covered by AD_RULES above,
+      // which reaches every other list as well.
 
       processShelves(r.contents.tvBrowseRenderer.content.tvSurfaceContentRenderer.content.sectionListRenderer.contents);
     }
@@ -121,13 +150,6 @@ JSON.parse = function () {
     if (r.messages && Array.isArray(r.messages) && !configRead('enableYouThereRenderer')) {
       r.messages = r.messages.filter(
         (msg: any) => !msg?.youThereRenderer
-      );
-    }
-
-    // Remove shorts ads
-    if (!Array.isArray(r) && r?.entries && adBlockEnabled) {
-      r.entries = r.entries?.filter(
-        (elm: any) => !elm?.command?.reelWatchEndpoint?.adClientParams?.isAd
       );
     }
 
@@ -309,6 +331,37 @@ JSON.parse = function () {
   }
 
   return r;
+}
+
+const origParse = JSON.parse;
+JSON.parse = function () {
+  const r = origParse.apply(this, arguments as any);
+  return processResponse(r, (arguments as any)[0]);
+};
+
+/**
+ * The same treatment for fetch responses read with .json().
+ *
+ * JSON.parse was the only interception point, which is fine only while
+ * YouTube's TV app reads InnerTube responses by parsing text it already holds.
+ * When it reads them with Response.json() the parsing happens inside the engine
+ * and never touches JSON.parse -- so every payload taking that route arrived
+ * with its ads intact and none of the mod's rewriting applied, with nothing on
+ * screen to say so.
+ *
+ * Wrapped rather than replaced, and non-JSON bodies are left exactly as they
+ * were: this sits in front of every fetch the page makes.
+ */
+const origResponseJson = Response.prototype.json;
+Response.prototype.json = function (this: Response, ...args: unknown[]) {
+  return (origResponseJson as any).apply(this, args).then((value: any) => {
+    try {
+      return processResponse(value);
+    } catch (e) {
+      console.error('An error occured while processing a fetch response:', e);
+      return value;
+    }
+  });
 };
 
 // Fix playback issues

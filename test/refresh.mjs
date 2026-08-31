@@ -138,6 +138,18 @@ out('injection/inject.generated.mjs',
     'export function injectUserScript(text, req, PORT, USERSCRIPT_PATH) {\n' +
     injectRegion + '\n    return text;\n}\n');
 
+// jsonPrune.ts has no imports, so it runs as-is.
+out('json-prune/mod.generated.mts', readRepo('mods', 'features', 'jsonPrune.ts'));
+
+// The AD_RULES block, lifted out of adblock.ts so the harness exercises the
+// rules the mod actually ships rather than a copy of them.
+const adblockSrc = readRepo('mods', 'features', 'adblock.ts');
+const rulesMatch = adblockSrc.match(/^const AD_RULES: PruneRule\[\] = \[[\s\S]*?^\];$/m);
+if (!rulesMatch) fail('cannot find AD_RULES in adblock.ts; fix test/refresh.mjs');
+out('json-prune/rules.generated.mts',
+    "import type { PruneRule } from './mod.generated.mts';\n" +
+    rulesMatch[0].replace('const AD_RULES', 'export const AD_RULES') + '\n');
+
 // videoContext.ts, which decides whether SponsorBlock is off for a channel.
 out('sponsorblock-channels/mod.generated.mts',
     readRepo('mods', 'features', 'videoContext.ts').replace("from '../config.js'", "from './stub.mjs'"));
