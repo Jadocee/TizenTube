@@ -10,9 +10,25 @@ const bundlePath = path.join(root, 'dist', 'userScript.js');
 const manifestPath = path.join(root, 'package.json');
 const outPath = path.join(__dirname, 'userScript.generated.js');
 
-if (!fs.existsSync(bundlePath)) {
-    console.error('[embed] Missing ' + bundlePath);
-    console.error('[embed] Build it first:  cd mods && npm install && npm run build');
+// This build inlines two artefacts that other trees produce, so it can only run
+// third. Both are checked here, before rolldown starts, because rolldown's own
+// failure for the missing one is a stack trace through its internals that names
+// neither the file nor the command that produces it.
+const REQUIRED = [
+    { path: bundlePath, what: 'the userscript', how: 'cd mods && pnpm run build' },
+    // Not read by this script -- index.ts requires it and rolldown inlines it --
+    // but checked here so both halves of the build order fail the same legible
+    // way rather than one of them exploding inside the bundler.
+    { path: path.join(root, 'dist', 'service.js'), what: 'the DIAL service', how: 'cd service && pnpm run build' },
+];
+
+const missing = REQUIRED.filter((dep) => !fs.existsSync(dep.path));
+if (missing.length) {
+    for (const dep of missing) {
+        console.error('[embed] Missing ' + dep.what + ': ' + dep.path);
+        console.error('[embed] Build it first:  ' + dep.how);
+    }
+    console.error('[embed] Build order is mods -> service -> standalone/service. See docs/BUILDING.md.');
     process.exit(1);
 }
 

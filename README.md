@@ -133,30 +133,31 @@ bundle, so the injector path is preferred.
 
 #### Building it yourself
 
-CI produces the `.wgt`, but you can build one locally. You need Node 22+, pnpm,
-the packaging tool, and a Tizen author certificate (Tizen Studio's Certificate
-Manager can create one).
-
-The four package trees are one pnpm workspace with a single `pnpm-lock.yaml`, so
-one `pnpm install` at the root covers all of them. `corepack enable` will pick up
-the version pinned in `package.json`:
+CI produces the `.wgt`, but you can build one locally. **[docs/BUILDING.md](docs/BUILDING.md)**
+is the full guide — prerequisites, what each of the four package trees produces,
+packaging, signing, and what to do when it goes wrong. The whole build:
 
 ```sh
-npm install -g https://github.com/reisxd/tizen.js/tarball/main   # a global CLI
-
+corepack enable
 pnpm install                              # all four trees, one lockfile
-(cd service && pnpm run build)            # DIAL service
-(cd mods && pnpm run build)               # the userscript
-(cd standalone/service && pnpm run build) # the app's service
-cd standalone
-tizenjs build . -t wgt -o release/TizenTube.wgt \
-  --author /path/to/author.p12 --authorPwd '<password>' -p public \
-  --ignore node_modules,/.*\.wgt$/,/userwidget/,/release/
+
+(cd mods && pnpm run build)               # 1. the userscript
+(cd service && pnpm run build)            # 2. the DIAL service
+(cd standalone/service && pnpm run build) # 3. the app's service
+
+pnpm test                                 # 23 harnesses
 ```
 
-Build the three bundles in that order: the app's service inlines the DIAL
-service and the userscript, so both have to exist first. If either is missing
-the build exits non-zero rather than producing a package without them.
+Under ten seconds on a warm checkout, and step 1 is the entire build if you only
+want the TizenBrew module — that route needs no certificate and no packaging.
+
+The order matters: the app's service **inlines** the other two at build time, so
+both have to exist first, and it has to be rebuilt after either of them changes.
+Getting it wrong fails immediately and names the command you skipped.
+
+Packaging a `.wgt` additionally needs the `tizen.js` CLI and a Tizen author
+certificate — a widget cannot be unsigned. See
+[Packaging](docs/BUILDING.md#packaging-the-wgt).
 
 `pnpm test` runs the regression harnesses; see [test/README.md](test/README.md).
 
