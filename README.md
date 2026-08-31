@@ -133,16 +133,21 @@ bundle, so the injector path is preferred.
 
 #### Building it yourself
 
-CI produces the `.wgt`, but you can build one locally. You need Node 22+, the
-packaging tool, and a Tizen author certificate (Tizen Studio's Certificate
-Manager can create one):
+CI produces the `.wgt`, but you can build one locally. You need Node 22+, pnpm,
+the packaging tool, and a Tizen author certificate (Tizen Studio's Certificate
+Manager can create one).
+
+The four package trees are one pnpm workspace with a single `pnpm-lock.yaml`, so
+one `pnpm install` at the root covers all of them. `corepack enable` will pick up
+the version pinned in `package.json`:
 
 ```sh
-npm install -g https://github.com/reisxd/tizen.js/tarball/main
+npm install -g https://github.com/reisxd/tizen.js/tarball/main   # a global CLI
 
-(cd service && npm install && npm run build)             # DIAL service
-(cd mods && npm install && npm run build)                # the userscript
-(cd standalone/service && npm install && npm run build)  # the app's service
+pnpm install                              # all four trees, one lockfile
+(cd service && pnpm run build)            # DIAL service
+(cd mods && pnpm run build)               # the userscript
+(cd standalone/service && pnpm run build) # the app's service
 cd standalone
 tizenjs build . -t wgt -o release/TizenTube.wgt \
   --author /path/to/author.p12 --authorPwd '<password>' -p public \
@@ -153,7 +158,20 @@ Build the three bundles in that order: the app's service inlines the DIAL
 service and the userscript, so both have to exist first. If either is missing
 the build exits non-zero rather than producing a package without them.
 
-`npm test` runs the regression harnesses; see [test/README.md](test/README.md).
+`pnpm test` runs the regression harnesses; see [test/README.md](test/README.md).
+
+#### Cutting a release
+
+Releases come from the widget version. Bump `version=` on the `<widget>` element
+in [standalone/config.xml](standalone/config.xml) in your PR, and merging it
+builds, signs and publishes a `.wgt` under that version. A merge that leaves the
+version alone builds and verifies only — CI warns on a PR that changes shipped
+code without bumping it.
+
+That version is the one a television uses for install and upgrade semantics, so
+two packages carrying the same one cannot be cleanly installed over each other.
+Pushing a `v*.*.*` tag by hand still publishes, and CI will not move a tag that
+already exists.
 
 ## ✨ Features
 - 📺 **Picture-in-Picture Mode**

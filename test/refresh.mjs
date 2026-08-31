@@ -112,6 +112,32 @@ injector = injector.replace(/^export \{ startDebugger, canConnectToDaemon \};$/m
     'export { startDebugger, canConnectToDaemon, connectToDebugger };\nexport const readIsConnecting = () => isConnecting;');
 out('injector/mod.generated.mts', injector);
 
+// The proxy's userscript-injection block, lifted out of index.ts into a callable
+// function. The harness used to carry its own copy of this logic and assert
+// against that, so the regression it exists to catch -- the tag going to the end
+// of the document, behind YouTube's own scripts -- passed clean.
+const proxy = readRepo('standalone', 'service', 'index.ts');
+const START = "if (req.url.indexOf('/tv') === 0 && req.url.indexOf('/tv_config') === -1) {";
+const startAt = proxy.indexOf(START);
+if (startAt < 0) fail('cannot find the /tv injection gate in standalone/service/index.ts; fix test/refresh.mjs');
+if (proxy.indexOf(START, startAt + 1) !== -1) fail('the /tv injection gate matched more than once; fix test/refresh.mjs');
+// Walk braces from the gate so the region is whatever the block actually is,
+// rather than a slice that silently truncates when the code moves.
+let depth = 0, endAt = -1;
+for (let i = startAt; i < proxy.length; i++) {
+    if (proxy[i] === '{') depth++;
+    else if (proxy[i] === '}' && --depth === 0) { endAt = i + 1; break; }
+}
+if (endAt < 0) fail('could not brace-match the injection block; fix test/refresh.mjs');
+const injectRegion = proxy.slice(startAt, endAt);
+if (!injectRegion.includes('<head[^>]*>') || !injectRegion.includes('const tag =')) {
+    fail('the injection block no longer contains the head match and the tag; fix test/refresh.mjs');
+}
+out('injection/inject.generated.mjs',
+    '// Generated from standalone/service/index.ts by test/refresh.mjs. Do not edit.\n' +
+    'export function injectUserScript(text, req, PORT, USERSCRIPT_PATH) {\n' +
+    injectRegion + '\n    return text;\n}\n');
+
 // videoContext.ts, which decides whether SponsorBlock is off for a channel.
 out('sponsorblock-channels/mod.generated.mts',
     readRepo('mods', 'features', 'videoContext.ts').replace("from '../config.js'", "from './stub.mjs'"));

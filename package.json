@@ -30,5 +30,6 @@
   },
   "devDependencies": {
     "playwright": "^1.56.1"
-  }
+  },
+  "packageManager": "pnpm@10.33.0"
 }

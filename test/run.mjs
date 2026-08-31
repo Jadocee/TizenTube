@@ -25,6 +25,7 @@ const HARNESSES = [
     { name: 'injector attach',       dir: 'injector',      file: 'test.mjs',       types: true },
     { name: 'strict service bundle', dir: 'strict-bundle', file: 'test.mjs' },
     { name: 'sponsorblock channels', dir: 'sponsorblock-channels', file: 'test.mjs', types: true },
+    { name: 'release gate',          dir: 'release-gate',  file: 'test.mjs' },
 ];
 
 const filter = process.argv[2];
