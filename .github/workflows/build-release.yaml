@@ -139,10 +139,18 @@ jobs:
           EVENT_BEFORE: ${{ github.event.before }}
         run: bash .github/scripts/release-gate.sh
 
+      # In a script so it can be tested, and because of how it failed the first
+      # time it ran: neither secret was set, so this wrote a ZERO-BYTE .p12,
+      # exited 0, and the packager reported "Too few bytes to parse DER" half a
+      # minute later. test/release-gate/cert.test.mjs covers that case and the
+      # rest, including a real generated certificate.
       - name: Prepare Tizen Certificate
         if: steps.gate.outputs.release == 'true'
-        run: |
-          echo "${{ secrets.TIZEN_AUTHOR_KEY }}" | base64 -d > "${GITHUB_WORKSPACE}/TizenTube-author.p12"
+        env:
+          TIZEN_AUTHOR_KEY: ${{ secrets.TIZEN_AUTHOR_KEY }}
+          TIZEN_AUTHOR_KEY_PW: ${{ secrets.TIZEN_AUTHOR_KEY_PW }}
+          CERT_PATH: ${{ github.workspace }}/TizenTube-author.p12
+        run: bash .github/scripts/prepare-certificate.sh
 
       - name: Build TizenTube
         if: steps.gate.outputs.release == 'true'
