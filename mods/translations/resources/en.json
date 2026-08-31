@@ -62,6 +62,7 @@
                     "hqThumbnails": "Enable High Quality Thumbnails",
                     "longPress": "Enable Long Press Actions",
                     "hideRecommendations": "Apply videos and channels hidden from the long-press menu",
+                    "hideMembersOnly": "Hide members-only videos",
                     "shorts": "Enable Shorts",
                     "videoPreviews": "Enable Video Previews",
                     "previewIndicator": "Show a play icon while a thumbnail is previewing",

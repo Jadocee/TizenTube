@@ -59,6 +59,10 @@ const defaultConfig = {
   // same shape sponsorBlockDisabledChannels already uses.
   hiddenVideos: [] as string[],
   hiddenChannels: [] as string[],
+  // Members-only videos appear in the feed with a badge and a paywall behind
+  // them, so for anyone who is not a member they are a row of tiles that cannot
+  // be played.
+  hideMembersOnlyVideos: false,
   enableHideWatchedVideos: false,
   hideWatchedVideosThreshold: 80,
   hideWatchedVideosPages: [] as string[],

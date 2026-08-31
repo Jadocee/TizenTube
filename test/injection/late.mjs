@@ -321,5 +321,73 @@ check('the modules after PiP still ran', after.hasQueue, true);
 check('the stylesheet survived', after.ttStyle, true);
 
 console.log(fail ? `\n${fail} FAILURES` : '\nALL PASS');
+
+// --- the filters that need a setting turned on ------------------------------
+// mods/config.ts reads localStorage ONCE at module scope, so a config-dependent
+// filter can only be exercised by a page whose storage was seeded before the
+// bundle ran. This is the only way to prove the WIRING as opposed to the
+// predicate: a harness that drives hasMembersOnlyBadge() directly still passes
+// with the call site deleted.
+const seeded = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
+const seedErrors = [];
+seeded.on('pageerror', (e) => seedErrors.push(String(e.message || e)));
+await seeded.route('**/tv*', (route) => route.fulfill({
+  status: 200, contentType: 'text/html; charset=utf-8',
+  body: `<!doctype html><html><head><title>YouTube</title>
+<script>localStorage['ytaf-configuration'] = JSON.stringify({
+  hideMembersOnlyVideos: true,
+  enableHideRecommendations: true,
+  hiddenChannels: ['UCblocked A Blocked Channel'],
+});</script></head><body><div id="container"></div>
+<video></video><script src="/tizentube/userScript.js"></script></body></html>`,
+}));
+await seeded.route('**/tizentube/userScript.js', (route) => route.fulfill({
+  status: 200, contentType: 'application/javascript; charset=utf-8', body: bundle,
+}));
+await seeded.goto('https://www.youtube.com/tv', { waitUntil: 'load' });
+await seeded.waitForTimeout(1500);
+
+const filtered = await seeded.evaluate(async () => {
+  const line = (badge) => ({ lineRenderer: { items: [
+    ...(badge ? [{ lineItemRenderer: { badge: { metadataBadgeRenderer: { style: badge } } } }] : []),
+    { lineItemRenderer: { text: { simpleText: 'A Channel' } } },
+  ] } });
+  const tile = (id, badge, channelId) => ({
+    tileRenderer: {
+      style: 'TILE_STYLE_YTLR_DEFAULT', contentId: id,
+      onSelectCommand: { watchEndpoint: { videoId: id } },
+      header: { tileHeaderRenderer: { thumbnail: { thumbnails: [{ url: 'u', width: 480, height: 360 }] } } },
+      metadata: { tileMetadataRenderer: { title: { simpleText: id }, lines: [line(badge)] } },
+      ...(channelId ? { onLongPressCommand: { showMenuCommand: {
+        contentId: id, subtitle: { simpleText: 'A Channel \u2022 @achannel' },
+        menu: { menuRenderer: { items: [{ menuNavigationItemRenderer: {
+          text: { runs: [{ text: 'Go to channel' }] },
+          navigationEndpoint: { browseEndpoint: { browseId: channelId } } } }] } },
+      } } } : {}),
+    },
+  });
+  const body = JSON.stringify({ contents: { sectionListRenderer: { contents: [
+    { shelfRenderer: { content: { horizontalListRenderer: { items: [
+      tile('keep', null, null),
+      tile('members', 'BADGE_STYLE_TYPE_MEMBERS_ONLY', null),
+      tile('blocked', null, 'UCblocked'),
+      tile('otherchan', null, 'UCallowed'),
+    ] } } } },
+  ] } } });
+  const parsed = await new Response(body).json();
+  const items = parsed.contents.sectionListRenderer.contents[0]
+    .shelfRenderer.content.horizontalListRenderer.items;
+  return items.map((i) => i.tileRenderer.contentId);
+});
+
+console.log('\nWith the filters switched on, through the real bundle:');
+check('no uncaught errors on the seeded page', seedErrors.length, 0);
+if (seedErrors.length) seedErrors.slice(0, 4).forEach((e) => console.log('        ' + e));
+check('the members-only tile is dropped', filtered.includes('members'), false);
+check('the hidden channel is dropped', filtered.includes('blocked'), false);
+check('an ordinary tile survives', filtered.includes('keep'), true);
+check('  ...and so does a different channel', filtered.includes('otherchan'), true);
+check('exactly two tiles remain', filtered.length, 2);
+
 await browser.close();
 process.exit(fail ? 1 : 0);

@@ -9,6 +9,7 @@ import {
   startInlinePlayback,
   pageNameFromHash,
   shelfIsEmpty,
+  hasMembersOnlyBadge,
 } from './tileFixes.js';
 import { fetchBranding, bestTitle, bestThumbnailTime } from './dearrowCache.js';
 import {
@@ -736,11 +737,19 @@ function addLongPress(items: any[]) {
  */
 function dropHidden(items: any[]): any[] {
   if (!Array.isArray(items)) return items;
-  if (!configRead('enableHideRecommendations')) return items;
-  const videos = configRead('hiddenVideos');
-  const channels = configRead('hiddenChannels');
-  if (!videos.length && !channels.length) return items;
-  return items.filter((item) => !tileIsHidden(item?.tileRenderer, videos, channels));
+  // Two independent axes, so each is read on its own: the user's own hidden
+  // lists, and the members-only filter. Either can be on without the other.
+  const suppressing = configRead('enableHideRecommendations');
+  const videos = suppressing ? configRead('hiddenVideos') : [];
+  const channels = suppressing ? configRead('hiddenChannels') : [];
+  const membersOnly = configRead('hideMembersOnlyVideos');
+  if (!videos.length && !channels.length && !membersOnly) return items;
+  return items.filter((item) => {
+    const tile = item?.tileRenderer;
+    if (!tile) return true;
+    if (membersOnly && hasMembersOnlyBadge(tile)) return false;
+    return !tileIsHidden(tile, videos, channels);
+  });
 }
 
 function hideVideo(items: any[]) {

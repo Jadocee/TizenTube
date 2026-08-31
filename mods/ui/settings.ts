@@ -540,6 +540,10 @@ export default function modernUI(update?: boolean, parameters?: number[]): void 
                     value: 'enableHideRecommendations'
                 },
                 {
+                    name: t('settings.options.misc.options.hideMembersOnly'),
+                    value: 'hideMembersOnlyVideos'
+                },
+                {
                     name: t('settings.options.misc.options.shorts'),
                     icon: 'YOUTUBE_SHORTS_FILL_24',
                     value: 'enableShorts'

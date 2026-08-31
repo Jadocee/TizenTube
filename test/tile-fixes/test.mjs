@@ -10,6 +10,8 @@ import {
     startInlinePlayback,
     pageNameFromHash,
     shelfIsEmpty,
+    hasMembersOnlyBadge,
+    MEMBERS_ONLY_BADGE,
     DEFAULT_PREVIEW_DURATION_MS,
 } from './tileFixes.generated.mts';
 
@@ -111,13 +113,51 @@ check('a shelf shape with no list is not', shelfIsEmpty({ shelfRenderer: {} }), 
 check('a non-shelf is not', shelfIsEmpty({ richItemRenderer: {} }), false);
 check('null is not', shelfIsEmpty(null), false);
 
+// --- members-only videos -----------------------------------------------------
+// A TV tile keeps its badges INSIDE its metadata lines, not in a top-level
+// `badges` array as the web client does. That path is where all 259 badges in
+// the captured browse responses sit -- the "4K", "CC" and "8K" labels -- so the
+// fixtures below are built in the real shape. The MEMBERS_ONLY style itself
+// comes from the app's own YtlrMetadataBadgeRenderer style map; no captured tile
+// carried one, because every capture is signed out.
+const badgedTile = (style, label) => ({
+    tileRenderer: {
+        style: 'TILE_STYLE_YTLR_DEFAULT',
+        contentId: 'abc',
+        onSelectCommand: { watchEndpoint: { videoId: 'abc' } },
+        metadata: { tileMetadataRenderer: {
+            title: { simpleText: 'A video' },
+            lines: [
+                { lineRenderer: { items: [
+                    { lineItemRenderer: { badge: { metadataBadgeRenderer: { style, label } } } },
+                    { lineItemRenderer: { text: { simpleText: '150K views' } } },
+                ] } },
+            ],
+        } },
+    },
+});
+check('a members-only badge is found', hasMembersOnlyBadge(badgedTile(MEMBERS_ONLY_BADGE, 'Members only').tileRenderer), true);
+// The two badges that DO appear on real tiles must not be mistaken for it.
+check('a 4K badge is not members-only', hasMembersOnlyBadge(badgedTile('BADGE_STYLE_TYPE_SIMPLE', '4K').tileRenderer), false);
+check('a CC badge is not members-only', hasMembersOnlyBadge(badgedTile('BADGE_STYLE_TYPE_SIMPLE', 'CC').tileRenderer), false);
+check('a verified badge is not members-only', hasMembersOnlyBadge(badgedTile('BADGE_STYLE_TYPE_VERIFIED', null).tileRenderer), false);
+check('an unbadged tile is not members-only', hasMembersOnlyBadge(videoTile().tileRenderer), false);
+// Found wherever it sits: the badge is on line 0 above, but nothing says it
+// always will be.
+const secondLine = badgedTile('BADGE_STYLE_TYPE_SIMPLE', '4K');
+secondLine.tileRenderer.metadata.tileMetadataRenderer.lines.push(
+    { lineRenderer: { items: [{ lineItemRenderer: { badge: { metadataBadgeRenderer: { style: MEMBERS_ONLY_BADGE } } } }] } });
+check('a badge on a later line is still found', hasMembersOnlyBadge(secondLine.tileRenderer), true);
+check('a tile with no metadata is not members-only', hasMembersOnlyBadge({ contentId: 'x' }), false);
+check('null is not', hasMembersOnlyBadge(null), false);
+
 // --- junk -------------------------------------------------------------------
 // Every one of these runs inside JSON.parse for every response the app parses.
 // A throw is swallowed by adblock.ts's catch and silently costs the whole pass
 // for that payload, which is the worst possible way for this to fail.
 let threw = null;
 const JUNK = [null, undefined, 0, '', 'string', [], {}, [null], [{}], NaN, true];
-for (const fn of [bestThumbnail, previewableTile, pageNameFromHash, shelfIsEmpty]) {
+for (const fn of [bestThumbnail, previewableTile, pageNameFromHash, shelfIsEmpty, hasMembersOnlyBadge]) {
     for (const value of JUNK) {
         try {
             fn(value);

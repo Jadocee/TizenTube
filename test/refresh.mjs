@@ -152,7 +152,7 @@ for (const [file, dir, landmarks] of [
                                               'MOVE_GRACE_MS', 'WATCHDOG_SLACK_MS']],
     ['tileFixes.ts', 'tile-fixes', ['export function bestThumbnail', 'export function previewableTile',
                                     'export function startInlinePlayback', 'export function pageNameFromHash',
-                                    'export function shelfIsEmpty']],
+                                    'export function shelfIsEmpty', 'export function hasMembersOnlyBadge']],
     ['dearrowCache.ts', 'tile-fixes', ['export function fetchBranding', 'export function bestTitle',
                                        'export function bestThumbnailTime', 'CACHE_LIMIT']],
     ['guideReselect.ts', 'guide-reselect', ['export function shouldArm', 'export function decide',
