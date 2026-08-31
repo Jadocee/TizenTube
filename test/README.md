@@ -7,7 +7,8 @@ stylesheet that works until CSP is enforced, a script that behaves differently
 depending on whether `<body>` exists yet.
 
 ```
-node test/run.mjs              # everything
+pnpm test                      # everything
+node test/run.mjs              # the same thing
 node test/run.mjs settings     # only harnesses matching a name
 ```
 
@@ -49,7 +50,7 @@ that was fixed, so the harness can show the before and after side by side.
 ## Requirements
 
 - Node 22+ (`--experimental-strip-types` is used for the `.mts` snapshots).
-- `npm install` in `mods/` — the refresh step uses that TypeScript compiler.
+- `pnpm install` at the repository root — the refresh step uses `mods/`'s TypeScript compiler.
 - `dist/userScript.js` built, for the two harnesses that load the real bundle.
 - Playwright with Chromium, for the four browser harnesses. Without it they
   skip rather than fail.

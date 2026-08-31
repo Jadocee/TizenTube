@@ -1,0 +1,8 @@
+# The repository is four package trees that are built together and shipped as
+# one app, so pnpm treats them as one workspace with a single lockfile.
+#
+# The root is always part of the workspace and is not listed here.
+packages:
+  - 'mods'
+  - 'service'
+  - 'standalone/service'

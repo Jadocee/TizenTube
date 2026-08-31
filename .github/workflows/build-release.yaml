@@ -39,6 +39,11 @@ jobs:
           fetch-depth: 0 # fetch full history for tags
           fetch-tags: true
 
+      # Before setup-node, so its `cache: pnpm` can find the binary. The version
+      # comes from the root package.json's packageManager field.
+      - name: Use pnpm
+        uses: pnpm/action-setup@v4
+
       # Pinned deliberately. Seven harnesses run under
       # --experimental-strip-types, which needs Node 22.6+, and the workflow
       # previously took whatever the runner image happened to ship: on Node 20
@@ -47,33 +52,23 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: npm
-          cache-dependency-path: '**/package-lock.json'
+          cache: pnpm
 
-      # npm install, not npm ci, and that is not an oversight. .gitignore has a
-      # bare `package-lock.json` rule, so of the four trees only mods/ and
-      # service/ have a lockfile in git -- those two predate the rule, and
-      # gitignore does not affect already-tracked files. On a fresh checkout the
-      # other two have no lockfile at all and `npm ci` exits EUSAGE.
+      # --frozen-lockfile is the point of the exercise: the install fails rather
+      # than silently resolving something new if the lockfile and any manifest
+      # have drifted apart. This repository ships a signed package to
+      # televisions, where a transitive dependency moving underneath a release
+      # is exactly the kind of bug that only reproduces on a device.
       #
-      # Tracking all four and switching to npm ci would be the better answer:
-      # this repository ships a signed package to televisions, and a transitive
-      # dependency moving underneath a release is exactly the kind of bug that
-      # only shows up on a device. That is a dependency-policy change rather
-      # than a CI change, so it is deliberately not made here.
+      # One command for all four trees, because they are one pnpm workspace now.
+      # Before that they were four npm trees whose lockfiles a bare
+      # `package-lock.json` rule in .gitignore left half-tracked, so `npm ci`
+      # could not have worked here at all.
       - name: Install dependencies
-        run: |
-          for dir in . mods service standalone/service; do
-            echo "--- $dir ---"
-            (cd "$dir" && npm install --no-audit --no-fund)
-          done
+        run: pnpm install --frozen-lockfile
 
       - name: Typecheck
-        run: |
-          for dir in mods service standalone/service; do
-            echo "--- $dir ---"
-            (cd "$dir" && npm run typecheck)
-          done
+        run: pnpm -r --workspace-concurrency=1 run typecheck
 
       # Build order is load-bearing: the app's service inlines both the DIAL
       # service and the userscript, so both have to exist before it runs. If
@@ -81,15 +76,15 @@ jobs:
       # producing a package without them.
       - name: Build the DIAL service
         working-directory: service
-        run: npm run build
+        run: pnpm run build
 
       - name: Build the userscript
         working-directory: mods
-        run: npm run build
+        run: pnpm run build
 
       - name: Build the app's service
         working-directory: standalone/service
-        run: npm run build
+        run: pnpm run build
 
       - name: Run the harnesses
         env:
@@ -99,8 +94,8 @@ jobs:
           # reporting coverage that never happened.
           TT_STRICT_SKIP: '1'
         run: |
-          npx playwright install --with-deps chromium
-          npm test
+          pnpm exec playwright install --with-deps chromium
+          pnpm test
 
       # ---- everything below runs only for a release tag ---------------------
 
@@ -134,6 +129,7 @@ jobs:
         if: env.IS_RELEASE == 'true'
         working-directory: standalone
         run: |
+          # npm deliberately: a global CLI, not a workspace dependency.
           npm install -g https://github.com/reisxd/tizen.js/tarball/main
           # Dropped before packaging as well as ignored below: the app ships the
           # built bundle, and there is no reason for a dependency tree to be
