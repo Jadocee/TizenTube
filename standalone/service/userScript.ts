@@ -4,19 +4,42 @@
 // network round trip on the critical path, and a CDN outage or a TV with no
 // network produced an app running with no mod in it at all — silently.
 //
-// It is now packaged into this service at build time, so the .wgt is
-// self-contained and the script is available instantly and offline. The CDN is
-// only consulted afterwards, in the background, and only to pick up a release
-// newer than the packaged one.
+// It is packaged into this service at build time, so the .wgt is self-contained
+// and the script is available instantly and offline. No network is consulted at
+// all: see UPDATE_SOURCE below for why the CDN check is off rather than merely
+// repointed.
 
 import fetch from 'node-fetch';
 
-const PACKAGE_NAME = '@foxreis/tizentube';
-const USERSCRIPT_URL = `https://cdn.jsdelivr.net/npm/${PACKAGE_NAME}/dist/userScript.js`;
-const MANIFEST_URL = `https://cdn.jsdelivr.net/npm/${PACKAGE_NAME}/package.json`;
+/**
+ * Where a newer userscript may be fetched from, or null to run only the copy
+ * packaged into this build.
+ *
+ * It is null, and that is the whole point of this block.
+ *
+ * This used to be @foxreis/tizentube on jsdelivr, which is UPSTREAM's npm
+ * package -- a different project. The mechanism works by version number alone:
+ * refresh() reads the published package.json, and if its version is higher than
+ * the packaged one it downloads that project's dist/userScript.js and serves it
+ * in place of this one. Both sat at 1.14.8, so nothing had happened yet, but the
+ * first upstream release above that would have silently replaced this fork's
+ * userscript on every installed TV -- swapping in a build that targets a
+ * different platform floor and does not contain any of this fork's fixes. A
+ * self-updater pointed at somebody else's package is a supply chain, not a
+ * feature.
+ *
+ * TizenTube 9 publishes no userscript of its own yet, so there is nothing
+ * legitimate to point this at, and the .wgt is self-contained anyway: the script
+ * is embedded at build time and updating means installing a new package.
+ *
+ * To turn updates back on, set this to a source THIS fork controls -- its own
+ * npm package, or its own GitHub release assets -- and nothing else. The shape
+ * is deliberately a pair of URLs rather than a package name, so pointing it at a
+ * release asset does not require rewriting the fetch logic.
+ */
+const UPDATE_SOURCE: { manifest: string; userScript: string } | null = null;
 
-// Set to false to pin the app to the packaged copy and never touch the network.
-const ALLOW_CDN_UPDATES = true;
+const ALLOW_CDN_UPDATES = UPDATE_SOURCE !== null;
 
 interface PackagedUserScript { version: string; source: string }
 
@@ -53,7 +76,9 @@ function download(): Promise<string | null> {
     if (pending) return pending;
     lastDownloadWasFresh = false;
 
-    pending = fetch(USERSCRIPT_URL)
+    if (!UPDATE_SOURCE) return Promise.resolve(source);
+
+    pending = fetch(UPDATE_SOURCE.userScript)
         .then((res) => {
             if (!res.ok) throw new Error('HTTP ' + res.status);
             return res.text();
@@ -89,7 +114,7 @@ function get(): Promise<string | null> {
 function refresh(): Promise<boolean> {
     if (!ALLOW_CDN_UPDATES) return Promise.resolve(false);
 
-    return fetch(MANIFEST_URL)
+    return fetch(UPDATE_SOURCE!.manifest)
         .then((res) => {
             if (!res.ok) throw new Error('HTTP ' + res.status);
             return res.json();
