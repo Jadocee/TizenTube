@@ -1,6 +1,6 @@
 # Harnesses
 
-Thirty-two regression harnesses. They exist because the things that break TizenTube
+Thirty-three regression harnesses. They exist because the things that break TizenTube
 mostly cannot be caught by a typechecker or by reading a diff: a renderer shape
 that only appears at runtime, a focus trap you only find with a D-pad, a
 stylesheet that works until CSP is enforced, a script that behaves differently
@@ -50,6 +50,7 @@ here (no browser, no built bundle) report as *skipped*, not passed.
 | `aislist/test.mjs` | Parsing and matching the AiSList channel lists against a real slice of the published file, including the trap its own format header does not mention: 498 of the handles are percent-encoded or non-ASCII, and a tile's subtitle carries the decoded form. |
 | `aislist/refresh.mjs` | The fetch-and-cache half, driven with a fake fetch and a fake clock — the questions `parseList` cannot answer: that a warnlist 404 does not discard the blocklist that just downloaded, that each list's freshness is its own, and that a captive portal answering `200` with a login page cannot empty a working list or cache the emptiness. |
 | `aislist/toggle.mjs` | *When* the fetch is kicked off — the module's side effects are the whole of it, which is why nothing covered it. The gate used to run once at import, so ticking the box left the row reading ON and the feature hiding nothing until the app was relaunched. |
+| `css-nesting/test.mjs` | Declarations Chromium M120 silently drops. CSS nesting works there, but `CSSNestedDeclarations` only shipped in Chrome 130 — so a bare declaration placed *after* a nested rule in the same block is discarded on a television and applies perfectly on every machine anyone tests on. The browser harnesses run a modern Chromium and structurally cannot reproduce it. Carries its own positive control, because a scanner nobody has seen fail is indistinguishable from one that returns nothing. |
 | `docs/test.mjs` | That the counts this document and `docs/BUILDING.md` quote are the counts `run.mjs` actually has, and that the table above has a row per harness. Prose is not executed, so every feature added a harness and left every number here quietly wrong. |
 
 ## Snapshots
