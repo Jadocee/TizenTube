@@ -31,11 +31,30 @@ import { t } from 'i18next';
 type FocusedElement = HTMLElement & Partial<HTMLInputElement>;
 
 /**
- * A key event as it reaches the panel. `Uc` is a minified field YouTube's own
- * event plumbing hangs the original key on; it is not part of the DOM.
+ * A key event as it reaches the panel.
+ *
+ * When the app re-dispatches a key, it synthesises a fresh event and hangs the
+ * ORIGINAL on a minified field of its own -- so `evt.key` on the clone can be
+ * empty while the real key is one level down. Neither name is part of the DOM,
+ * and both are minified, so both are optional and read defensively.
+ *
+ * MEASURED against the shipped bundle: the field is currently `ge`. Two
+ * independent sites assign it -- a synthesised swipe event and a synthesised
+ * MouseEvent both do `clone.ge = original`. `Uc`, which this interface used to
+ * name on its own, is not an event field at all in this build: all 14 of its
+ * occurrences are html5 player experiment values. It is kept only because it
+ * cost nothing and may have been the name in an earlier bundle; the primary
+ * `evt.key` check is what actually carries this today.
  */
 interface TvKeyboardEvent extends KeyboardEvent {
+    ge?: { key?: string };
     Uc?: { key?: string };
+}
+
+/** The original key behind a re-dispatched event, if the app kept one. */
+function originalKey(evt: KeyboardEvent): string | undefined {
+    const wrapped = evt as TvKeyboardEvent;
+    return wrapped.ge?.key ?? wrapped.Uc?.key;
 }
 
 /** YouTube's player element. Its state API is the app's own, not the DOM's. */
@@ -320,7 +339,7 @@ function execute_once_dom_loaded(): void {
                     return;
                 }
 
-                if (evt.key === 'Enter' || (evt as TvKeyboardEvent).Uc?.key === 'Enter') {
+                if (evt.key === 'Enter' || originalKey(evt) === 'Enter') {
                     // If the focused element is a text input, emit a change event.
                     if (isTextInput) {
                         focusedElement!.dispatchEvent(new Event('change'));
