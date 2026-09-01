@@ -28,9 +28,19 @@ const configXml = (version) =>
  * Builds a repo whose history moves config.xml through `versions`, then runs the
  * gate as the given event. Returns the parsed GITHUB_OUTPUT plus stdout.
  */
-function run({ versions, event = 'push', refType = 'branch', refName = 'main', before = 'HEAD~1', tags = [] }) {
+function run({
+    versions,
+    event = 'push',
+    refType = 'branch',
+    refName = 'main',
+    before = 'HEAD~1',
+    tags = [],
+}) {
     const dir = mkdtempSync(join(tmpdir(), 'tt-gate-'));
-    const git = (...args) => execFileSync('git', ['-C', dir, ...args], { stdio: 'pipe' }).toString().trim();
+    const git = (...args) =>
+        execFileSync('git', ['-C', dir, ...args], { stdio: 'pipe' })
+            .toString()
+            .trim();
     try {
         mkdirSync(join(dir, 'standalone'), { recursive: true });
         git('init', '-q', '-b', 'main');
@@ -69,7 +79,10 @@ function run({ versions, event = 'push', refType = 'branch', refName = 'main', b
             stdio: ['ignore', 'pipe', 'pipe'],
         }).toString();
         const out = Object.fromEntries(
-            readFileSync(outFile, 'utf8').split('\n').filter(Boolean).map((l) => l.split('=', 2)),
+            readFileSync(outFile, 'utf8')
+                .split('\n')
+                .filter(Boolean)
+                .map((l) => l.split('=', 2)),
         );
         return { ...out, stdout };
     } finally {

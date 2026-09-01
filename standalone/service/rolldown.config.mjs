@@ -20,20 +20,23 @@ function patchNodeFetch() {
             //    which re-encodes them. YouTube's TV entry point carries a
             //    percent-encoded additionalDataUrl that has to survive verbatim,
             //    so pass the string through untouched.
-            const normalisation = /if \(\/\^\[a-zA-Z\]\[a-zA-Z\\d\+\\-\.\]\*:\/\.exec\(urlStr\)\) \{\s*urlStr = new URL\(urlStr\)\.toString\(\);\s*\}/;
+            const normalisation =
+                /if \(\/\^\[a-zA-Z\]\[a-zA-Z\\d\+\\-\.\]\*:\/\.exec\(urlStr\)\) \{\s*urlStr = new URL\(urlStr\)\.toString\(\);\s*\}/;
 
             // 2. YouTube's responses carry headers far past Node's 16 KB default,
             //    which otherwise aborts the request with HPE_HEADER_OVERFLOW.
             //    This must land on the options object handed to http.request --
             //    NOT on the redirect Request bag, which also has `method:
             //    request.method`. Anchoring on the Object.assign picks the right one.
-            const requestOptions = /(return Object\.assign\(\{\}, parsedURL, \{\s*method: request\.method,)/;
+            const requestOptions =
+                /(return Object\.assign\(\{\}, parsedURL, \{\s*method: request\.method,)/;
 
             if (!normalisation.test(code) || !requestOptions.test(code)) {
                 this.error(
-                    'patch-node-fetch could not find its anchors in ' + id +
-                    ' -- node-fetch changed. Both patches are required: URLs must not be ' +
-                    're-encoded, and maxHeaderSize must be raised. Fix the patterns in rolldown.config.js.'
+                    'patch-node-fetch could not find its anchors in ' +
+                        id +
+                        ' -- node-fetch changed. Both patches are required: URLs must not be ' +
+                        're-encoded, and maxHeaderSize must be raised. Fix the patterns in rolldown.config.js.',
                 );
             }
 
@@ -50,7 +53,9 @@ function patchNodeFetch() {
         // succeeds having patched nothing.
         buildEnd() {
             if (!patched) {
-                this.error('patch-node-fetch never ran -- node-fetch is no longer in the bundle. Whatever replaced it needs the same two changes, or this plugin should go.');
+                this.error(
+                    'patch-node-fetch never ran -- node-fetch is no longer in the bundle. Whatever replaced it needs the same two changes, or this plugin should go.',
+                );
             }
         },
     };
@@ -87,16 +92,19 @@ function fixAdbhostImplicitGlobal() {
             if (!implicitGlobal.test(code)) return null;
 
             patched = true;
-            return { code: code.replace(implicitGlobal, '$1var packet = this._packet;'), map: null };
+            return {
+                code: code.replace(implicitGlobal, '$1var packet = this._packet;'),
+                map: null,
+            };
         },
         buildEnd() {
             if (!patched) {
                 this.error(
                     'fix-adbhost-implicit-global never matched. Either adbhost is gone from the ' +
-                    'bundle -- in which case delete this plugin -- or it was updated and the ' +
-                    'implicit global moved. It cannot simply be dropped: the bundle is strict, ' +
-                    'and an undeclared assignment there kills the service on sdbd\'s first packet, ' +
-                    'which silently disables debugger injection on every launch.'
+                        'bundle -- in which case delete this plugin -- or it was updated and the ' +
+                        'implicit global moved. It cannot simply be dropped: the bundle is strict, ' +
+                        "and an undeclared assignment there kills the service on sdbd's first packet, " +
+                        'which silently disables debugger injection on every launch.',
                 );
             }
         },

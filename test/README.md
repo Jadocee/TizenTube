@@ -1,6 +1,6 @@
 # Harnesses
 
-Eighteen regression harnesses. They exist because the things that break TizenTube
+Thirty-two regression harnesses. They exist because the things that break TizenTube
 mostly cannot be caught by a typechecker or by reading a diff: a renderer shape
 that only appears at runtime, a focus trap you only find with a D-pad, a
 stylesheet that works until CSP is enforced, a script that behaves differently
@@ -37,6 +37,20 @@ here (no browser, no built bundle) report as *skipped*, not passed.
 | `json-prune/test.mjs` | The path matcher behind ad filtering, and the rules `adblock.ts` actually ships (lifted, not copied): `*` and `**` matching, replace vs delete, dropping a promoted item from a list while keeping the real ones, and the cases the old hardcoded branches missed — a nested `adPlacements`, and an ad in a grid surface. Also the cheap source-text pre-check, and that a pathological payload stays bounded. |
 | `release-gate/test.mjs` | `.github/scripts/release-gate.sh`, which decides whether a CI run publishes a signed `.wgt` and under which tag: a version bump on main, an unchanged version, a bump onto a tag that already exists, a tag push, a pull request, and a branch with no previous commit — each against a throwaway git repo with real history. |
 | `splash/test.mjs` | The standalone launch page's state machine over all four service states, its retry path, and that a rejected TV key cannot abort the launch. |
+| `preview-indicator/state.mjs` | The mark that says a focused thumbnail is playing: that it is cancelled by the focus move that caused it, cleared when playback ends, never stranded by a missed stop event, and never anchored to anything but the tile it belongs to. Each of those arrives on a television as "the icon is weird" and nothing more. |
+| `preview-indicator/style.mjs` | The same mark's stylesheet in Chromium, including a negative control — a rule that never matches must show nothing rather than parking a disc in the corner — and physical rather than logical insets, since `document.body` inherits the app's `direction` and an Arabic account would otherwise get it off the opposite edge. |
+| `tile-fixes/test.mjs` | The per-tile and per-shelf decisions the home page depends on: picking a thumbnail that actually exists instead of synthesising a 4:3 URL and declaring it fact, deciding a tile is previewable, reading the members-only badge out of the real `lineItemRenderer` path, and recognising an emptied shelf. |
+| `tile-fixes/dearrow.mjs` | How many DeArrow requests actually leave the machine, driven with a counting fake `fetch`. Uncached, a first home screen was on the order of a hundred and fifty outbound requests fired at once at a television SoC, again on every continuation. |
+| `focus-motion/test.mjs` | That one failing write to `tectonicConfig` costs only its own switch. All six lived in a single bare `try`/`catch` whose first statement dereferenced an object the app may not have published yet, so the two most-felt animation switches were lost silently. |
+| `guide-reselect/test.mjs` | Selecting the sidebar entry for the page you are already on, where the app deliberately dispatches nothing. The feature works by noticing an absence, so what is asserted is the set of conditions under which it stands down — a wrong refresh reloads a page the user was navigating away from. |
+| `tile-menu/test.mjs` | The long-press menu's suppression rows against tiles lifted verbatim from captured browse responses, including the ones the captures proved are real: a tile from a channel's own page that yields no `UC` id at all, and a subtitle whose tail is a series name rather than a handle. |
+| `guide-filter/test.mjs` | Which sidebar entries get removed, against a genuine `/youtubei/v1/guide` response — which is why it exists: the capture shows a guide keeps its entries in `items`, `footer` and `topbar`, and the previous filter walked only the first. |
+| `caption-prefs/test.mjs` | The remembered caption preference, asserted against the exact command shapes `CaptionsService` handles: an empty `selectSubtitlesTrackCommand` payload is captions-off and `useDefaultTrack` is captions-on. Those two are the whole interface. |
+| `caption-prefs/runtime.mjs` | The caption wiring, on a fake clock and a fake route: that a video whose player response has not landed *waits* instead of inheriting the previous video's channel, in both directions, and that the wait still has a limit. The predicate harness beside it passed the whole time this was resolving against the wrong channel. |
+| `aislist/test.mjs` | Parsing and matching the AiSList channel lists against a real slice of the published file, including the trap its own format header does not mention: 498 of the handles are percent-encoded or non-ASCII, and a tile's subtitle carries the decoded form. |
+| `aislist/refresh.mjs` | The fetch-and-cache half, driven with a fake fetch and a fake clock — the questions `parseList` cannot answer: that a warnlist 404 does not discard the blocklist that just downloaded, that each list's freshness is its own, and that a captive portal answering `200` with a login page cannot empty a working list or cache the emptiness. |
+| `aislist/toggle.mjs` | *When* the fetch is kicked off — the module's side effects are the whole of it, which is why nothing covered it. The gate used to run once at import, so ticking the box left the row reading ON and the feature hiding nothing until the app was relaunched. |
+| `docs/test.mjs` | That the counts this document and `docs/BUILDING.md` quote are the counts `run.mjs` actually has, and that the table above has a row per harness. Prose is not executed, so every feature added a harness and left every number here quietly wrong. |
 
 ## Snapshots
 
@@ -55,13 +69,13 @@ that was fixed, so the harness can show the before and after side by side.
 - Node 22+ (`--experimental-strip-types` is used for the `.mts` snapshots).
 - `pnpm install` at the repository root — the refresh step uses `mods/`'s TypeScript compiler.
 - `dist/userScript.js` built, for the two harnesses that load the real bundle.
-- Playwright with Chromium, for the four browser harnesses. Without it they
+- Playwright with Chromium, for the five browser harnesses. Without it they
   skip rather than fail.
 
 Set `TT_STRICT_SKIP=1` to make a skipped harness count as a failure. Skipping is
 the right default here — no Chromium on your machine is not a defect in the code
 under test — but CI sets it, because there a skip is a hole: a failed browser
-install would otherwise leave four harnesses unrun and the whole suite green.
+install would otherwise leave five harnesses unrun and the whole suite green.
 
 ## Adding one
 

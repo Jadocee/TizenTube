@@ -22,7 +22,7 @@ const watchUrl = (args: string): string =>
 // Packaged into the build, so this resolves immediately. Only a source
 // checkout that has not been built has to download it, and starting that here
 // overlaps it with the debugger handshake instead of being serial with it.
-userScript.get().catch(() => { });
+userScript.get().catch(() => {});
 
 /**
  * Registers the userscript so it runs before any of the page's own scripts, on
@@ -32,89 +32,104 @@ userScript.get().catch(() => { });
 function registerOnNewDocument(client: CDPClient, source: string): Promise<string | null> {
     return client.Page.addScriptToEvaluateOnNewDocument({ source })
         .then(() => 'addScriptToEvaluateOnNewDocument')
-        .catch(() => client.Page.addScriptToEvaluateOnLoad({ scriptSource: source })
-            .then(() => 'addScriptToEvaluateOnLoad'))
+        .catch(() =>
+            client.Page.addScriptToEvaluateOnLoad({ scriptSource: source }).then(
+                () => 'addScriptToEvaluateOnLoad',
+            ),
+        )
         .catch(() => null);
 }
 
 function connectToDebugger(host: string, port: number, args: string, attempt: number = 0): void {
-    nodeFetch(`http://${host}:${port}`).then(() => {
-        const notifier = CDP({ host, port, local: true }, (client: CDPClient) => {
-            // isConnecting is deliberately NOT cleared here. Connecting is not
-            // attaching: the userscript still has to be read and uploaded --
-            // half a megabyte over CDP -- and the page still has to be
-            // navigated. Clearing it on connect told the splash the attach was
-            // finished while all of that was outstanding, and the splash's
-            // "daemon reachable, idle" branch fires /tizentube/debugger and then
-            // exits the app.
-            //
-            // That is a loop, not a one-off: `sdb shell debug` relaunches the
-            // app, so the relaunched splash polls, sees the flag already
-            // cleared, and exits the app out from under the attach that is
-            // still uploading -- which starts another one. Nothing on the
-            // device breaks the cycle, which is exactly why recovering from it
-            // took a reboot.
-            //
-            // The 45s generation-checked watchdog in startDebugger is the
-            // backstop, so a chain that never settles still cannot latch the
-            // flag forever and leave the splash waiting.
-            Promise.all([client.Runtime.enable(), client.Page.enable()])
-                // Before navigating, so the very first document is covered.
-                .then(() => client.Page.setBypassCSP({ enabled: true }).catch(() => { }))
-                .then(() => userScript.get())
-                .then((source: string | null) => {
-                    if (!source) throw new Error('empty userscript');
-                    return registerOnNewDocument(client, source).then((method) => {
-                        if (!method) {
-                            // Last resort on protocol versions without either
-                            // command: inject into each context as it appears.
-                            // This is the losing side of the race the two
-                            // commands above exist to avoid.
-                            client.on('Runtime.executionContextCreated', (m) => {
-                                client.Runtime.evaluate({ expression: source, contextId: m.context.id });
+    nodeFetch(`http://${host}:${port}`)
+        .then(() => {
+            const notifier = CDP({ host, port, local: true }, (client: CDPClient) => {
+                // isConnecting is deliberately NOT cleared here. Connecting is not
+                // attaching: the userscript still has to be read and uploaded --
+                // half a megabyte over CDP -- and the page still has to be
+                // navigated. Clearing it on connect told the splash the attach was
+                // finished while all of that was outstanding, and the splash's
+                // "daemon reachable, idle" branch fires /tizentube/debugger and then
+                // exits the app.
+                //
+                // That is a loop, not a one-off: `sdb shell debug` relaunches the
+                // app, so the relaunched splash polls, sees the flag already
+                // cleared, and exits the app out from under the attach that is
+                // still uploading -- which starts another one. Nothing on the
+                // device breaks the cycle, which is exactly why recovering from it
+                // took a reboot.
+                //
+                // The 45s generation-checked watchdog in startDebugger is the
+                // backstop, so a chain that never settles still cannot latch the
+                // flag forever and leave the splash waiting.
+                Promise.all([client.Runtime.enable(), client.Page.enable()])
+                    // Before navigating, so the very first document is covered.
+                    .then(() => client.Page.setBypassCSP({ enabled: true }).catch(() => {}))
+                    .then(() => userScript.get())
+                    .then((source: string | null) => {
+                        if (!source) throw new Error('empty userscript');
+                        return registerOnNewDocument(client, source).then((method) => {
+                            if (!method) {
+                                // Last resort on protocol versions without either
+                                // command: inject into each context as it appears.
+                                // This is the losing side of the race the two
+                                // commands above exist to avoid.
+                                client.on('Runtime.executionContextCreated', (m) => {
+                                    client.Runtime.evaluate({
+                                        expression: source,
+                                        contextId: m.context.id,
+                                    });
+                                });
+                            }
+                            return client.Page.navigate({ url: watchUrl(args) });
+                        });
+                    })
+                    // The attach is over only here: the script is registered for
+                    // every future document and the page has been sent to YouTube.
+                    .then(() => {
+                        isConnecting = false;
+                    })
+                    .catch((e: Error) => {
+                        console.error(
+                            '[TizenTube] Could not install the userscript:',
+                            e && e.message,
+                        );
+                        // Still show YouTube rather than leaving a blank app, and
+                        // only report the attach finished once that has been sent.
+                        client.Page.navigate({ url: watchUrl(args) })
+                            .catch(() => {})
+                            .then(() => {
+                                isConnecting = false;
                             });
-                        }
-                        return client.Page.navigate({ url: watchUrl(args) });
                     });
-                })
-                // The attach is over only here: the script is registered for
-                // every future document and the page has been sent to YouTube.
-                .then(() => { isConnecting = false; })
-                .catch((e: Error) => {
-                    console.error('[TizenTube] Could not install the userscript:', e && e.message);
-                    // Still show YouTube rather than leaving a blank app, and
-                    // only report the attach finished once that has been sent.
-                    client.Page.navigate({ url: watchUrl(args) })
-                        .catch(() => { })
-                        .then(() => { isConnecting = false; });
-                });
-        });
+            });
 
-        // chrome-remote-interface's callback form returns a bare EventEmitter and
-        // ends every failure in emit('error'). With no listener, that emit THROWS,
-        // from inside a .catch on a promise nobody holds -- an unhandled rejection
-        // that either kills the service or vanishes silently, and either way the
-        // client callback above never runs and isConnecting stays latched.
-        // 'No inspectable targets' is a real case here: the app was relaunched
-        // microseconds ago and may not have registered a target yet.
-        notifier.on('error', (e: Error) => {
-            console.error('[TizenTube] CDP attach failed:', e && e.message);
+            // chrome-remote-interface's callback form returns a bare EventEmitter and
+            // ends every failure in emit('error'). With no listener, that emit THROWS,
+            // from inside a .catch on a promise nobody holds -- an unhandled rejection
+            // that either kills the service or vanishes silently, and either way the
+            // client callback above never runs and isConnecting stays latched.
+            // 'No inspectable targets' is a real case here: the app was relaunched
+            // microseconds ago and may not have registered a target yet.
+            notifier.on('error', (e: Error) => {
+                console.error('[TizenTube] CDP attach failed:', e && e.message);
+                if (attempt >= 300) {
+                    isConnecting = false;
+                    return;
+                }
+                setTimeout(() => connectToDebugger(host, port, args, attempt + 1), 100);
+            });
+        })
+        .catch(() => {
+            // The debugger port takes a moment to come up. Bounded at ~30s, rather
+            // than retrying every 100ms for the life of the service.
             if (attempt >= 300) {
                 isConnecting = false;
+                console.error('[TizenTube] Debugger never became reachable on port', port);
                 return;
             }
             setTimeout(() => connectToDebugger(host, port, args, attempt + 1), 100);
         });
-    }).catch(() => {
-        // The debugger port takes a moment to come up. Bounded at ~30s, rather
-        // than retrying every 100ms for the life of the service.
-        if (attempt >= 300) {
-            isConnecting = false;
-            console.error('[TizenTube] Debugger never became reachable on port', port);
-            return;
-        }
-        setTimeout(() => connectToDebugger(host, port, args, attempt + 1), 100);
-    })
 }
 
 export interface DaemonState {
@@ -124,15 +139,23 @@ export interface DaemonState {
 }
 
 function canConnectToDaemon(attempt: number = 0): Promise<DaemonState> {
-    return nodeFetch('http://127.0.0.1:8001/api/v2/').then(res => res.json())
+    return nodeFetch('http://127.0.0.1:8001/api/v2/')
+        .then((res) => res.json())
         .then((json: any) => {
             // Validated before reading: a payload without `device` used to throw
             // into the catch below, which retried forever rather than reporting a
             // result.
             const device = json && json.device;
             if (!device) throw new Error('no device in /api/v2/ payload');
-            return { canConnectToDaemon: (device.developerIP === '127.0.0.1' || device.developerIP === '1.0.0.127') && device.developerMode === '1', ip: device.ip, isConnecting }
-        }).catch(() => {
+            return {
+                canConnectToDaemon:
+                    (device.developerIP === '127.0.0.1' || device.developerIP === '1.0.0.127') &&
+                    device.developerMode === '1',
+                ip: device.ip,
+                isConnecting,
+            };
+        })
+        .catch(() => {
             // Retried on a timer. Recursing straight from the catch made this a
             // hot loop hammering the daemon as fast as the network stack allowed
             // whenever it was unreachable.
@@ -152,7 +175,7 @@ function canConnectToDaemon(attempt: number = 0): Promise<DaemonState> {
 }
 
 function startDebugger(args: string): Promise<boolean> {
-    return canConnectToDaemon().then(res => {
+    return canConnectToDaemon().then((res) => {
         if (!res.canConnectToDaemon) return false;
         const client = adbhost.createConnection({ host: '127.0.0.1', port: 26101 });
 
@@ -182,7 +205,9 @@ function startDebugger(args: string): Promise<boolean> {
             // The trailing ' 0' argument was for Tizen 3.0, which config.xml's
             // required_version="9.0" now excludes outright.
             const shellCmd = client.createStream(`shell:0 debug ${packageId}.TizenTubeStandalone`);
-            shellCmd.on('error', () => { isConnecting = false; });
+            shellCmd.on('error', () => {
+                isConnecting = false;
+            });
 
             // Accumulated, because 'data' is not line-buffered: sdbd's reply can
             // arrive split across chunks ('debug_por' then 't:34567'), and only the

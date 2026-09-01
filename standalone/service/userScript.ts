@@ -41,14 +41,17 @@ const UPDATE_SOURCE: { manifest: string; userScript: string } | null = null;
 
 const ALLOW_CDN_UPDATES = UPDATE_SOURCE !== null;
 
-interface PackagedUserScript { version: string; source: string }
+interface PackagedUserScript {
+    version: string;
+    source: string;
+}
 
 let packaged: PackagedUserScript | null = null;
 try {
     // Written by embed-userscript.js. Absent in a source checkout that has not
     // been built, in which case we fall back to downloading.
     packaged = require('./userScript.generated.js');
-} catch (e) {
+} catch (_e) {
     console.warn('[TizenTube] No packaged userscript in this build; will download it instead.');
 }
 
@@ -80,7 +83,7 @@ function download(): Promise<string | null> {
 
     pending = fetch(UPDATE_SOURCE.userScript)
         .then((res) => {
-            if (!res.ok) throw new Error('HTTP ' + res.status);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
             return res.text();
         })
         .then((text: string) => {
@@ -116,12 +119,14 @@ function refresh(): Promise<boolean> {
 
     return fetch(UPDATE_SOURCE!.manifest)
         .then((res) => {
-            if (!res.ok) throw new Error('HTTP ' + res.status);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
             return res.json();
         })
         .then((manifest: { version?: string } | null) => {
             if (!manifest || !manifest.version || !isNewer(manifest.version, version)) return false;
-            console.log(`[TizenTube] Newer userscript published (${manifest.version} > ${version}); fetching.`);
+            console.log(
+                `[TizenTube] Newer userscript published (${manifest.version} > ${version}); fetching.`,
+            );
             const published = manifest.version;
             return download().then((text) => {
                 // download() falls back to the packaged copy on failure, and that

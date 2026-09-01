@@ -1,7 +1,5 @@
 {
-    "__contributors": [
-        "reisxd"
-    ],
+    "__contributors": ["reisxd"],
     "settings": {
         "options": {
             "socialMedia": {
@@ -61,6 +59,15 @@
                     "fixUI": "Fix UI",
                     "hqThumbnails": "Enable High Quality Thumbnails",
                     "longPress": "Enable Long Press Actions",
+                    "hideRecommendations": "Apply videos and channels hidden from the long-press menu",
+                    "hideMembersOnly": "Hide members-only videos",
+                    "hidden": {
+                        "channels": "Hidden channels",
+                        "videos": "Hidden videos",
+                        "subtitle": "Untick one to start seeing it again",
+                        "count": "{{count}} hidden",
+                        "empty": "Nothing hidden yet"
+                    },
                     "shorts": "Enable Shorts",
                     "videoPreviews": "Enable Video Previews",
                     "previewIndicator": "Show a play icon while a thumbnail is previewing",
@@ -176,6 +183,8 @@
                     },
                     "sortSubscriptionsByAlphabet": "Sort Subscriptions Alphabetically",
                     "disableChannelsOnSidebar": "Disable Channels on Sidebar",
+                    "hideWatchLater": "Hide Watch Later from the sidebar",
+                    "refreshOnReselect": "Refresh the page when you re-select it in the sidebar",
                     "clock": {
                         "title": "Clock",
                         "subtitle": "Display a clock on the screen",
@@ -262,6 +271,25 @@
                 "title": "Startup Error",
                 "subtitle": "TizenTube 9 did not start cleanly on this launch. Please report this text.",
                 "occurrences": "Occurred {{count}} time(s)"
+            },
+            "captions": {
+                "title": "Captions",
+                "default": "Captions when a video starts",
+                "defaultSubtitle": "YouTube forgets this between videos",
+                "leave": "Leave as they are",
+                "on": "Turn on",
+                "off": "Turn off",
+                "alwaysOn": "Always on for these channels",
+                "alwaysOff": "Always off for these channels"
+            },
+            "aislist": {
+                "title": "Hide AI-generated channels (AiSList)",
+                "enable": "Use the AiSList blocklist",
+                "status": "{{block}} channels, list dated {{lastModified}}",
+                "statusEmpty": "Not downloaded yet",
+                "warnlist": "Also use the warnlist",
+                "warnlistSubtitle": "Medium-confidence channels. Wider, and more likely to hide something you wanted.",
+                "attribution": "Community list by AiSList, CC BY-NC 4.0 - github.com/Override92/AiSList"
             }
         },
         "ttSettings": {
@@ -316,7 +344,9 @@
     },
     "toasts": {
         "videoAddedToQueue": "Video added to queue.",
-        "videoQueueCleared": "Video queue cleared."
+        "videoQueueCleared": "Video queue cleared.",
+        "videoHidden": "Hidden on this TV. Nothing was sent to YouTube.",
+        "channelHidden": "{{channel}} will not be recommended on this TV. Nothing was sent to YouTube."
     },
     "common": {
         "back": "Back"
@@ -327,6 +357,8 @@
         "removeFromWatchLater": "Remove from Watch Later",
         "saveToPlaylist": "Save to Playlist",
         "addToQueue": "Add to Queue",
+        "hideVideo": "Hide this video on this TV",
+        "hideChannel": "Don't recommend {{channel}} on this TV",
         "videoOptions": "Video options"
     },
     "themePanel": {

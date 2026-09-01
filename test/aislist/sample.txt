@@ -1,0 +1,30 @@
+! AI Block Community Blocklist (High Confidence)
+! Title: AISList - Blocklist
+! Description: Community-maintained list of YouTube channels confirmed to use AI-generated content
+! Homepage: https://aisloplist.com
+! License: CC BY-NC 4.0
+! Last Modified: 2026-07-19
+!
+! This list contains channels with HIGH CONFIDENCE of using AI-generated content.
+! These channels will be blocked (hidden or warned) based on user preferences.
+!
+! Format: One channel per line
+! - @channelhandle (YouTube handle format)
+! - UCxxxxxxxxxxxxxxxx (YouTube channel ID format)
+! - Lines starting with ! are comments
+! - Empty lines are ignored
+!
+! Total Channels: 20982
+! Entries:
+@LangweiligeW%C3%A4hrung
+@HFY_en_Espa%C3%B1ol
+@DerR%C3%A4cheresp
+@ELT%C3%8DOFRONTAL
+@소소한작업실-z8d
+@博特夫4848
+@ЗелёныйГектар
+@ChickofHonor-l
+@ChickofHonor-3i
+@ChickofHonor-w8v
+@chickofhonor-t3ii
+@chickofhono

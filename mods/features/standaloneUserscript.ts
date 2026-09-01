@@ -6,7 +6,8 @@ function redirectUrl(originalUrl: string | URL): string | URL {
     if (!originalUrl) return originalUrl;
 
     try {
-        if (typeof originalUrl === 'string' && originalUrl.startsWith('//')) originalUrl = originalUrl.replace('//', 'https://')
+        if (typeof originalUrl === 'string' && originalUrl.startsWith('//'))
+            originalUrl = originalUrl.replace('//', 'https://');
         const url = new URL(originalUrl, window.location.origin);
         const hostname = url.hostname;
 
@@ -16,11 +17,16 @@ function redirectUrl(originalUrl: string | URL): string | URL {
             return url.toString();
         }
 
-        if (hostname.endsWith('googlevideo.com') || hostname.endsWith('youtube.com')
-            || hostname.endsWith('gstatic.com') || hostname.endsWith('.google.com')
-            || hostname.endsWith('.googleapis.com') || hostname.endsWith('googleusercontent.com')
-            || hostname.endsWith('.ggpht.com')) {
-            return 'http://localhost:8099/cors-bypass/' + url.toString();
+        if (
+            hostname.endsWith('googlevideo.com') ||
+            hostname.endsWith('youtube.com') ||
+            hostname.endsWith('gstatic.com') ||
+            hostname.endsWith('.google.com') ||
+            hostname.endsWith('.googleapis.com') ||
+            hostname.endsWith('googleusercontent.com') ||
+            hostname.endsWith('.ggpht.com')
+        ) {
+            return `http://localhost:8099/cors-bypass/${url.toString()}`;
         }
     } catch (e) {
         console.error('Failed to parse URL during interception:', e);
@@ -61,11 +67,14 @@ export default function initPatches(): void {
                     if ((input as Request).body && !(input as Request).bodyUsed) {
                         // One clone, not two: each clone() tees the body stream,
                         // and the second was never read.
-                        return (input as Request).clone().arrayBuffer().then(function (buffer) {
-                            modifiedOptions.body = buffer;
+                        return (input as Request)
+                            .clone()
+                            .arrayBuffer()
+                            .then((buffer) => {
+                                modifiedOptions.body = buffer;
 
-                            return originalFetch(targetUrl, modifiedOptions);
-                        });
+                                return originalFetch(targetUrl, modifiedOptions);
+                            });
                     }
 
                     return originalFetch(targetUrl, modifiedOptions);
@@ -85,7 +94,13 @@ export default function initPatches(): void {
     }
 
     const originalOpen = XMLHttpRequest.prototype.open;
-    XMLHttpRequest.prototype.open = function (method: string, url: string | URL, async?: boolean, user?: string | null, password?: string | null) {
+    XMLHttpRequest.prototype.open = function (
+        method: string,
+        url: string | URL,
+        async?: boolean,
+        user?: string | null,
+        password?: string | null,
+    ) {
         const redirectedUrl = redirectUrl(url);
         if (redirectedUrl !== url) {
             async = true;
@@ -101,22 +116,22 @@ export default function initPatches(): void {
     if (navigator.sendBeacon) {
         const originalSendBeacon = navigator.sendBeacon;
         navigator.sendBeacon = function (url, data) {
-            console.log("Beacon data:", data);
+            console.log('Beacon data:', data);
             return originalSendBeacon.apply(this, [redirectUrl(url), data]);
         };
     }
 
     Object.defineProperty(HTMLImageElement.prototype, 'src', {
-        set: function(value) {
+        set: function (value) {
             const descriptor = Object.getOwnPropertyDescriptor(Element.prototype, 'setAttribute');
             descriptor!.value.call(this, 'src', redirectUrl(value));
-        }
+        },
     });
     Object.defineProperty(HTMLScriptElement.prototype, 'src', {
-        set: function(value) {
+        set: function (value) {
             const descriptor = Object.getOwnPropertyDescriptor(Element.prototype, 'setAttribute');
             descriptor!.value.call(this, 'src', redirectUrl(value));
-        }
+        },
     });
 }
 

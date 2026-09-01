@@ -30,17 +30,20 @@ export interface AssignedFunction {
 function parse(code: string): { ast: AstNode; wrapOffset: number } | null {
     // A component stringifies as `class{...}` or `function(){...}`, neither of
     // which is a valid statement, hence the parenthesised second attempt.
-    for (const [source, wrapOffset] of [[code, 0], ['(' + code + ')', 1]] as const) {
+    for (const [source, wrapOffset] of [
+        [code, 0],
+        [`(${code})`, 1],
+    ] as const) {
         for (const sourceType of ['script', 'module'] as const) {
             try {
                 const ast = acorn.parse(source, {
                     ecmaVersion: 'latest',
                     ranges: true,
                     sourceType,
-                    allowReturnOutsideFunction: true
+                    allowReturnOutsideFunction: true,
                 }) as unknown as AstNode;
                 return { ast, wrapOffset };
-            } catch (e) {
+            } catch (_e) {
                 // Try the next shape.
             }
         }
@@ -61,18 +64,27 @@ export function extractAssignedFunctions(code: string): AssignedFunction[] {
     const { ast, wrapOffset } = parsed;
     const out: AssignedFunction[] = [];
     const slice = (node: AstNode | null | undefined): string | null =>
-        node && node.range ? original.slice(node.range[0] - wrapOffset, node.range[1] - wrapOffset) : null;
+        node && node.range
+            ? original.slice(node.range[0] - wrapOffset, node.range[1] - wrapOffset)
+            : null;
 
     // The returned function of an IIFE, which is how the ES5 bundles wrapped
     // their methods.
     const innerOf = (rhs: AstNode): string | null => {
-        if (rhs.type === 'CallExpression' && rhs.callee && rhs.callee.type === 'FunctionExpression' && rhs.callee.body) {
+        if (
+            rhs.type === 'CallExpression' &&
+            rhs.callee &&
+            rhs.callee.type === 'FunctionExpression' &&
+            rhs.callee.body
+        ) {
             for (const s of (rhs.callee.body.body || []) as AstNode[]) {
-                if (s.type === 'ReturnStatement' && s.argument && s.argument.range) return slice(s.argument);
+                if (s.type === 'ReturnStatement' && s.argument && s.argument.range)
+                    return slice(s.argument);
             }
             return null;
         }
-        if (rhs.type === 'FunctionExpression' || rhs.type === 'ArrowFunctionExpression') return slice(rhs);
+        if (rhs.type === 'FunctionExpression' || rhs.type === 'ArrowFunctionExpression')
+            return slice(rhs);
         return null;
     };
 
@@ -80,11 +92,23 @@ export function extractAssignedFunctions(code: string): AssignedFunction[] {
         // Modern syntax produces node types estraverse has no visitor keys for;
         // without this it throws on the first one it does not recognise.
         fallback: 'iteration',
+        // A function expression, not an arrow, and Biome is told so below.
+        // estraverse invokes a visitor with `this` bound to its Controller --
+        // that is how `this.skip()` and `this.break()` are reached. Nothing here
+        // uses them today, so the conversion is harmless today; it silently
+        // stops being harmless the moment someone adds one, and this walk is
+        // what resolves YouTube's minified modules, whose failure is the
+        // black-screen-on-launch this repository already fixed once.
+        // biome-ignore lint/complexity/useArrowFunction: needs estraverse's `this`
         enter: function (node: AstNode) {
             if (node.type === 'AssignmentExpression') {
                 const rhs = node.right as AstNode;
                 if (!rhs || !rhs.range) return;
-                out.push({ left: slice(node.left as AstNode), rhs: slice(rhs)!, returned: innerOf(rhs) });
+                out.push({
+                    left: slice(node.left as AstNode),
+                    rhs: slice(rhs)!,
+                    returned: innerOf(rhs),
+                });
                 return;
             }
 
@@ -104,9 +128,9 @@ export function extractAssignedFunctions(code: string): AssignedFunction[] {
                 const name = (key.name ?? key.value) as string | undefined;
                 const value = node.value as AstNode | undefined;
                 if (name === undefined || !value || !value.range) return;
-                out.push({ left: 'this.' + name, rhs: slice(value)!, returned: innerOf(value) });
+                out.push({ left: `this.${name}`, rhs: slice(value)!, returned: innerOf(value) });
             }
-        }
+        },
     });
 
     return out;

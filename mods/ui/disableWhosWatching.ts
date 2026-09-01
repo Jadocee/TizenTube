@@ -13,11 +13,12 @@ const RECURRING_ACTIONS_KEY = 'yt.leanback.default::recurring_actions';
 const STARTUP_ACTIONS = [
     'startup-screen-account-selector-with-guest',
     'whos_watching_fullscreen_zero_accounts',
-    'startup-screen-signed-out-welcome-back'
+    'startup-screen-signed-out-welcome-back',
 ];
 
 configChangeEmitter.addEventListener('configChange', (event) => {
-    const { key, value } = event.detail;
+    // key only. event.detail.value is deliberately NOT used -- see below.
+    const { key } = event.detail;
     // permanentlyEnableWhoIsWatchingMenu is what decides whether the interval
     // below gets armed, and it is a user-facing toggle too -- dropping its
     // change meant turning it off left the 60s interval running until reload.
@@ -34,7 +35,7 @@ function readRecurringActions(): RecurringActions | null {
     try {
         const stored = JSON.parse(localStorage[RECURRING_ACTIONS_KEY]);
         return stored?.data?.data ? stored : null;
-    } catch (e) {
+    } catch (_e) {
         // Absent on a fresh profile, and this runs before YouTube has booted.
         console.info('No leanback recurring actions to adjust yet.');
         return null;
@@ -71,7 +72,8 @@ function disableWhosWatching(value: unknown): void {
         return;
     }
 
-    const lastFired = LeanbackRecurringActions.data.data['startup-screen-account-selector-with-guest']?.lastFired;
+    const lastFired =
+        LeanbackRecurringActions.data.data['startup-screen-account-selector-with-guest']?.lastFired;
     const sinceLastFired = date.getTime() - lastFired;
     // Do nothing if the last fired action is less than 2 hours ago.
     if (sinceLastFired > 0 && sinceLastFired < 2 * 60 * 60 * 1000 && !shouldPermanentlyEnable) {

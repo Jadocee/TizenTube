@@ -95,12 +95,17 @@ export interface PreviewOptions {
  * mutate both at once.
  */
 export function startInlinePlayback(endpoint: any, options?: PreviewOptions | null): any {
-    const asked = options && Number.isFinite(options.durationMs as number) ? (options.durationMs as number) : NaN;
+    const asked =
+        options && Number.isFinite(options.durationMs as number)
+            ? (options.durationMs as number)
+            : NaN;
     // A zero or negative duration would ask the app to play for no time at all,
     // and NaN would put NaN in the payload. Both fall back to the default.
     const durationMs = Number.isFinite(asked) && asked > 0 ? asked : DEFAULT_PREVIEW_DURATION_MS;
-    const askedDelay = options && Number.isFinite(options.delayMs as number) ? (options.delayMs as number) : NaN;
-    const delayMs = Number.isFinite(askedDelay) && askedDelay >= 0 ? askedDelay : DEFAULT_PREVIEW_DELAY_MS;
+    const askedDelay =
+        options && Number.isFinite(options.delayMs as number) ? (options.delayMs as number) : NaN;
+    const delayMs =
+        Number.isFinite(askedDelay) && askedDelay >= 0 ? askedDelay : DEFAULT_PREVIEW_DELAY_MS;
     return {
         startInlinePlaybackCommand: {
             blockAdoption: true,
@@ -132,7 +137,12 @@ export function pageNameFromHash(rawHash: string | null | undefined): string {
     if (hash === '' || hash === '/') return 'home';
     if (hash.startsWith('/search')) return 'search';
     return (
-        hash.split('?')[1]?.split('&')[0]?.split('=')[1]?.replace('FE', '')?.replace('topics_', '') ?? ''
+        hash
+            .split('?')[1]
+            ?.split('&')[0]
+            ?.split('=')[1]
+            ?.replace('FE', '')
+            ?.replace('topics_', '') ?? ''
     );
 }
 
@@ -145,6 +155,42 @@ export function pageNameFromHash(rawHash: string | null | undefined): string {
  * such as "Continue watching" with a blank strip under it, which reads as a
  * failed load rather than as a filter doing its job.
  */
+/** The badge style the app's own TV renderer maps to MEMBERS_ONLY. Taken from
+ *  YtlrMetadataBadgeRenderer's style map in the shipped bundle, which is the
+ *  renderer a tile's badges go through. */
+export const MEMBERS_ONLY_BADGE = 'BADGE_STYLE_TYPE_MEMBERS_ONLY';
+
+/**
+ * Whether this tile is a members-only video.
+ *
+ * A TV tile keeps its badges INSIDE its metadata lines, not in a top-level
+ * `badges` array as the web client does:
+ *
+ *   metadata.tileMetadataRenderer.lines[].lineRenderer.items[]
+ *     .lineItemRenderer.badge.metadataBadgeRenderer.style
+ *
+ * That path is where all 259 badges across the captured browse responses sit --
+ * the "4K", "CC" and "8K" labels -- so it is where a members-only badge sits
+ * too. The style constant itself is the app's own; no captured tile carried one,
+ * because every capture is signed out and members-only videos are uncommon in a
+ * signed-out topic feed. If YouTube ever moves the badge elsewhere this returns
+ * false and the filter simply stops hiding anything, which is the right way for
+ * it to fail.
+ */
+export function hasMembersOnlyBadge(tile: any): boolean {
+    const lines = tile?.metadata?.tileMetadataRenderer?.lines;
+    if (!Array.isArray(lines)) return false;
+    for (const line of lines) {
+        const items = line?.lineRenderer?.items;
+        if (!Array.isArray(items)) continue;
+        for (const item of items) {
+            const style = item?.lineItemRenderer?.badge?.metadataBadgeRenderer?.style;
+            if (style === MEMBERS_ONLY_BADGE) return true;
+        }
+    }
+    return false;
+}
+
 export function shelfIsEmpty(shelf: any): boolean {
     const items = shelf?.shelfRenderer?.content?.horizontalListRenderer?.items;
     // No list at all is not "empty" -- it is a shelf shape this does not

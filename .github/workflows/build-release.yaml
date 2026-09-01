@@ -44,10 +44,10 @@ jobs:
       - name: Use pnpm
         uses: pnpm/action-setup@v4
 
-      # Pinned deliberately. Twelve harnesses run under
+      # Pinned deliberately. Twenty harnesses run under
       # --experimental-strip-types, which needs Node 22.6+, and the workflow
       # previously took whatever the runner image happened to ship: on Node 20
-      # those twelve fail before running a single assertion.
+      # those twenty fail before running a single assertion.
       - name: Use Node 22
         uses: actions/setup-node@v4
         with:
@@ -66,6 +66,16 @@ jobs:
       # could not have worked here at all.
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      # Before the typecheck and the harnesses: a formatting or lint failure
+      # costs seconds to find here and is the cheapest thing in the run.
+      #
+      # --error-on-warnings is what makes a Biome gate mean anything: without it
+      # Biome exits 0 with a screen full of warnings, which is the same as not
+      # running it. The repository is clean at that setting, so anything this
+      # step reports is new.
+      - name: Lint and check formatting
+        run: pnpm exec biome ci --error-on-warnings
 
       - name: Typecheck
         run: pnpm -r --workspace-concurrency=1 run typecheck
@@ -88,10 +98,10 @@ jobs:
 
       - name: Run the harnesses
         env:
-          # A skipped harness is not a passing one. Four of them drive a browser
-          # and two load the real built bundle; if the Chromium install fails or
-          # a bundle is missing, they skip and the run would otherwise go green
-          # reporting coverage that never happened.
+          # A skipped harness is not a passing one. Five harnesses drive a
+          # browser and two load the real built bundle; if the Chromium install
+          # fails or a bundle is missing, they skip and the run would otherwise
+          # go green reporting coverage that never happened.
           TT_STRICT_SKIP: '1'
         run: |
           pnpm exec playwright install --with-deps chromium

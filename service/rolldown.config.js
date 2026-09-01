@@ -1,5 +1,5 @@
 import { defineConfig } from 'rolldown';
-import fs from 'fs';
+import fs from 'node:fs';
 
 /**
  * `gate`, a transitive dependency of peer-dial, defines
@@ -13,10 +13,14 @@ function fixReservedAwait() {
         transform(code, id) {
             if (!/[\\/]gate[\\/]/.test(id)) return null;
             const fixed = code
-                .replace('Gate.prototype.await = function await(callback)',
-                         'Gate.prototype.await = function (callback)')
-                .replace('Async.prototype.await = function await(callback)',
-                         'Async.prototype.await = function (callback)');
+                .replace(
+                    'Gate.prototype.await = function await(callback)',
+                    'Gate.prototype.await = function (callback)',
+                )
+                .replace(
+                    'Async.prototype.await = function await(callback)',
+                    'Async.prototype.await = function (callback)',
+                );
             return fixed === code ? null : { code: fixed, map: null };
         },
     };
@@ -35,17 +39,23 @@ function injectXmlContent() {
     return {
         name: 'inject-xml-content',
         renderChunk(code) {
-            const pattern = /var\s+(\w+)_TEMPLATE\s*=\s*[\w$]+(?:\.default)?\.readFileSync\(\s*__dirname\s*\+\s*['"]\/\.\.\/xml\/([^'"]+)['"]\s*,\s*['"]utf8['"]\s*\)/g;
+            const pattern =
+                /var\s+(\w+)_TEMPLATE\s*=\s*[\w$]+(?:\.default)?\.readFileSync\(\s*__dirname\s*\+\s*['"]\/\.\.\/xml\/([^'"]+)['"]\s*,\s*['"]utf8['"]\s*\)/g;
             let injected = 0;
             const modifiedCode = code.replace(pattern, (_match, varName, fileName) => {
-                const xml = fs.readFileSync(`node_modules/@patrickkfkan/peer-dial/xml/${fileName}`, 'utf8');
+                const xml = fs.readFileSync(
+                    `node_modules/@patrickkfkan/peer-dial/xml/${fileName}`,
+                    'utf8',
+                );
                 injected++;
                 return `var ${varName}_TEMPLATE = ${JSON.stringify(xml)}`;
             });
             // Shipping a service that reads XML off a path that does not exist
             // would fail at runtime, on a TV, with no console. Fail the build.
             if (injected === 0) {
-                this.error('inject-xml-content matched nothing -- peer-dial changed how it loads its XML templates, or the bundler changed how it emits the readFileSync calls. Fix the pattern in rolldown.config.js.');
+                this.error(
+                    'inject-xml-content matched nothing -- peer-dial changed how it loads its XML templates, or the bundler changed how it emits the readFileSync calls. Fix the pattern in rolldown.config.js.',
+                );
             }
             return { code: modifiedCode, map: null };
         },

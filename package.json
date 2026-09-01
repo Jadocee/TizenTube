@@ -26,9 +26,14 @@
   },
   "license": "GPL-3.0-only",
   "scripts": {
-    "test": "node test/run.mjs"
+    "test": "node test/run.mjs",
+    "lint": "biome lint",
+    "format": "biome format --write",
+    "check": "biome check",
+    "check:fix": "biome check --write"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.5.11",
     "playwright": "^1.56.1"
   },
   "packageManager": "pnpm@10.33.0"

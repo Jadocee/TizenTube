@@ -38,27 +38,43 @@ check('  ...leaving the object untouched', config, { featureSwitches: {}, client
 // throw, because that is exactly where the old code died.
 const hostile = {
     featureSwitches: Object.defineProperty({}, 'isLimitedMemory', {
-        set() { throw new Error('frozen'); },
-        get() { return undefined; },
+        set() {
+            throw new Error('frozen');
+        },
+        get() {
+            return undefined;
+        },
         configurable: true,
     }),
     clientData: {},
 };
-check('a throwing property costs only its own switch', applyFocusMotion(hostile, true), SWITCH_COUNT - 1);
+check(
+    'a throwing property costs only its own switch',
+    applyFocusMotion(hostile, true),
+    SWITCH_COUNT - 1,
+);
 check('  ...and the ones after it still land', hostile.featureSwitches.enableAnimations, true);
 check('  ...including the last', hostile.featureSwitches.supportsLongPress, true);
 check('  ...and the other group', hostile.clientData.legacyApplicationQuality, 'full-animation');
 
 // --- an app that has not filled the object in yet ---------------------------
 check('no groups at all writes nothing and does not throw', applyFocusMotion({}, true), 0);
-check('only featureSwitches lands the featureSwitches ones',
-      applyFocusMotion({ featureSwitches: {} }, true), SWITCH_COUNT - 1);
-check('only clientData lands the clientData one',
-      applyFocusMotion({ clientData: {} }, true), 1);
-check('a null group is skipped rather than throwing',
-      applyFocusMotion({ featureSwitches: null, clientData: {} }, true), 1);
-check('a primitive group is skipped',
-      applyFocusMotion({ featureSwitches: 'nope', clientData: {} }, true), 1);
+check(
+    'only featureSwitches lands the featureSwitches ones',
+    applyFocusMotion({ featureSwitches: {} }, true),
+    SWITCH_COUNT - 1,
+);
+check('only clientData lands the clientData one', applyFocusMotion({ clientData: {} }, true), 1);
+check(
+    'a null group is skipped rather than throwing',
+    applyFocusMotion({ featureSwitches: null, clientData: {} }, true),
+    1,
+);
+check(
+    'a primitive group is skipped',
+    applyFocusMotion({ featureSwitches: 'nope', clientData: {} }, true),
+    1,
+);
 
 // --- junk -------------------------------------------------------------------
 let threw = null;

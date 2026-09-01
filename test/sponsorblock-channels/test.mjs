@@ -6,7 +6,13 @@
 // stale, not about the happy path.
 import { checker } from '../lib/repo.mjs';
 import * as stub from './stub.mjs';
-import { recordVideoContext, channelOf, isChannelDisabled, channelEntry, parseChannelEntry } from './mod.generated.mts';
+import {
+    recordVideoContext,
+    channelOf,
+    isChannelDisabled,
+    channelEntry,
+    parseChannelEntry,
+} from './mod.generated.mts';
 
 const { check, done } = checker();
 const response = (videoId, channelId, author) => ({ videoDetails: { videoId, channelId, author } });
@@ -14,12 +20,13 @@ const response = (videoId, channelId, author) => ({ videoDetails: { videoId, cha
 // --- parsing the stored form ------------------------------------------------
 // Ids never contain a space, so the first one splits id from name -- and names
 // very often do contain spaces.
-check('a name with spaces round-trips',
-      parseChannelEntry(channelEntry({ id: 'UC123', name: 'Some Channel Name' })).name, 'Some Channel Name');
-check('the id survives a spaced name',
-      parseChannelEntry('UC123 Some Channel Name').id, 'UC123');
-check('an entry with no name at all still yields an id',
-      parseChannelEntry('UC123').id, 'UC123');
+check(
+    'a name with spaces round-trips',
+    parseChannelEntry(channelEntry({ id: 'UC123', name: 'Some Channel Name' })).name,
+    'Some Channel Name',
+);
+check('the id survives a spaced name', parseChannelEntry('UC123 Some Channel Name').id, 'UC123');
+check('an entry with no name at all still yields an id', parseChannelEntry('UC123').id, 'UC123');
 
 // --- recording --------------------------------------------------------------
 recordVideoContext(response('vid1', 'UCaaa', 'Channel A'));
@@ -35,13 +42,29 @@ check('the earlier video keeps its own channel', channelOf('vid1').name, 'Channe
 // --- junk that must not throw or poison the map -----------------------------
 // This runs inside the JSON.parse hook, for every parse the page does.
 const before = channelOf('vid2').id;
-for (const junk of [null, undefined, 0, 'string', [], {}, { videoDetails: null }, { videoDetails: {} },
-                    { videoDetails: { channelId: 42 } }, { videoDetails: { channelId: '' } }]) {
+for (const junk of [
+    null,
+    undefined,
+    0,
+    'string',
+    [],
+    {},
+    { videoDetails: null },
+    { videoDetails: {} },
+    { videoDetails: { channelId: 42 } },
+    { videoDetails: { channelId: '' } },
+]) {
     recordVideoContext(junk);
 }
 check('junk payloads leave the last good channel intact', channelOf('vid2').id, before);
-check('a response with no author falls back to the id',
-      (recordVideoContext(response('vid3', 'UCccc', undefined)), channelOf('vid3').name), 'UCccc');
+check(
+    'a response with no author falls back to the id',
+    // Record then read, in the order the runtime does it: the assertion is about
+    // what the second call returns after the first has run.
+    // biome-ignore lint/complexity/noCommaOperator: sequenced on purpose
+    (recordVideoContext(response('vid3', 'UCccc', undefined)), channelOf('vid3').name),
+    'UCccc',
+);
 
 // --- the disabled check -----------------------------------------------------
 stub.store.sponsorBlockDisabledChannels = [];
@@ -66,7 +89,7 @@ check('a corrupt setting does not throw', isChannelDisabled(channelOf('vid1')), 
 
 // --- the map is bounded -----------------------------------------------------
 stub.store.sponsorBlockDisabledChannels = [];
-for (let i = 0; i < 200; i++) recordVideoContext(response('v' + i, 'UC' + i, 'Ch ' + i));
+for (let i = 0; i < 200; i++) recordVideoContext(response(`v${i}`, `UC${i}`, `Ch ${i}`));
 check('the newest video is still known', channelOf('v199').name, 'Ch 199');
 check('the oldest was evicted rather than accumulating', channelOf('v0').name, 'Ch 199');
 

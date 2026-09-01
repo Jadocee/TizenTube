@@ -1,0 +1,923 @@
+{
+ "withChannelId": {
+  "style": "TILE_STYLE_YTLR_DEFAULT",
+  "header": {
+   "tileHeaderRenderer": {
+    "thumbnail": {
+     "thumbnails": [
+      {
+       "url": "https://i.ytimg.com/vi/qhvPlcwJUvk/hq720_custom_1.jpg?sqp=COjU1dQG-oaymwEVCIAFEOgCSFDyq4qpAwcVAACIQhgB&rs=AOn4CLDhHHEP4rpWCtj48QQAYBzOEAzp7g",
+       "width": 640,
+       "height": 360
+      }
+     ]
+    },
+    "thumbnailOverlays": [
+     {
+      "thumbnailOverlayTimeStatusRenderer": {
+       "text": {
+        "accessibility": {
+         "accessibilityData": {
+          "label": "12 minutes, 51 seconds"
+         }
+        },
+        "simpleText": "12:51"
+       },
+       "style": "DEFAULT"
+      }
+     }
+    ]
+   }
+  },
+  "metadata": {
+   "tileMetadataRenderer": {
+    "title": {
+     "simpleText": "A New Way to Collect Brawlers! - Brawl Talk"
+    },
+    "lines": [
+     {
+      "lineRenderer": {
+       "items": [
+        {
+         "lineItemRenderer": {
+          "text": {
+           "runs": [
+            {
+             "text": "Brawl Stars"
+            }
+           ]
+          }
+         }
+        }
+       ]
+      }
+     },
+     {
+      "lineRenderer": {
+       "items": [
+        {
+         "lineItemRenderer": {
+          "text": {
+           "accessibility": {
+            "accessibilityData": {
+             "label": "6.4 million views"
+            }
+           },
+           "simpleText": "6.4M views"
+          }
+         }
+        },
+        {
+         "lineItemRenderer": {
+          "text": {
+           "simpleText": "\u2022"
+          }
+         }
+        },
+        {
+         "lineItemRenderer": {
+          "text": {
+           "simpleText": "1 day ago"
+          }
+         }
+        }
+       ]
+      }
+     }
+    ]
+   }
+  },
+  "onSelectCommand": {
+   "watchEndpoint": {
+    "videoId": "qhvPlcwJUvk"
+   }
+  },
+  "contentId": "qhvPlcwJUvk",
+  "contentType": "TILE_CONTENT_TYPE_VIDEO",
+  "onLongPressCommand": {
+   "showMenuCommand": {
+    "contentId": "qhvPlcwJUvk",
+    "thumbnail": {
+     "thumbnails": [
+      {
+       "url": "https://i.ytimg.com/vi/qhvPlcwJUvk/hq720.jpg?sqp=-oaymwEVCIAFEOgCSFDyq4qpAwcVAACIQhgB&rs=AOn4CLCFgapdmQjb8m3BHDR-cA1cGMvs7Q",
+       "width": 640,
+       "height": 360
+      }
+     ]
+    },
+    "title": {
+     "simpleText": "A New Way to Collect Brawlers! - Brawl Talk"
+    },
+    "subtitle": {
+     "simpleText": "Brawl Stars \u2022 @BrawlStars"
+    },
+    "menu": {
+     "menuRenderer": {
+      "items": [
+       {
+        "menuNavigationItemRenderer": {
+         "text": {
+          "runs": [
+           {
+            "text": "Play"
+           }
+          ]
+         },
+         "navigationEndpoint": {
+          "watchEndpoint": {
+           "videoId": "qhvPlcwJUvk"
+          }
+         }
+        }
+       },
+       {
+        "menuNavigationItemRenderer": {
+         "text": {
+          "runs": [
+           {
+            "text": "Go to channel"
+           }
+          ]
+         },
+         "navigationEndpoint": {
+          "browseEndpoint": {
+           "browseId": "UCooVYzDxdwTtGYAkcPmOgOw"
+          }
+         }
+        }
+       }
+      ],
+      "accessibility": {
+       "accessibilityData": {
+        "label": "Action menu"
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "handleOnly": {
+  "style": "TILE_STYLE_YTLR_DEFAULT",
+  "header": {
+   "tileHeaderRenderer": {
+    "thumbnail": {
+     "thumbnails": [
+      {
+       "url": "https://i.ytimg.com/vi/mfmdXPT7nAM/hqdefault.jpg?sqp=-oaymwEVCMACELQBSFDyq4qpAwcVAACIQhgB&rs=AOn4CLBfIBWclJdEwescVn_HdQVbhvlYRA",
+       "width": 320,
+       "height": 180
+      }
+     ]
+    },
+    "thumbnailOverlays": [
+     {
+      "thumbnailOverlayTimeStatusRenderer": {
+       "text": {
+        "accessibility": {
+         "accessibilityData": {
+          "label": "30 minutes, 51 seconds"
+         }
+        },
+        "simpleText": "30:51"
+       },
+       "style": "DEFAULT"
+      }
+     }
+    ]
+   }
+  },
+  "metadata": {
+   "tileMetadataRenderer": {
+    "title": {
+     "simpleText": "I Said Yes to Every Email for a Month! (Again)"
+    },
+    "lines": [
+     {
+      "lineRenderer": {
+       "items": [
+        {
+         "lineItemRenderer": {
+          "text": {
+           "runs": [
+            {
+             "text": "Marques Brownlee"
+            }
+           ]
+          }
+         }
+        }
+       ]
+      }
+     },
+     {
+      "lineRenderer": {
+       "items": [
+        {
+         "lineItemRenderer": {
+          "badge": {
+           "metadataBadgeRenderer": {
+            "style": "BADGE_STYLE_TYPE_SIMPLE",
+            "label": "4K"
+           }
+          }
+         }
+        },
+        {
+         "lineItemRenderer": {
+          "badge": {
+           "metadataBadgeRenderer": {
+            "style": "BADGE_STYLE_TYPE_SIMPLE",
+            "label": "CC"
+           }
+          }
+         }
+        },
+        {
+         "lineItemRenderer": {
+          "text": {
+           "accessibility": {
+            "accessibilityData": {
+             "label": "3.3 million views"
+            }
+           },
+           "simpleText": "3.3M views"
+          }
+         }
+        },
+        {
+         "lineItemRenderer": {
+          "text": {
+           "simpleText": "\u2022"
+          }
+         }
+        },
+        {
+         "lineItemRenderer": {
+          "text": {
+           "simpleText": "8 days ago"
+          }
+         }
+        }
+       ]
+      }
+     }
+    ]
+   }
+  },
+  "onSelectCommand": {
+   "watchEndpoint": {
+    "videoId": "mfmdXPT7nAM",
+    "watchEndpointSupportedOnesieConfig": {
+     "html5PlaybackOnesieConfig": {
+      "commonConfig": {
+       "url": "https://rr3---sn-4g5edndl.googlevideo.com/initplayback?source=youtube&oeis=1&c=TVHTML5&oad=3200&ovd=3200&oaad=3200&oavd=3200&ocs=700&oewis=1&oputc=1&olis=1&ofpcc=1&epbp=1&msp=1&odepv=1&id=99f99d5cf4fb9c03&ip=fda3%3Ae722%3Aac3%3A10%3A211%3A7450%3Afefe%3Ac618&mt=1788112100"
+      }
+     }
+    }
+   }
+  },
+  "contentId": "mfmdXPT7nAM",
+  "contentType": "TILE_CONTENT_TYPE_VIDEO",
+  "onLongPressCommand": {
+   "showMenuCommand": {
+    "contentId": "mfmdXPT7nAM",
+    "thumbnail": {
+     "thumbnails": [
+      {
+       "url": "https://i.ytimg.com/vi/mfmdXPT7nAM/hqdefault.jpg?sqp=-oaymwEVCMACELQBSFDyq4qpAwcVAACIQhgB&rs=AOn4CLBfIBWclJdEwescVn_HdQVbhvlYRA",
+       "width": 320,
+       "height": 180
+      }
+     ]
+    },
+    "title": {
+     "simpleText": "I Said Yes to Every Email for a Month! (Again)"
+    },
+    "subtitle": {
+     "simpleText": "Marques Brownlee \u2022 @mkbhd"
+    },
+    "menu": {
+     "menuRenderer": {
+      "items": [
+       {
+        "menuNavigationItemRenderer": {
+         "text": {
+          "runs": [
+           {
+            "text": "Play"
+           }
+          ]
+         },
+         "navigationEndpoint": {
+          "watchEndpoint": {
+           "videoId": "mfmdXPT7nAM",
+           "watchEndpointSupportedOnesieConfig": {
+            "html5PlaybackOnesieConfig": {
+             "commonConfig": {
+              "url": "https://rr3---sn-4g5edndl.googlevideo.com/initplayback?source=youtube&oeis=1&c=TVHTML5&oad=3200&ovd=3200&oaad=3200&oavd=3200&ocs=700&oewis=1&oputc=1&olis=1&ofpcc=1&epbp=1&msp=1&odepv=1&id=99f99d5cf4fb9c03&ip=fda3%3Ae722%3Aac3%3A10%3A211%3A7450%3Afefe%3Ac618&mt=1788112100"
+             }
+            }
+           }
+          }
+         }
+        }
+       }
+      ],
+      "accessibility": {
+       "accessibilityData": {
+        "label": "Action menu"
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "noChannelKey": {
+  "style": "TILE_STYLE_YTLR_DEFAULT",
+  "header": {
+   "tileHeaderRenderer": {
+    "thumbnail": {
+     "thumbnails": [
+      {
+       "url": "https://i.ytimg.com/vi/ifI_fwg55k8/hqdefault.jpg?sqp=-oaymwEXCMACELQBSFryq4qpAwkIARUAAIhCGAE=&rs=AOn4CLABXgBJaFIMI79qYc0hdAu8BdOm8A",
+       "width": 320,
+       "height": 180
+      }
+     ],
+     "sampledThumbnailColor": {
+      "red": 76,
+      "green": 76,
+      "blue": 76
+     },
+     "darkColorPalette": {
+      "section2Color": 3355443,
+      "iconInactiveColor": 9211020,
+      "iconDisabledColor": 5855577
+     },
+     "vibrantColorPalette": {
+      "iconInactiveColor": 10066329
+     }
+    },
+    "thumbnailOverlays": [
+     {
+      "thumbnailOverlayTimeStatusRenderer": {
+       "text": {
+        "runs": [
+         {
+          "text": "5"
+         },
+         {
+          "text": " episodes"
+         }
+        ]
+       },
+       "style": "DEFAULT",
+       "icon": {
+        "iconType": "TV"
+       }
+      }
+     },
+     {
+      "thumbnailOverlayStackingEffectRenderer": {
+       "upperStackColor": 4284045657,
+       "lowerStackColor": 4287401100
+      }
+     }
+    ]
+   }
+  },
+  "metadata": {
+   "tileMetadataRenderer": {
+    "title": {
+     "simpleText": "Retro Tech S2"
+    },
+    "lines": [
+     {
+      "lineRenderer": {
+       "items": [
+        {
+         "lineItemRenderer": {
+          "text": {
+           "simpleText": "Marques Brownlee \u2022 Retro Tech: Flying Cars"
+          }
+         }
+        }
+       ],
+       "wrap": true
+      }
+     }
+    ]
+   }
+  },
+  "onSelectCommand": {
+   "browseEndpoint": {
+    "browseId": "VLPLBsP89CPrMeNIuvr9j3_EQaMwaNJ6rhuQ",
+    "pageAnimation": {
+     "preloadPageConfig": {
+      "ghostState": "GHOST_STATE_EPISODIC_SHOW_PAGE"
+     }
+    }
+   }
+  },
+  "contentId": "PLBsP89CPrMeNIuvr9j3_EQaMwaNJ6rhuQ",
+  "contentType": "TILE_CONTENT_TYPE_PLAYLIST",
+  "onLongPressCommand": {
+   "showMenuCommand": {
+    "contentId": "PLBsP89CPrMeNIuvr9j3_EQaMwaNJ6rhuQ",
+    "thumbnail": {
+     "thumbnails": [
+      {
+       "url": "https://i.ytimg.com/vi/ifI_fwg55k8/hqdefault.jpg?sqp=-oaymwEXCMACELQBSFryq4qpAwkIARUAAIhCGAE=&rs=AOn4CLABXgBJaFIMI79qYc0hdAu8BdOm8A",
+       "width": 320,
+       "height": 180
+      }
+     ]
+    },
+    "title": {
+     "simpleText": "Retro Tech S2"
+    },
+    "subtitle": {
+     "simpleText": "Marques Brownlee \u2022 Retro Tech: Flying Cars"
+    },
+    "menu": {
+     "menuRenderer": {
+      "items": [
+       {
+        "menuNavigationItemRenderer": {
+         "text": {
+          "runs": [
+           {
+            "text": "Play"
+           }
+          ]
+         },
+         "navigationEndpoint": {
+          "watchEndpoint": {
+           "videoId": "ifI_fwg55k8",
+           "playlistId": "PLBsP89CPrMeNIuvr9j3_EQaMwaNJ6rhuQ",
+           "loggingContext": {
+            "vssLoggingContext": {
+             "serializedContextData": "GiJQTEJzUDg5Q1ByTWVOSXV2cjlqM19FUWFNd2FOSjZyaHVR"
+            }
+           },
+           "watchEndpointSupportedOnesieConfig": {
+            "html5PlaybackOnesieConfig": {
+             "commonConfig": {
+              "url": "https://rr5---sn-4g5ednsd.googlevideo.com/initplayback?source=youtube&oeis=1&c=TVHTML5&oad=3200&ovd=3200&oaad=3200&oavd=3200&ocs=700&oewis=1&oputc=1&olis=1&ofpcc=1&epbp=1&msp=1&odepv=1&id=89f23f7f0839e64f&ip=fda3%3Ae722%3Aac3%3A10%3A211%3A7450%3Afefe%3Ac618&mt=1788112247"
+             }
+            }
+           }
+          }
+         }
+        }
+       }
+      ],
+      "accessibility": {
+       "accessibilityData": {
+        "label": "Action menu"
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "nonDefaultStyle": {
+  "style": "TILE_STYLE_YTLR_VERTICAL_LIST",
+  "header": {
+   "tileHeaderRenderer": {
+    "thumbnail": {
+     "thumbnails": [
+      {
+       "url": "https://i.ytimg.com/vi/Vh4O04Bpovw/hqdefault.jpg",
+       "width": 480,
+       "height": 360
+      }
+     ]
+    },
+    "thumbnailOverlays": [
+     {
+      "thumbnailOverlayTimeStatusRenderer": {
+       "text": {
+        "accessibility": {
+         "accessibilityData": {
+          "label": "16 minutes, 9 seconds"
+         }
+        },
+        "simpleText": "16:09"
+       },
+       "style": "DEFAULT"
+      }
+     }
+    ]
+   }
+  },
+  "metadata": {
+   "tileMetadataRenderer": {
+    "title": {
+     "simpleText": "I Explored A $200,000,000 Forgotten Space Colony"
+    },
+    "lines": [
+     {
+      "lineRenderer": {
+       "items": [
+        {
+         "lineItemRenderer": {
+          "text": {
+           "runs": [
+            {
+             "text": "Yes Theory"
+            }
+           ]
+          }
+         }
+        }
+       ]
+      }
+     },
+     {
+      "lineRenderer": {
+       "items": [
+        {
+         "lineItemRenderer": {
+          "badge": {
+           "metadataBadgeRenderer": {
+            "style": "BADGE_STYLE_TYPE_SIMPLE",
+            "label": "4K"
+           }
+          }
+         }
+        },
+        {
+         "lineItemRenderer": {
+          "text": {
+           "accessibility": {
+            "accessibilityData": {
+             "label": "7.4 million views"
+            }
+           },
+           "simpleText": "7.4M views"
+          }
+         }
+        },
+        {
+         "lineItemRenderer": {
+          "text": {
+           "simpleText": "\u2022"
+          }
+         }
+        },
+        {
+         "lineItemRenderer": {
+          "text": {
+           "simpleText": "6 years ago"
+          }
+         }
+        }
+       ]
+      }
+     }
+    ]
+   }
+  },
+  "onSelectCommand": {
+   "watchEndpoint": {
+    "videoId": "Vh4O04Bpovw",
+    "playlistId": "PLbpi6ZahtOH6Blw3RGYpWkSByi_T7Rygb",
+    "playerParams": "iAQB",
+    "loggingContext": {
+     "vssLoggingContext": {
+      "serializedContextData": "GiJQTGJwaTZaYWh0T0g2Qmx3M1JHWXBXa1NCeWlfVDdSeWdi"
+     }
+    },
+    "watchEndpointSupportedOnesieConfig": {
+     "html5PlaybackOnesieConfig": {
+      "commonConfig": {
+       "url": "https://rr1---sn-4g5ednsz.googlevideo.com/initplayback?source=youtube&oeis=1&c=TVHTML5&oad=3200&ovd=3200&oaad=3200&oavd=3200&ocs=700&oewis=1&oputc=1&olis=1&ofpcc=1&msp=1&odepv=1&id=561e0ed38069a2fc&ip=fda3%3Ae722%3Aac3%3A10%3A211%3A7450%3Afefe%3Ac622&mt=1788112022"
+      }
+     }
+    }
+   }
+  },
+  "contentId": "Vh4O04Bpovw",
+  "contentType": "TILE_CONTENT_TYPE_VIDEO",
+  "customData": {
+   "playlistPageTileData": {
+    "setThumbnailAsAppBackground": true
+   }
+  },
+  "onLongPressCommand": {
+   "showMenuCommand": {
+    "contentId": "Vh4O04Bpovw",
+    "thumbnail": {
+     "thumbnails": [
+      {
+       "url": "https://i.ytimg.com/vi/Vh4O04Bpovw/hqdefault.jpg",
+       "width": 480,
+       "height": 360
+      }
+     ]
+    },
+    "title": {
+     "simpleText": "I Explored A $200,000,000 Forgotten Space Colony"
+    },
+    "subtitle": {
+     "simpleText": "Yes Theory \u2022 @YesTheory"
+    },
+    "menu": {
+     "menuRenderer": {
+      "items": [
+       {
+        "menuNavigationItemRenderer": {
+         "text": {
+          "runs": [
+           {
+            "text": "Play"
+           }
+          ]
+         },
+         "navigationEndpoint": {
+          "watchEndpoint": {
+           "videoId": "Vh4O04Bpovw",
+           "playlistId": "PLbpi6ZahtOH6Blw3RGYpWkSByi_T7Rygb",
+           "playerParams": "iAQB",
+           "loggingContext": {
+            "vssLoggingContext": {
+             "serializedContextData": "GiJQTGJwaTZaYWh0T0g2Qmx3M1JHWXBXa1NCeWlfVDdSeWdi"
+            }
+           },
+           "watchEndpointSupportedOnesieConfig": {
+            "html5PlaybackOnesieConfig": {
+             "commonConfig": {
+              "url": "https://rr1---sn-4g5ednsz.googlevideo.com/initplayback?source=youtube&oeis=1&c=TVHTML5&oad=3200&ovd=3200&oaad=3200&oavd=3200&ocs=700&oewis=1&oputc=1&olis=1&ofpcc=1&msp=1&odepv=1&id=561e0ed38069a2fc&ip=fda3%3Ae722%3Aac3%3A10%3A211%3A7450%3Afefe%3Ac622&mt=1788112022"
+             }
+            }
+           }
+          }
+         }
+        }
+       },
+       {
+        "menuNavigationItemRenderer": {
+         "text": {
+          "runs": [
+           {
+            "text": "Go to channel"
+           }
+          ]
+         },
+         "navigationEndpoint": {
+          "browseEndpoint": {
+           "browseId": "UCvK4bOhULCpmLabd2pDMtnA"
+          }
+         }
+        }
+       }
+      ],
+      "accessibility": {
+       "accessibilityData": {
+        "label": "Action menu"
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "watchPivot": {
+  "style": "TILE_STYLE_YTLR_DEFAULT",
+  "header": {
+   "tileHeaderRenderer": {
+    "thumbnail": {
+     "thumbnails": [
+      {
+       "url": "https://i.ytimg.com/vi/XArc1QjsXJg/hqdefault.jpg?sqp=-oaymwEVCMACELQBSFDyq4qpAwcVAACIQhgB&rs=AOn4CLA01YOHVW8E3ImAX47xoyoqnfLhbg",
+       "width": 320,
+       "height": 180
+      }
+     ]
+    },
+    "thumbnailOverlays": [
+     {
+      "thumbnailOverlayTimeStatusRenderer": {
+       "text": {
+        "accessibility": {
+         "accessibilityData": {
+          "label": "34 minutes, 5 seconds"
+         }
+        },
+        "simpleText": "34:05"
+       },
+       "style": "DEFAULT"
+      }
+     }
+    ]
+   }
+  },
+  "metadata": {
+   "tileMetadataRenderer": {
+    "title": {
+     "simpleText": "7 Most Dangerous Ocean Moments Caught on Camera !!"
+    },
+    "lines": [
+     {
+      "lineRenderer": {
+       "items": [
+        {
+         "lineItemRenderer": {
+          "text": {
+           "runs": [
+            {
+             "text": "Nadir trs",
+             "navigationEndpoint": {
+              "browseEndpoint": {
+               "browseId": "UC8NQC017i8Z0FLoet8G6bvw",
+               "canonicalBaseUrl": "/@%D9%86%D8%AF%D9%8A%D8%B1-%D8%AA%D8%B1%D8%B3"
+              }
+             }
+            }
+           ]
+          }
+         }
+        }
+       ]
+      }
+     },
+     {
+      "lineRenderer": {
+       "items": [
+        {
+         "lineItemRenderer": {
+          "text": {
+           "accessibility": {
+            "accessibilityData": {
+             "label": "2.6 million views"
+            }
+           },
+           "simpleText": "2.6M views"
+          }
+         }
+        },
+        {
+         "lineItemRenderer": {
+          "text": {
+           "simpleText": "\u2022"
+          }
+         }
+        },
+        {
+         "lineItemRenderer": {
+          "text": {
+           "simpleText": "3 months ago"
+          }
+         }
+        }
+       ]
+      }
+     }
+    ]
+   }
+  },
+  "onSelectCommand": {
+   "watchEndpoint": {
+    "videoId": "XArc1QjsXJg",
+    "playerParams": "ugUHEgVlbi1VUw%3D%3D",
+    "ustreamerConfig": "KgkKBxIFZW4tVVM=",
+    "watchEndpointSupportedOnesieConfig": {
+     "html5PlaybackOnesieConfig": {
+      "commonConfig": {
+       "url": "https://rr1---sn-4g5ednsz.googlevideo.com/initplayback?source=youtube&oeis=1&c=TVHTML5&oad=3200&ovd=3200&oaad=3200&oavd=3200&ocs=700&oewis=1&oputc=1&olis=1&ofpcc=1&msp=1&odepv=1&id=5c0adcd508ec5c98&ip=fda3%3Ae722%3Aac3%3A10%3A211%3A7450%3Afefe%3Ac621&mt=1788112247"
+      }
+     }
+    }
+   }
+  },
+  "contentId": "XArc1QjsXJg",
+  "contentType": "TILE_CONTENT_TYPE_VIDEO"
+ },
+ "channelRound": {
+  "style": "TILE_STYLE_YTLR_ROUND",
+  "header": {
+   "tileHeaderRenderer": {
+    "thumbnail": {
+     "thumbnails": [
+      {
+       "url": "//yt3.googleusercontent.com/pAx_7PXXheP3O5Ks2_GNky0Sv6ANPiX-XGi9jDDlvz57Ps5dlF5u95neLYPhX0bb4rkKSRjiCQ=s88-c-k-c0x00ffffff-no-rj-mo",
+       "width": 88,
+       "height": 88
+      },
+      {
+       "url": "//yt3.googleusercontent.com/pAx_7PXXheP3O5Ks2_GNky0Sv6ANPiX-XGi9jDDlvz57Ps5dlF5u95neLYPhX0bb4rkKSRjiCQ=s176-c-k-c0x00ffffff-no-rj-mo",
+       "width": 176,
+       "height": 176
+      }
+     ]
+    }
+   }
+  },
+  "metadata": {
+   "tileMetadataRenderer": {
+    "title": {
+     "simpleText": "The Studio"
+    },
+    "lines": [
+     {
+      "lineRenderer": {
+       "items": [
+        {
+         "lineItemRenderer": {
+          "text": {
+           "simpleText": "@TheStudio"
+          }
+         }
+        }
+       ],
+       "wrap": true
+      }
+     },
+     {
+      "lineRenderer": {
+       "items": [
+        {
+         "lineItemRenderer": {
+          "text": {
+           "accessibility": {
+            "accessibilityData": {
+             "label": "1.14 million subscribers"
+            }
+           },
+           "simpleText": "1.14M subscribers"
+          }
+         }
+        }
+       ],
+       "wrap": true
+      }
+     }
+    ]
+   }
+  },
+  "onSelectCommand": {
+   "browseEndpoint": {
+    "browseId": "UCG7J20LhUeLl6y_Emi7OJrA"
+   }
+  },
+  "contentId": "UCG7J20LhUeLl6y_Emi7OJrA",
+  "contentType": "TILE_CONTENT_TYPE_CHANNEL",
+  "onLongPressCommand": {
+   "showMenuCommand": {
+    "contentId": "UCG7J20LhUeLl6y_Emi7OJrA",
+    "thumbnail": {
+     "thumbnails": [
+      {
+       "url": "//yt3.googleusercontent.com/pAx_7PXXheP3O5Ks2_GNky0Sv6ANPiX-XGi9jDDlvz57Ps5dlF5u95neLYPhX0bb4rkKSRjiCQ=s88-c-k-c0x00ffffff-no-rj-mo",
+       "width": 88,
+       "height": 88
+      },
+      {
+       "url": "//yt3.googleusercontent.com/pAx_7PXXheP3O5Ks2_GNky0Sv6ANPiX-XGi9jDDlvz57Ps5dlF5u95neLYPhX0bb4rkKSRjiCQ=s176-c-k-c0x00ffffff-no-rj-mo",
+       "width": 176,
+       "height": 176
+      }
+     ]
+    },
+    "title": {
+     "simpleText": "The Studio"
+    },
+    "subtitle": {
+     "simpleText": "@TheStudio"
+    },
+    "menu": {
+     "menuRenderer": {
+      "items": [
+       {
+        "menuNavigationItemRenderer": {
+         "text": {
+          "runs": [
+           {
+            "text": "View channel"
+           }
+          ]
+         },
+         "navigationEndpoint": {
+          "browseEndpoint": {
+           "browseId": "UCG7J20LhUeLl6y_Emi7OJrA"
+          }
+         }
+        }
+       }
+      ],
+      "accessibility": {
+       "accessibilityData": {
+        "label": "Action menu"
+       }
+      }
+     }
+    }
+   }
+  }
+ }
+}

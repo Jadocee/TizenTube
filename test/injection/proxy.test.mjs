@@ -15,21 +15,36 @@ import { injectUserScript } from './inject.generated.mjs';
 const src = readRepo('standalone', 'service', 'index.ts');
 
 let fail = 0;
-const check = (d, got, want) => { const ok = got === want; if (!ok) fail++;
-  console.log(`${ok?'  ok  ':'FAIL  '}${d.padEnd(58)} ${JSON.stringify(got)}${ok?'':'  want '+JSON.stringify(want)}`); };
+const check = (d, got, want) => {
+    const ok = got === want;
+    if (!ok) fail++;
+    console.log(
+        `${ok ? '  ok  ' : 'FAIL  '}${d.padEnd(58)} ${JSON.stringify(got)}${ok ? '' : `  want ${JSON.stringify(want)}`}`,
+    );
+};
 
-const PORT = 8099, USERSCRIPT_PATH = '/tizentube/userScript.js';
+const PORT = 8099,
+    USERSCRIPT_PATH = '/tizentube/userScript.js';
 const TV = { url: '/tv?foo=1' };
 const inject = (text, req = TV) => injectUserScript(text, req, PORT, USERSCRIPT_PATH);
 
 // --- position: the whole point of the block ---------------------------------
-const yt = '<!doctype html><html><head><script src="/s/desktop/app.js"></script><title>YouTube</title></head><body><div id=container></div></body></html>';
+const yt =
+    '<!doctype html><html><head><script src="/s/desktop/app.js"></script><title>YouTube</title></head><body><div id=container></div></body></html>';
 const out = inject(yt);
-check('tag lands before YouTube\'s first script', out.indexOf('tizentube/userScript.js') < out.indexOf('/s/desktop/app.js'), true);
+check(
+    "tag lands before YouTube's first script",
+    out.indexOf('tizentube/userScript.js') < out.indexOf('/s/desktop/app.js'),
+    true,
+);
 check('tag is inside <head>', out.indexOf('tizentube/userScript.js') > out.indexOf('<head>'), true);
 check('served from localhost, not a CDN', out.includes('cdn.jsdelivr.net'), false);
 check('no cache-busting query', /userScript\.js\?/.test(out), false);
-check('the document is otherwise untouched', out.replace(/<script src="http:\/\/localhost:8099\/tizentube\/userScript\.js"><\/script>/, ''), yt);
+check(
+    'the document is otherwise untouched',
+    out.replace(/<script src="http:\/\/localhost:8099\/tizentube\/userScript\.js"><\/script>/, ''),
+    yt,
+);
 
 // --- which requests get it --------------------------------------------------
 // The gate was never covered: injecting on the wrong responses, or failing to
@@ -38,30 +53,68 @@ check('/tv is injected', inject(yt, { url: '/tv' }).includes('tizentube'), true)
 check('/tv with a query is injected', inject(yt, { url: '/tv?bar=2' }).includes('tizentube'), true);
 check('/tv_config is left alone', inject(yt, { url: '/tv_config' }).includes('tizentube'), false);
 check('another path is left alone', inject(yt, { url: '/watch' }).includes('tizentube'), false);
-check('/tv further down the path is left alone', inject(yt, { url: '/foo/tv' }).includes('tizentube'), false);
+check(
+    '/tv further down the path is left alone',
+    inject(yt, { url: '/foo/tv' }).includes('tizentube'),
+    false,
+);
 
 // --- shapes that are not a normal document ----------------------------------
 const withAttrs = inject('<html><head lang="en"><script src="x"></script></head>');
 check('head with attributes', withAttrs.indexOf('tizentube') < withAttrs.indexOf('src="x"'), true);
-check('uppercase HEAD still matches', inject('<HTML><HEAD><script src="x"></script>').includes('tizentube'), true);
-check('no <head> at all falls back to <html>', inject('<html><body>hi</body></html>').includes('tizentube'), true);
+check(
+    'uppercase HEAD still matches',
+    inject('<HTML><HEAD><script src="x"></script>').includes('tizentube'),
+    true,
+);
+check(
+    'no <head> at all falls back to <html>',
+    inject('<html><body>hi</body></html>').includes('tizentube'),
+    true,
+);
 check('no tags at all still injects', inject('hello').startsWith('<script'), true);
 
 // A '$' in the matched text must not be read as a replacement pattern. This is
 // the trap styleSheet.ts documents too: String.replace reads $& and $1 in the
 // replacement, which is why the real code uses a function.
-check('$ in markup is not a replacement pattern', inject('<html><head data-x="$&$1">').includes('$&$1'), true);
+check(
+    '$ in markup is not a replacement pattern',
+    inject('<html><head data-x="$&$1">').includes('$&$1'),
+    true,
+);
 
 // --- the route must never fail the request ----------------------------------
 // Both of these moved into userScript.ts when the script was packaged into the
 // build; assert where the behaviour actually lives now.
-check('route never fails, even with nothing cached', /if \(body\) return res\.send\(body\);[\s\S]{0,300}res\.send\('console\.error/.test(src), true);
-check('userscript resolved at startup, not on first request', /userScript\.(refresh|get)\(\);/.test(src), true);
+check(
+    'route never fails, even with nothing cached',
+    // \s* after the paren: what is being asserted is that the fallback send
+    // FOLLOWS the body send, not that a formatter left them on one line.
+    /if \(body\) return res\.send\(body\);[\s\S]{0,300}res\.send\(\s*'console\.error/.test(src),
+    true,
+);
+check(
+    'userscript resolved at startup, not on first request',
+    /userScript\.(refresh|get)\(\);/.test(src),
+    true,
+);
 
 const loader = readRepo('standalone', 'service', 'userScript.ts');
-check('loader prefers the packaged copy', loader.includes("require('./userScript.generated.js')"), true);
-check('loader falls back to whatever it already has', loader.includes('// Whatever we already have beats nothing.'), true);
-check('update check compares versions before downloading', loader.includes('isNewer(manifest.version, version)'), true);
+check(
+    'loader prefers the packaged copy',
+    loader.includes("require('./userScript.generated.js')"),
+    true,
+);
+check(
+    'loader falls back to whatever it already has',
+    loader.includes('// Whatever we already have beats nothing.'),
+    true,
+);
+check(
+    'update check compares versions before downloading',
+    loader.includes('isNewer(manifest.version, version)'),
+    true,
+);
 
 // --- the self-updater must never point at another project --------------------
 // It fetched @foxreis/tizentube from jsdelivr, which is UPSTREAM's package. The
@@ -74,14 +127,19 @@ check('update check compares versions before downloading', loader.includes('isNe
 // hazard does not itself trip the check.
 const loaderCode = loader
     .replace(/\/\*[\s\S]*?\*\//g, '')
-    .split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
-check('the updater does not fetch upstream\'s package', /foxreis/.test(loaderCode), false);
+    .split('\n')
+    .filter((l) => !l.trim().startsWith('//'))
+    .join('\n');
+check("the updater does not fetch upstream's package", /foxreis/.test(loaderCode), false);
 check('the updater has no hardcoded CDN url', /cdn\.jsdelivr\.net/.test(loaderCode), false);
 // Off because this fork publishes no userscript of its own yet. If that changes,
 // UPDATE_SOURCE points at a source THIS fork controls -- and this assertion is
 // what makes repointing it a deliberate act rather than an edit nobody notices.
-check('updates are off until there is a source this fork owns',
-      /const UPDATE_SOURCE[^=]*=\s*null;/.test(loaderCode), true);
+check(
+    'updates are off until there is a source this fork owns',
+    /const UPDATE_SOURCE[^=]*=\s*null;/.test(loaderCode),
+    true,
+);
 
 console.log(fail ? `\n${fail} FAILURES` : '\nALL PASS');
 process.exit(fail ? 1 : 0);

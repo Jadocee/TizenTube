@@ -17,7 +17,9 @@ const { check, done } = checker();
 // Deriving it here means a change back to `block` in ui.ts fails the spacing
 // check below instead of silently bypassing it.
 const uiSource = readRepo('mods', 'ui', 'ui.ts');
-const shown = [...uiSource.matchAll(/uiContainer\.style(?:\.display|\['display'\])\s*=\s*'([a-z-]+)'/g)]
+const shown = [
+    ...uiSource.matchAll(/uiContainer\.style(?:\.display|\['display'\])\s*=\s*'([a-z-]+)'/g),
+]
     .map((m) => m[1])
     .filter((v) => v !== 'none');
 if (shown.length === 0) {
@@ -66,28 +68,66 @@ await page.setContent(`<!doctype html><html><head><meta charset="utf-8">
 </body></html>`);
 
 const px = (v) => parseFloat(v) || 0;
-const styles = (sel, props) => page.evaluate(([s, p]) => {
-    const el = document.querySelector(s);
-    if (!el) return null;
-    const cs = getComputedStyle(el);
-    return Object.fromEntries(p.map((k) => [k, cs.getPropertyValue(k)]));
-}, [sel, props]);
+const styles = (sel, props) =>
+    page.evaluate(
+        ([s, p]) => {
+            const el = document.querySelector(s);
+            if (!el) return null;
+            const cs = getComputedStyle(el);
+            return Object.fromEntries(p.map((k) => [k, cs.getPropertyValue(k)]));
+        },
+        [sel, props],
+    );
 
 // --- the nesting actually parsed -------------------------------------------
 // If the browser rejected the nested block every one of these is unstyled, so
 // this is the canary for the whole file.
-const row = await styles('.ytaf-ui-row', ['display', 'background-color', 'border-radius']);
+const row = await styles('.ytaf-ui-row', [
+    'display',
+    'background-color',
+    'background-image',
+    'border-radius',
+]);
 // The row's fill is set inside the nested block, so a browser that rejected the
 // nesting leaves it transparent and every other check below is meaningless.
-check('nesting parsed (the row has its fill)',
-      row !== null && row['background-color'] !== 'rgba(0, 0, 0, 0)', true);
+check(
+    'nesting parsed (the row has its fill)',
+    row !== null && row['background-color'] !== 'rgba(0, 0, 0, 0)',
+    true,
+);
 check('label and value sit on one line', row.display, 'flex');
+
+// The row's top-edge gradient, asserted in the browser because that is the only
+// place the question is decided. It shipped dead: the `background` shorthand sat
+// two lines below `background-image` and reset it to none, so every row rendered
+// flat while the source still carried the gradient and a comment explaining it.
+// Nothing looked broken -- a gradient that does not render and a gradient too
+// subtle to notice are the same picture. Reading the source cannot tell them
+// apart either; only the cascade can.
+check('the row gradient survives the cascade', row['background-image'] !== 'none', true);
+check('  ...and it is the top-edge lift', /linear-gradient/.test(row['background-image']), true);
+
+// ...and on focus, where a shorthand would have dropped it again.
+const rowFocus = await page.evaluate(() => {
+    const el = document.querySelector('.ytaf-ui-row input');
+    if (!el) return null;
+    el.focus();
+    const cs = getComputedStyle(document.querySelector('.ytaf-ui-row'));
+    return {
+        image: cs.getPropertyValue('background-image'),
+        color: cs.getPropertyValue('background-color'),
+    };
+});
+check('focus keeps the gradient', rowFocus !== null && rowFocus.image !== 'none', true);
+check('  ...while changing the fill', rowFocus.color !== row['background-color'], true);
 
 // --- the panel as the code actually opens it --------------------------------
 // Whatever mechanism supplies the spacing -- container `gap`, per-row margins --
 // two settings must not fuse into one slab at 10 feet.
 const spacing = await page.evaluate(() => {
-    const rows = [...document.querySelectorAll('.ytaf-ui-row')].map((e) => e.getBoundingClientRect());
+    const rows = [...document.querySelectorAll('.ytaf-ui-row')].map((e) =>
+        e.getBoundingClientRect(),
+    );
     const sub = document.querySelector('.ytaf-ui-subtitle').getBoundingClientRect();
     const hint = document.querySelector('.ytaf-ui-hint').getBoundingClientRect();
     return {
@@ -103,17 +143,26 @@ check('the subtitle does not run into the first row', spacing.subtitleToRow >= 8
 check('the hint is not glued to the last row', spacing.rowToHint >= 8, true);
 
 // --- rounded corners --------------------------------------------------------
-const panel = await styles('.ytaf-ui-container', ['border-radius', 'position', 'z-index', 'color', 'background-color']);
+const panel = await styles('.ytaf-ui-container', [
+    'border-radius',
+    'position',
+    'z-index',
+    'color',
+    'background-color',
+]);
 check('panel has rounded corners', px(panel['border-radius']) >= 16, true);
 check('rows have rounded corners', px(row['border-radius']) >= 12, true);
-const input = await styles('.ytaf-ui-container input[type=text]', ['border-radius', 'font-size', 'color']);
+const input = await styles('.ytaf-ui-container input[type=text]', [
+    'border-radius',
+    'font-size',
+    'color',
+]);
 check('inputs have rounded corners', px(input['border-radius']) >= 8, true);
 const swatch = await styles('.ytaf-ui-swatch', ['border-radius', 'width', 'height']);
 check('swatch has rounded corners', px(swatch['border-radius']) >= 8, true);
 // Size first: two equal lengths are also equal when both are 0, so squareness
 // alone stays green for a swatch that has collapsed to nothing.
-check('swatch is a visible square',
-      px(swatch.width) >= 24 && swatch.width === swatch.height, true);
+check('swatch is a visible square', px(swatch.width) >= 24 && swatch.width === swatch.height, true);
 
 // --- readable from across a room -------------------------------------------
 check('body text is at least 24px', px(input['font-size']) >= 24, true);
@@ -121,10 +170,14 @@ const label = await styles('.ytaf-ui-row-label', ['font-size']);
 check('row labels are at least 24px', px(label['font-size']) >= 24, true);
 
 const luminance = (rgb) => {
-    const [r, g, b] = rgb.match(/\d+(\.\d+)?/g).slice(0, 3).map(Number).map((v) => {
-        const c = v / 255;
-        return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
-    });
+    const [r, g, b] = rgb
+        .match(/\d+(\.\d+)?/g)
+        .slice(0, 3)
+        .map(Number)
+        .map((v) => {
+            const c = v / 255;
+            return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+        });
     return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 };
 const contrast = (a, b) => {
@@ -139,7 +192,10 @@ const contrast = (a, b) => {
 const over = (rgba, backdrop) => {
     const parts = rgba.match(/\d+(\.\d+)?/g).map(Number);
     const alpha = parts.length > 3 ? parts[3] : 1;
-    return `rgb(${parts.slice(0, 3).map((c) => c * alpha + backdrop * (1 - alpha)).join(', ')})`;
+    return `rgb(${parts
+        .slice(0, 3)
+        .map((c) => c * alpha + backdrop * (1 - alpha))
+        .join(', ')})`;
 };
 const ratio = contrast(panel.color, over(panel['background-color'], 255));
 check('panel text clears 3:1 for large text', ratio >= 3, true);
@@ -152,11 +208,19 @@ const focused = await page.evaluate(() => {
     return { width: cs.outlineWidth, style: cs.outlineStyle, rowBg: rowCs.backgroundColor };
 });
 check('focused control draws an outline', focused.style !== 'none' && px(focused.width) >= 3, true);
-check('the whole row lights up, not just the control', focused.rowBg !== row['background-color'], true);
+check(
+    'the whole row lights up, not just the control',
+    focused.rowBg !== row['background-color'],
+    true,
+);
 
 // --- the YouTube overrides still land ---------------------------------------
 const shadow = await styles('.ytLrWatchDefaultShadow', ['position', 'pointer-events', 'display']);
-check('player shadow override applies', shadow.position === 'absolute' && shadow['pointer-events'] === 'none', true);
+check(
+    'player shadow override applies',
+    shadow.position === 'absolute' && shadow['pointer-events'] === 'none',
+    true,
+);
 const shorts = await styles('.ytLrTileHeaderRendererShorts', ['background-image']);
 check('shorts background override applies', shorts['background-image'], 'none');
 const playhead = await styles('.ytLrProgressBarPlayhead', ['z-index']);
@@ -172,15 +236,24 @@ check('multiline subtitle override applies', subtitle['white-space'], 'pre-wrap'
 const box = await page.evaluate(() => {
     const r = document.querySelector('.ytaf-ui-container').getBoundingClientRect();
     return {
-        left: r.left, right: innerWidth - r.right,
-        top: r.top, bottom: innerHeight - r.bottom,
-        safeX: innerWidth * 0.05, safeY: innerHeight * 0.05,
+        left: r.left,
+        right: innerWidth - r.right,
+        top: r.top,
+        bottom: innerHeight - r.bottom,
+        safeX: innerWidth * 0.05,
+        safeY: innerHeight * 0.05,
     };
 });
-check('panel clears the title-safe inset left and right',
-      Math.min(box.left, box.right) >= box.safeX, true);
-check('panel clears the title-safe inset top and bottom',
-      Math.min(box.top, box.bottom) >= box.safeY, true);
+check(
+    'panel clears the title-safe inset left and right',
+    Math.min(box.left, box.right) >= box.safeX,
+    true,
+);
+check(
+    'panel clears the title-safe inset top and bottom',
+    Math.min(box.top, box.bottom) >= box.safeY,
+    true,
+);
 
 await browser.close();
 done();

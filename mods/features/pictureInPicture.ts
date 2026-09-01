@@ -1,8 +1,8 @@
 // Picture in Picture Mode for TizenTube
 
-import resolveCommand from "../resolveCommand.js";
-import { whenBodyReady } from "../utils/domReady.js";
-import { addPreviewVeto } from "./playbackPreview.js";
+import resolveCommand from '../resolveCommand.js';
+import { whenBodyReady } from '../utils/domReady.js';
+import { addPreviewVeto } from './playbackPreview.js';
 
 window.isPipPlaying = false;
 
@@ -33,7 +33,7 @@ function pipLoad(): void {
         // window._yttv is published by YouTube's own bundle. Every other feature
         // in the mod retries for it; this one assumed it was already there,
         // which threw "Cannot convert undefined or null to object".
-        const mappings = window._yttv && Object.values(window._yttv).find(a => a && a.mappings);
+        const mappings = window._yttv && Object.values(window._yttv).find((a) => a && a.mappings);
         // Having a `mappings` property does not make an entry the registry:
         // `get` was called unguarded, so any other object carrying that property
         // name threw "mappings.get is not a function" from here.
@@ -108,7 +108,8 @@ function enablePip(): void {
                     pipObserver = null;
 
                     setTimeout(() => {
-                        PlayerService.loadedPlaybackConfig.watchEndpoint.startTimeSeconds = timestamp;
+                        PlayerService.loadedPlaybackConfig.watchEndpoint.startTimeSeconds =
+                            timestamp;
                         PlayerService.loadVideo(PlayerService.loadedPlaybackConfig);
                     }, 1000);
                 }
@@ -122,33 +123,34 @@ function enablePip(): void {
     // Exit from the current video player
     resolveCommand({
         signalAction: {
-            signal: "HISTORY_BACK"
-        }
+            signal: 'HISTORY_BACK',
+        },
     });
 }
 
 function pipToFullscreen(): void {
-    const { clickTrackingParams, commandMetadata, watchEndpoint } = PlayerService.loadedPlaybackConfig;
+    const { clickTrackingParams, commandMetadata, watchEndpoint } =
+        PlayerService.loadedPlaybackConfig;
     watchEndpoint.startTimeSeconds = Math.floor(document.querySelector('video')!.currentTime);
     const command = {
         clickTrackingParams,
         commandMetadata,
-        watchEndpoint
+        watchEndpoint,
     };
     resolveCommand(command);
     window.isPipPlaying = false;
-};
+}
 
 const originalClasses = {
     ytlrSearchVoice: {
         length: 0,
-        classes: [] as string[]
+        classes: [] as string[],
     },
     ytlrSearchVoiceMicButton: {
         length: 0,
-        classes: [] as string[]
-    }
-}
+        classes: [] as string[],
+    },
+};
 
 const observerPipEnter = new MutationObserver(() => {
     // Keyed off the flag rather than off any one caller, so every exit path --
@@ -165,7 +167,11 @@ const observerPipEnter = new MutationObserver(() => {
         if (!pipButtonExists) {
             const voiceButton = searchBar.querySelector('ytlr-search-voice');
             if (voiceButton) {
-                const iconClassNames = window._yttv && Object.values(window._yttv).find(a => a instanceof Map && a.has("CLEAR_COOKIES"));
+                const iconClassNames =
+                    window._yttv &&
+                    Object.values(window._yttv).find(
+                        (a) => a instanceof Map && a.has('CLEAR_COOKIES'),
+                    );
                 if (!iconClassNames) return;
                 const iconClassToBeRemoved = iconClassNames.get('MICROPHONE_ON');
                 const iconClearCookiesClass = iconClassNames.get('CLEAR_COOKIES');
@@ -186,25 +192,34 @@ const observerPipEnter = new MutationObserver(() => {
                         originalClasses.ytlrSearchVoice.classes.push(voiceButton.classList[i]);
 
                     pipButton.classList.add(voiceButton.classList[i]);
-
                 }
                 pipButton.style.left = '10.25em';
                 pipButton.id = 'tt-pip-button';
                 const pipButtonMicButton = document.createElement('ytlr-search-voice-mic-button');
                 for (let i = 0; i < voiceButton.children[0].classList.length; i++) {
                     if (originalClasses.ytlrSearchVoiceMicButton.length === 0) {
-                        originalClasses.ytlrSearchVoiceMicButton.length = voiceButton.children[0].classList.length;
+                        originalClasses.ytlrSearchVoiceMicButton.length =
+                            voiceButton.children[0].classList.length;
                     }
-                    
-                    if (originalClasses.ytlrSearchVoiceMicButton.length !== voiceButton.children[0].classList.length) {
+
+                    if (
+                        originalClasses.ytlrSearchVoiceMicButton.length !==
+                        voiceButton.children[0].classList.length
+                    ) {
                         for (const className of originalClasses.ytlrSearchVoiceMicButton.classes) {
                             pipButtonMicButton.classList.add(className);
                         }
                         break;
                     }
 
-                    if (!originalClasses.ytlrSearchVoiceMicButton.classes.includes(voiceButton.children[0].classList[i]))
-                        originalClasses.ytlrSearchVoiceMicButton.classes.push(voiceButton.children[0].classList[i]);
+                    if (
+                        !originalClasses.ytlrSearchVoiceMicButton.classes.includes(
+                            voiceButton.children[0].classList[i],
+                        )
+                    )
+                        originalClasses.ytlrSearchVoiceMicButton.classes.push(
+                            voiceButton.children[0].classList[i],
+                        );
 
                     pipButtonMicButton.classList.add(voiceButton.children[0].classList[i]);
                 }
@@ -231,7 +246,11 @@ const observerPipEnter = new MutationObserver(() => {
                 pipButtonMicButton.classList.add('ytLrSearchVoiceMicButtonHost', 'zylon-ve');
                 const pipIcon = document.createElement('yt-icon');
                 pipIcon.setAttribute('tabindex', '-1');
-                pipIcon.classList.add('ytContribIconTvArrowLeft', 'ytContribIconHost', 'ytLrSearchVoiceMicButtonIcon');
+                pipIcon.classList.add(
+                    'ytContribIconTvArrowLeft',
+                    'ytContribIconHost',
+                    'ytLrSearchVoiceMicButtonIcon',
+                );
 
                 pipButtonMicButton.appendChild(pipIcon);
                 pipButton.appendChild(pipButtonMicButton);
@@ -243,7 +262,4 @@ const observerPipEnter = new MutationObserver(() => {
 
 whenBodyReady(() => observerPipEnter.observe(document.body, { childList: true, subtree: true }));
 
-export {
-    enablePip,
-    pipToFullscreen
-}
+export { enablePip, pipToFullscreen };

@@ -3,7 +3,9 @@ import { setStyleBlock } from './styleSheet.js';
 import { whenBodyReady } from '../utils/domReady.js';
 
 function updateStyle(): void {
-    setStyleBlock('theme', `
+    setStyleBlock(
+        'theme',
+        `
     ytlr-guide-response yt-focus-container {
         background-color: ${configRead('focusContainerColor')};
     }
@@ -11,8 +13,9 @@ function updateStyle(): void {
     #container {
         background-color: ${configRead('routeColor')} !important;
     }
-`);
-};
+`,
+    );
+}
 
 configChangeEmitter.addEventListener('configChange', (e) => {
     if (e.detail.key === 'focusContainerColor' || e.detail.key === 'routeColor') {

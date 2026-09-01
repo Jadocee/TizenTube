@@ -53,7 +53,7 @@ function ensureOwnStyle(): HTMLStyleElement | null {
         style.setAttribute('nonce', nonce);
         try {
             style.nonce = nonce;
-        } catch (e) { }
+        } catch (_e) {}
     }
 
     parent.appendChild(style);
@@ -97,9 +97,9 @@ export function setStyleBlock(name: string, css: string): void {
 
     const css2 = render();
     existingStyle.textContent = fallbackCss
-        // A function replacement, so a '$' in a stored colour cannot be read as
-        // a replacement pattern.
-        ? existingStyle.textContent.replace(fallbackCss, () => css2)
+        ? // A function replacement, so a '$' in a stored colour cannot be read as
+          // a replacement pattern.
+          existingStyle.textContent.replace(fallbackCss, () => css2)
         : existingStyle.textContent + css2;
     fallbackCss = css2;
 }

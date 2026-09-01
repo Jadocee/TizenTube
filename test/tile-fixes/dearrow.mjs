@@ -29,8 +29,15 @@ function stubFetch(body, { ok = true, reject = false } = {}) {
 }
 
 const BRANDING = {
-    titles: [{ title: 'quiet', votes: 1 }, { title: 'loudest', votes: 9 }, { title: 'middle', votes: 4 }],
-    thumbnails: [{ timestamp: 12.5, votes: 3 }, { timestamp: 60, votes: 8 }],
+    titles: [
+        { title: 'quiet', votes: 1 },
+        { title: 'loudest', votes: 9 },
+        { title: 'middle', votes: 4 },
+    ],
+    thumbnails: [
+        { timestamp: 12.5, votes: 3 },
+        { timestamp: 60, votes: 8 },
+    ],
 };
 
 // --- one request per video, not per tile ------------------------------------
@@ -45,23 +52,37 @@ check('30 tiles over 10 videos make 10 requests', requests.length, 10);
 
 // The same promise object, not merely an equal value: twenty tiles asking at
 // once must share one in-flight request rather than starting twenty.
-check('a repeated id returns the identical promise',
-      fetchBranding('vid0') === fetchBranding('vid0'), true);
+check(
+    'a repeated id returns the identical promise',
+    // Not a redundant comparison: the two calls return DIFFERENT objects unless
+    // the cache is doing its job, which is the entire assertion -- identity, not
+    // equality.
+    // biome-ignore lint/suspicious/noSelfCompare: asserts promise identity
+    fetchBranding('vid0') === fetchBranding('vid0'),
+    true,
+);
 
 // --- the URL --------------------------------------------------------------
-check('asks the branding endpoint', /sponsor\.ajay\.app\/api\/branding\?videoID=vid0$/.test(requests[0]), true);
+check(
+    'asks the branding endpoint',
+    /sponsor\.ajay\.app\/api\/branding\?videoID=vid0$/.test(requests[0]),
+    true,
+);
 resetBrandingCache();
 requests = [];
 await fetchBranding('a b&c=d');
-check('an id with url metacharacters is encoded',
-      /videoID=a%20b%26c%3Dd$/.test(requests[0]), true);
+check('an id with url metacharacters is encoded', /videoID=a%20b%26c%3Dd$/.test(requests[0]), true);
 
 // --- failures are not cached ------------------------------------------------
 // A transient failure on the first shelf must not poison every later one.
 resetBrandingCache();
 requests = [];
 stubFetch(null, { reject: true });
-check('a rejected request resolves to null rather than throwing', await fetchBranding('vidX'), null);
+check(
+    'a rejected request resolves to null rather than throwing',
+    await fetchBranding('vidX'),
+    null,
+);
 stubFetch(BRANDING);
 await fetchBranding('vidX');
 check('  ...and is evicted, so a later shelf retries', requests.length, 2);
@@ -98,8 +119,11 @@ check('  ...and none of them made a request', requests.length, 0);
 const savedFetch = globalThis.fetch;
 delete globalThis.fetch;
 resetBrandingCache();
-check('an engine with no fetch resolves to null rather than throwing',
-      await fetchBranding('vid0'), null);
+check(
+    'an engine with no fetch resolves to null rather than throwing',
+    await fetchBranding('vid0'),
+    null,
+);
 globalThis.fetch = savedFetch;
 
 // --- picking a winner -------------------------------------------------------
@@ -114,7 +138,10 @@ check('no thumbnails yields null', bestThumbnailTime({ thumbnails: [] }), null);
 check('null yields null', bestThumbnailTime(null), null);
 // An entry can win the vote and still carry no timestamp -- the original code
 // read `.timestamp` off the winner and produced undefined in a URL.
-check('a winner with no timestamp yields null',
-      bestThumbnailTime({ thumbnails: [{ votes: 99 }, { timestamp: 5, votes: 1 }] }), null);
+check(
+    'a winner with no timestamp yields null',
+    bestThumbnailTime({ thumbnails: [{ votes: 99 }, { timestamp: 5, votes: 1 }] }),
+    null,
+);
 
 done();

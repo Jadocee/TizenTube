@@ -49,7 +49,7 @@ export function applyFocusMotion(tectonicConfig: any, enabled: boolean): number 
             if (!group || typeof group !== 'object') continue;
             group[settings.key] = settings.value;
             applied++;
-        } catch (e) {
+        } catch (_e) {
             // A getter-only or frozen property. Keep going; the rest are
             // independent.
         }

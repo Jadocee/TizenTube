@@ -7,7 +7,7 @@ import type {
     QueuedTile,
     Renderer,
     TextRuns,
-    Thumbnail
+    Thumbnail,
 } from '../types/youtube';
 
 /** A command whose payload is one of YouTube's own untyped popup trees. */
@@ -35,6 +35,10 @@ interface LongPressSource {
     subtitle: string;
     watchEndpointData: { playlistId?: string; [key: string]: any };
     item: any;
+    /** Rows the caller wants after the four standard ones. Appended last so a
+     *  destructive action is never adjacent to Play, which is index 0 and the
+     *  one a stray press lands on. */
+    extraRows?: any[];
 }
 
 /** A category in YouTube's own settings list. */
@@ -55,7 +59,12 @@ interface SettingCategory {
 // in three seconds silently showed nothing the second time.
 let lastToast = { key: '', at: 0 };
 
-function showToast(title: string, subtitle: string, thumbnails?: Thumbnail[] | null, coalesce = false): void {
+function showToast(
+    title: string,
+    subtitle: string,
+    thumbnails?: Thumbnail[] | null,
+    coalesce = false,
+): void {
     const key = `${title}\u0000${subtitle}`;
     const now = Date.now();
     if (coalesce && key === lastToast.key && now - lastToast.at < 3000) return;
@@ -66,15 +75,15 @@ function showToast(title: string, subtitle: string, thumbnails?: Thumbnail[] | n
             popup: {
                 overlayToastRenderer: {
                     title: {
-                        simpleText: title
+                        simpleText: title,
                     },
                     subtitle: {
-                        simpleText: subtitle
-                    }
-                }
-            }
-        }
-    }
+                        simpleText: subtitle,
+                    },
+                },
+            },
+        },
+    };
 
     if (thumbnails) {
         toastCmd.openPopupAction.popup.overlayToastRenderer.image = { thumbnails };
@@ -89,25 +98,26 @@ function OverlayPanelHeaderRenderer(title: string, subtitle: string, thumbnails:
     return {
         overlayPanelHeaderRenderer: {
             title: {
-                simpleText: title
+                simpleText: title,
             },
             subtitle: {
-                simpleText: subtitle
+                simpleText: subtitle,
             },
             image: {
-                thumbnails: thumbnails
+                thumbnails: thumbnails,
             },
-            style: "OVERLAY_PANEL_HEADER_STYLE_VIDEO_THUMBNAIL"
-        }
-    }
+            style: 'OVERLAY_PANEL_HEADER_STYLE_VIDEO_THUMBNAIL',
+        },
+    };
 }
 
 function Modal(header: ModalHeader, content: Renderer, id: string, update?: unknown): Command {
     const titleSubtitleObj = typeof header === 'string' ? { title: header, subtitle: '' } : header;
-    const overlayPanelHeaderRenderer: Record<string, any> = (header as Exclude<ModalHeader, string>).overlayPanelHeaderRenderer || {
+    const overlayPanelHeaderRenderer: Record<string, any> = (header as Exclude<ModalHeader, string>)
+        .overlayPanelHeaderRenderer || {
         title: {
-            simpleText: titleSubtitleObj.title
-        }
+            simpleText: titleSubtitleObj.title,
+        },
     };
     const modalCmd: PopupCommand = {
         openPopupAction: {
@@ -119,42 +129,43 @@ function Modal(header: ModalHeader, content: Renderer, id: string, update?: unkn
                             actionPanel: {
                                 overlayPanelRenderer: {
                                     header: {
-                                        overlayPanelHeaderRenderer
+                                        overlayPanelHeaderRenderer,
                                     },
-                                    content
-                                }
+                                    content,
+                                },
                             },
                             backButton: {
                                 buttonRenderer: {
                                     accessibilityData: {
                                         accessibilityData: {
-                                            label: t('common.back')
-                                        }
+                                            label: t('common.back'),
+                                        },
                                     },
                                     command: {
                                         signalAction: {
-                                            signal: 'POPUP_BACK'
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                                            signal: 'POPUP_BACK',
+                                        },
+                                    },
+                                },
+                            },
+                        },
                     },
                     dismissalCommand: {
                         signalAction: {
-                            signal: 'POPUP_BACK'
-                        }
-                    }
-                }
+                            signal: 'POPUP_BACK',
+                        },
+                    },
+                },
             },
-            uniqueId: id
-        }
-    }
+            uniqueId: id,
+        },
+    };
 
     if (titleSubtitleObj.subtitle) {
-        modalCmd.openPopupAction.popup.overlaySectionRenderer.overlay.overlayTwoPanelRenderer.actionPanel.overlayPanelRenderer.header.overlayPanelHeaderRenderer.subtitle = {
-            simpleText: titleSubtitleObj.subtitle
-        };
+        modalCmd.openPopupAction.popup.overlaySectionRenderer.overlay.overlayTwoPanelRenderer.actionPanel.overlayPanelRenderer.header.overlayPanelHeaderRenderer.subtitle =
+            {
+                simpleText: titleSubtitleObj.subtitle,
+            };
     }
 
     if (update) {
@@ -175,49 +186,58 @@ function overlayPanelItemListRenderer(items: Renderer[], selectedIndex?: number)
     return {
         overlayPanelItemListRenderer: {
             items,
-            selectedIndex
-        }
-    }
-};
+            selectedIndex,
+        },
+    };
+}
 
-function buttonItem(title: ButtonItemTitle, icon: ButtonItemIcon | null | undefined, commands: Command[]): CompactLinkRenderer {
+function buttonItem(
+    title: ButtonItemTitle,
+    icon: ButtonItemIcon | null | undefined,
+    commands: Command[],
+): CompactLinkRenderer {
     const button: CompactLinkRenderer = {
         compactLinkRenderer: {
             serviceEndpoint: {
                 commandExecutorCommand: {
-                    commands
-                }
-            }
-        }
-    }
+                    commands,
+                },
+            },
+        },
+    };
 
     button.compactLinkRenderer.title = {
-        simpleText: title.title
-    }
+        simpleText: title.title,
+    };
 
     if (title.subtitle) {
         button.compactLinkRenderer.subtitle = {
-            simpleText: title.subtitle
-        }
+            simpleText: title.subtitle,
+        };
     }
 
     if (icon) {
         button.compactLinkRenderer.icon = {
             iconType: icon.icon,
-        }
+        };
     }
 
     if (icon && icon.secondaryIcon) {
         button.compactLinkRenderer.secondaryIcon = {
             iconType: icon.secondaryIcon,
-        }
+        };
     }
 
     return button;
 }
 
-
-function timelyAction(text: string, icon: string, command: Command, triggerTimeMs: number, timeoutMs: number) {
+function timelyAction(
+    text: string,
+    icon: string,
+    command: Command,
+    triggerTimeMs: number,
+    timeoutMs: number,
+) {
     return {
         timelyActionRenderer: {
             actionButtons: [
@@ -227,95 +247,102 @@ function timelyAction(text: string, icon: string, command: Command, triggerTimeM
                         text: {
                             runs: [
                                 {
-                                    text: text
-                                }
-                            ]
+                                    text: text,
+                                },
+                            ],
                         },
                         icon: {
-                            iconType: icon
+                            iconType: icon,
                         },
                         trackingParams: null,
-                        command
-                    }
-                }
+                        command,
+                    },
+                },
             ],
             triggerTimeMs,
             timeoutMs,
-            type: ''
-        }
-    }
-
+            type: '',
+        },
+    };
 }
 
 function longPressData(data: LongPressSource): Command {
     const isWatchLaterItem = data.watchEndpointData.playlistId === 'WL';
-    const watchLaterAction = isWatchLaterItem ? {
-        removedVideoId: data.videoId,
-        action: 'ACTION_REMOVE_VIDEO_BY_VIDEO_ID'
-    } : {
-        addedVideoId: data.videoId,
-        action: 'ACTION_ADD_VIDEO'
-    };
+    const watchLaterAction = isWatchLaterItem
+        ? {
+              removedVideoId: data.videoId,
+              action: 'ACTION_REMOVE_VIDEO_BY_VIDEO_ID',
+          }
+        : {
+              addedVideoId: data.videoId,
+              action: 'ACTION_ADD_VIDEO',
+          };
 
     return {
         clickTrackingParams: null,
         showMenuCommand: {
             contentId: data.videoId,
             thumbnail: {
-                thumbnails: data.thumbnails
+                thumbnails: data.thumbnails,
             },
             title: {
-                simpleText: data.title
+                simpleText: data.title,
             },
             subtitle: {
-                simpleText: data.subtitle
+                simpleText: data.subtitle,
             },
             menu: {
                 menuRenderer: {
                     items: [
                         MenuNavigationItemRenderer(t('longPress.play'), {
                             clickTrackingParams: null,
-                            watchEndpoint: data.watchEndpointData
+                            watchEndpoint: data.watchEndpointData,
                         }),
-                        MenuServiceItemRenderer(isWatchLaterItem ? t('longPress.removeFromWatchLater') : t('longPress.saveToWatchLater'), {
-                            clickTrackingParams: null,
-                            commandMetadata: {
-                                webCommandMetadata: {
-                                    sendPost: true,
-                                    apiUrl: '/youtubei/v1/browse/edit_playlist'
-                                }
+                        MenuServiceItemRenderer(
+                            isWatchLaterItem
+                                ? t('longPress.removeFromWatchLater')
+                                : t('longPress.saveToWatchLater'),
+                            {
+                                clickTrackingParams: null,
+                                commandMetadata: {
+                                    webCommandMetadata: {
+                                        sendPost: true,
+                                        apiUrl: '/youtubei/v1/browse/edit_playlist',
+                                    },
+                                },
+                                playlistEditEndpoint: {
+                                    playlistId: 'WL',
+                                    actions: [watchLaterAction],
+                                },
                             },
-                            playlistEditEndpoint: {
-                                playlistId: 'WL',
-                                actions: [watchLaterAction]
-                            }
-                        }),
+                        ),
                         MenuNavigationItemRenderer(t('longPress.saveToPlaylist'), {
                             clickTrackingParams: null,
                             addToPlaylistEndpoint: {
-                                videoId: data.videoId
-                            }
+                                videoId: data.videoId,
+                            },
                         }),
                         MenuServiceItemRenderer(t('longPress.addToQueue'), {
                             clickTrackingParams: null,
                             playlistEditEndpoint: {
                                 customAction: {
                                     action: 'ADD_TO_QUEUE',
-                                    parameters: data.item
-                                }
-                            }
+                                    parameters: data.item,
+                                },
+                            },
                         }),
+                        ...(Array.isArray(data.extraRows) ? data.extraRows : []),
                     ],
                     trackingParams: null,
                     accessibility: {
                         accessibilityData: {
-                            label: t('longPress.videoOptions')
-                        }
-                    }
-                }
-            }
-        }
-    }
+                            label: t('longPress.videoOptions'),
+                        },
+                    },
+                },
+            },
+        },
+    };
 }
 
 function MenuServiceItemRenderer(text: string, serviceEndpoint: Command) {
@@ -324,13 +351,13 @@ function MenuServiceItemRenderer(text: string, serviceEndpoint: Command) {
             text: {
                 runs: [
                     {
-                        text
-                    }
-                ]
+                        text,
+                    },
+                ],
             },
             serviceEndpoint,
-            trackingParams: null
-        }
+            trackingParams: null,
+        },
     };
 }
 
@@ -340,14 +367,14 @@ function MenuNavigationItemRenderer(text: string, navigateEndpoint: Command) {
             text: {
                 runs: [
                     {
-                        text
-                    }
-                ]
+                        text,
+                    },
+                ],
             },
             navigationEndpoint: navigateEndpoint,
-            trackingParams: null
-        }
-    }
+            trackingParams: null,
+        },
+    };
 }
 
 function SettingsCategory(categoryId: string, items: Renderer[], title?: string): SettingCategory {
@@ -356,85 +383,91 @@ function SettingsCategory(categoryId: string, items: Renderer[], title?: string)
             items,
             categoryId,
             focused: false,
-            trackingParams: "null"
-        }
-    }
+            trackingParams: 'null',
+        },
+    };
 
     if (title) {
         category.settingCategoryCollectionRenderer.title = {
             runs: [
                 {
-                    text: title
-                }
-            ]
+                    text: title,
+                },
+            ],
         };
     }
 
     return category;
 }
 
-function SettingActionRenderer(title: string, itemId: string, serviceEndpoint: Command, summary: string, thumbnail: string) {
+function SettingActionRenderer(
+    title: string,
+    itemId: string,
+    serviceEndpoint: Command,
+    summary: string,
+    thumbnail: string,
+) {
     return {
         settingActionRenderer: {
             title: {
                 runs: [
                     {
-                        text: title
-                    }
-                ]
+                        text: title,
+                    },
+                ],
             },
             serviceEndpoint,
             summary: {
                 runs: [
                     {
-                        text: summary
-                    }
-                ]
+                        text: summary,
+                    },
+                ],
             },
-            trackingParams: "null",
+            trackingParams: 'null',
             actionLabel: {
                 runs: [
                     {
-                        text: title
-                    }
-                ]
+                        text: title,
+                    },
+                ],
             },
             itemId,
             thumbnail: {
                 thumbnails: [
                     {
-                        url: thumbnail
-                    }
-                ]
-            }
-        }
-    }
+                        url: thumbnail,
+                    },
+                ],
+            },
+        },
+    };
 }
 
 function scrollPaneRenderer(items: Renderer[]) {
     return {
         scrollPaneRenderer: {
-            content: scrollPaneItemListRenderer(items)
-        }
-    }
+            content: scrollPaneItemListRenderer(items),
+        },
+    };
 }
 
 function scrollPaneItemListRenderer(items: Renderer[]) {
     return {
         scrollPaneItemListRenderer: {
-            items
-        }
-    }
+            items,
+        },
+    };
 }
 
 function overlayMessageRenderer(simpleText: string) {
     return {
         overlayMessageRenderer: {
             title: {
-                simpleText
-            }
-        }
-    }
+                simpleText,
+            },
+        },
+    };
 }
 
 function ShelfRenderer(simpleText: string, items: Renderer[], selectedIndex = 0) {
@@ -442,36 +475,36 @@ function ShelfRenderer(simpleText: string, items: Renderer[], selectedIndex = 0)
         shelfRenderer: {
             shelfHeaderRenderer: {
                 title: {
-                    simpleText
-                }
+                    simpleText,
+                },
             },
-            tvhtml5ShelfRendererType: "TVHTML5_SHELF_RENDERER_TYPE_GRID",
+            tvhtml5ShelfRendererType: 'TVHTML5_SHELF_RENDERER_TYPE_GRID',
             content: {
                 horizontalListRenderer: {
                     items,
                     selectedIndex,
-                    visibleItemCount: 3
-                }
-            }
-        }
-    }
+                    visibleItemCount: 3,
+                },
+            },
+        },
+    };
 }
 
 function TileRenderer(simpleText: string, onSelectCommand: Command): QueuedTile {
     return {
         tileRenderer: {
-            contentType: "TILE_CONTENT_TYPE_VIDEO",
+            contentType: 'TILE_CONTENT_TYPE_VIDEO',
             metadata: {
                 tileMetadataRenderer: {
                     title: {
-                        simpleText
-                    }
-                }
+                        simpleText,
+                    },
+                },
             },
             onSelectCommand,
-            style: "TILE_STYLE_YTLR_DEFAULT"
-        }
-    }
+            style: 'TILE_STYLE_YTLR_DEFAULT',
+        },
+    };
 }
 
 function QrCodeRenderer(url: string) {
@@ -480,14 +513,14 @@ function QrCodeRenderer(url: string) {
             qrCodeImage: {
                 thumbnails: [
                     {
-                        url
-                    }
-                ]
+                        url,
+                    },
+                ],
             },
-            style: "QR_CODE_RENDERER_STYLE_ATA_SIDESHEET",
-            trackingParams: null
-        }
-    }
+            style: 'QR_CODE_RENDERER_STYLE_ATA_SIDESHEET',
+            trackingParams: null,
+        },
+    };
 }
 
 function ButtonRenderer(disabled: boolean, text: string, iconType: string, command: Command) {
@@ -496,15 +529,15 @@ function ButtonRenderer(disabled: boolean, text: string, iconType: string, comma
         text: {
             runs: [
                 {
-                    text: text
-                }
-            ]
+                    text: text,
+                },
+            ],
         },
         icon: {
-            iconType
+            iconType,
         },
         command: command,
-        trackingParams: null
+        trackingParams: null,
     };
 }
 
@@ -526,5 +559,5 @@ export {
     ShelfRenderer,
     TileRenderer,
     QrCodeRenderer,
-    ButtonRenderer
-}
+    ButtonRenderer,
+};

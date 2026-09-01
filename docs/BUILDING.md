@@ -36,7 +36,7 @@ injector, and a `.wgt` cannot exist unsigned — see
 
 | | Version | Why |
 | --- | --- | --- |
-| Node | **22.6 or newer** | twelve harnesses run under `--experimental-strip-types`, which lands in 22.6. On Node 20 they fail before a single assertion. CI pins 22. |
+| Node | **22.6 or newer** | twenty harnesses run under `--experimental-strip-types`, which lands in 22.6. On Node 20 they fail before a single assertion. CI pins 22. |
 | pnpm | 10.33.0 | pinned by `packageManager` in the root `package.json`; `corepack enable` picks it up |
 | Chromium | any recent | only for the five browser harnesses. Without it they *skip*, which is fine locally and a failure in CI |
 | `tizen.js` | from git `main` | only to package a `.wgt`. Not needed to build, typecheck or test |
@@ -55,7 +55,7 @@ pnpm install                              # all four trees, one lockfile
 (cd service && pnpm run build)            # 2. the DIAL service
 (cd standalone/service && pnpm run build) # 3. the app's service
 
-pnpm test                                 # 23 harnesses
+pnpm test                                 # 32 harnesses
 ```
 
 Under ten seconds in total on a warm checkout. If you only want the TizenBrew
@@ -114,10 +114,69 @@ copy. This is the one way to get a `.wgt` that is quietly a version behind.
 ## Checking your work
 
 ```sh
+pnpm check                                         # Biome: format + lint
 pnpm -r --workspace-concurrency=1 run typecheck   # all three TypeScript trees
-pnpm test                                          # 23 harnesses
+pnpm test                                          # 32 harnesses
 pnpm test settings                                 # just the ones matching "settings"
 ```
+
+### Formatting and linting
+
+[Biome](https://biomejs.dev) is both the formatter and the linter, configured in
+`biome.json` at the root. It handles the whole repository — all four package
+trees, the harnesses, JSON and CSS — from a single binary, so there is nothing
+per-package to install or configure.
+
+```sh
+pnpm check        # report formatting and lint problems
+pnpm check:fix    # ...and fix the ones that are safely fixable
+pnpm format       # formatting only
+pnpm lint         # linting only
+```
+
+CI runs `biome ci --error-on-warnings`, and the flag is the point: without it
+Biome exits 0 with a screen full of warnings, which is the same as not running
+it. The repository is clean at that setting, so anything the step reports is
+new.
+
+### Which rules are off, and why
+
+The recommended set reported 494 problems on existing code. Each rule was read
+against what this code actually is before being switched off, because a rule
+disabled to reach green is worse than no rule. Six are off repository-wide:
+
+| Rule | Why |
+| --- | --- |
+| `noExplicitAny` | InnerTube payloads are dynamic JSON from a server this mod does not control. `any` at that boundary is the honest type |
+| `noNonNullAssertion` | every site is a guard TypeScript's narrower cannot follow across a call, and the rule's own suggested fix changes behaviour at more than half of them |
+| `noArguments` | every use is `.apply(this, arguments)` forwarding a call into a function the mod wrapped but does not own. Naming the parameters would change what gets forwarded |
+| `noImportantStyles` | `!important` is how a userscript overrides its host page. Every use is on one of YouTube's own selectors; the mod's own panel uses it zero times |
+| `noGlobalEval` | three sites, all in harnesses that need a *fresh* evaluation of generated code per scenario, which `import` caches |
+| `noImplicitAnyLet` | the message is wrong for TypeScript: `let x;` gets an *evolving* any, narrowed by control flow. `tsc --strict` reports nothing at any of these |
+
+Two are scoped rather than disabled. `useIterableCallbackReturn` keeps its
+`checkForEach: false` option, which silences 20 inert `forEach` callbacks while
+leaving the half that matters — a `map` or `filter` callback that forgets to
+return, which silently drops every element — at error severity.
+`noPrototypeBuiltins` is off only for the two service trees, which target ES2018.
+
+Everything else was fixed. Where an idiom is genuinely right in one place, there
+is a `biome-ignore` on that line with the reason, not a disabled rule.
+
+Four kinds of file are deliberately outside Biome's reach, listed in
+`biome.json`:
+
+| Excluded | Why |
+| --- | --- |
+| `test/**/*.generated.*` | derived from source by `test/refresh.mjs` on every run; formatting them would fight the generator |
+| `test/tile-menu/fixtures.json`, `test/guide-filter/guide.json` | captured verbatim from real InnerTube responses. Reformatting is semantically harmless and still wrong: these files' value is that nothing has touched them |
+| `mods/spatial-navigation-polyfill.js` | vendored third-party code |
+| `dist/` | build output |
+
+If you are wondering why the repository formatted cleanly in one commit rather
+than gradually: that commit is listed in `.git-blame-ignore-revs`, so
+`git blame` skips it. Run `git config blame.ignoreRevsFile .git-blame-ignore-revs`
+once and blame will read as though the reformat never happened.
 
 `test/run.mjs` re-derives its generated snapshots from the current sources
 before every run, so a failure always means the code changed rather than a copy
@@ -193,7 +252,7 @@ upgrade semantics, and it is also what triggers a release in CI.
 
 **`[embed] Missing ...`** — you skipped a build. Run them in order.
 
-**Seven harnesses fail before asserting anything** — Node is older than 22.6.
+**Twenty harnesses fail before asserting anything** — Node is older than 22.6.
 `node -v`.
 
 **`ERR_PNPM_OUTDATED_LOCKFILE` in CI** — a manifest changed without the lockfile.

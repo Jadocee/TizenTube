@@ -45,17 +45,94 @@ const ast = acorn.parse(src, { ecmaVersion: 2022, sourceType: 'script', location
 
 // Names a script may assign to without declaring them itself.
 const AMBIENT = new Set([
-    'globalThis', 'global', 'window', 'self', 'module', 'exports', 'require', '__dirname', '__filename',
-    'process', 'console', 'Buffer', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval',
-    'setImmediate', 'clearImmediate', 'queueMicrotask', 'fetch', 'URL', 'URLSearchParams', 'TextEncoder',
-    'TextDecoder', 'AbortController', 'AbortSignal', 'Event', 'EventTarget', 'MessageChannel', 'structuredClone',
-    'Object', 'Array', 'Function', 'String', 'Number', 'Boolean', 'Symbol', 'Math', 'JSON', 'Date', 'RegExp',
-    'Error', 'TypeError', 'RangeError', 'SyntaxError', 'ReferenceError', 'EvalError', 'URIError', 'Promise',
-    'Map', 'Set', 'WeakMap', 'WeakSet', 'WeakRef', 'Proxy', 'Reflect', 'BigInt', 'Intl', 'ArrayBuffer',
-    'SharedArrayBuffer', 'DataView', 'Atomics', 'Int8Array', 'Uint8Array', 'Uint8ClampedArray', 'Int16Array',
-    'Uint16Array', 'Int32Array', 'Uint32Array', 'Float32Array', 'Float64Array', 'BigInt64Array', 'BigUint64Array',
-    'FinalizationRegistry', 'escape', 'unescape', 'encodeURI', 'decodeURI', 'encodeURIComponent',
-    'decodeURIComponent', 'parseInt', 'parseFloat', 'isNaN', 'isFinite', 'eval', 'NaN', 'Infinity', 'undefined',
+    'globalThis',
+    'global',
+    'window',
+    'self',
+    'module',
+    'exports',
+    'require',
+    '__dirname',
+    '__filename',
+    'process',
+    'console',
+    'Buffer',
+    'setTimeout',
+    'clearTimeout',
+    'setInterval',
+    'clearInterval',
+    'setImmediate',
+    'clearImmediate',
+    'queueMicrotask',
+    'fetch',
+    'URL',
+    'URLSearchParams',
+    'TextEncoder',
+    'TextDecoder',
+    'AbortController',
+    'AbortSignal',
+    'Event',
+    'EventTarget',
+    'MessageChannel',
+    'structuredClone',
+    'Object',
+    'Array',
+    'Function',
+    'String',
+    'Number',
+    'Boolean',
+    'Symbol',
+    'Math',
+    'JSON',
+    'Date',
+    'RegExp',
+    'Error',
+    'TypeError',
+    'RangeError',
+    'SyntaxError',
+    'ReferenceError',
+    'EvalError',
+    'URIError',
+    'Promise',
+    'Map',
+    'Set',
+    'WeakMap',
+    'WeakSet',
+    'WeakRef',
+    'Proxy',
+    'Reflect',
+    'BigInt',
+    'Intl',
+    'ArrayBuffer',
+    'SharedArrayBuffer',
+    'DataView',
+    'Atomics',
+    'Int8Array',
+    'Uint8Array',
+    'Uint8ClampedArray',
+    'Int16Array',
+    'Uint16Array',
+    'Int32Array',
+    'Uint32Array',
+    'Float32Array',
+    'Float64Array',
+    'BigInt64Array',
+    'BigUint64Array',
+    'FinalizationRegistry',
+    'escape',
+    'unescape',
+    'encodeURI',
+    'decodeURI',
+    'encodeURIComponent',
+    'decodeURIComponent',
+    'parseInt',
+    'parseFloat',
+    'isNaN',
+    'isFinite',
+    'eval',
+    'NaN',
+    'Infinity',
+    'undefined',
 ]);
 
 // --- scope model ------------------------------------------------------------
@@ -64,7 +141,10 @@ const declare = (name, kind) => {
     if (!name) return;
     if (kind === 'var' || kind === 'function') {
         for (let i = scopes.length - 1; i >= 0; i--) {
-            if (scopes[i].fn) { scopes[i].names.add(name); return; }
+            if (scopes[i].fn) {
+                scopes[i].names.add(name);
+                return;
+            }
         }
     }
     scopes[scopes.length - 1].names.add(name);
@@ -72,11 +152,21 @@ const declare = (name, kind) => {
 const bindPattern = (node, kind) => {
     if (!node) return;
     switch (node.type) {
-        case 'Identifier': declare(node.name, kind); break;
-        case 'ObjectPattern': node.properties.forEach((p) => bindPattern(p.value || p.argument, kind)); break;
-        case 'ArrayPattern': node.elements.forEach((e) => bindPattern(e, kind)); break;
-        case 'AssignmentPattern': bindPattern(node.left, kind); break;
-        case 'RestElement': bindPattern(node.argument, kind); break;
+        case 'Identifier':
+            declare(node.name, kind);
+            break;
+        case 'ObjectPattern':
+            node.properties.forEach((p) => bindPattern(p.value || p.argument, kind));
+            break;
+        case 'ArrayPattern':
+            node.elements.forEach((e) => bindPattern(e, kind));
+            break;
+        case 'AssignmentPattern':
+            bindPattern(node.left, kind);
+            break;
+        case 'RestElement':
+            bindPattern(node.argument, kind);
+            break;
     }
 };
 const resolved = (name) => scopes.some((s) => s.names.has(name));
@@ -88,9 +178,18 @@ function hoist(body) {
     const seen = [];
     const visit = (n) => {
         if (!n || typeof n.type !== 'string') return;
-        if (n.type === 'VariableDeclaration' && n.kind === 'var') n.declarations.forEach((d) => bindPattern(d.id, 'var'));
-        if (n.type === 'FunctionDeclaration') { declare(n.id && n.id.name, 'function'); return; }
-        if (/Function(Expression|Declaration)|ArrowFunctionExpression|ClassDeclaration|ClassExpression/.test(n.type)) return;
+        if (n.type === 'VariableDeclaration' && n.kind === 'var')
+            n.declarations.forEach((d) => bindPattern(d.id, 'var'));
+        if (n.type === 'FunctionDeclaration') {
+            declare(n.id && n.id.name, 'function');
+            return;
+        }
+        if (
+            /Function(Expression|Declaration)|ArrowFunctionExpression|ClassDeclaration|ClassExpression/.test(
+                n.type,
+            )
+        )
+            return;
         for (const k of Object.keys(n)) {
             const v = n[k];
             if (Array.isArray(v)) v.forEach(visit);
@@ -107,8 +206,11 @@ const lineOf = (node) => (node.loc ? node.loc.start.line : 0);
 function walk(node, parent) {
     if (!node || typeof node.type !== 'string') return;
 
-    const opensFnScope = /FunctionDeclaration|FunctionExpression|ArrowFunctionExpression/.test(node.type);
-    const opensBlockScope = node.type === 'BlockStatement' && !(parent && /Function|ArrowFunction/.test(parent.type));
+    const opensFnScope = /FunctionDeclaration|FunctionExpression|ArrowFunctionExpression/.test(
+        node.type,
+    );
+    const opensBlockScope =
+        node.type === 'BlockStatement' && !(parent && /Function|ArrowFunction/.test(parent.type));
 
     if (opensFnScope) {
         scopes.push({ fn: true, names: new Set() });
@@ -124,15 +226,21 @@ function walk(node, parent) {
         bindPattern(node.param, 'let');
     }
 
-    if (node.type === 'VariableDeclaration') node.declarations.forEach((d) => bindPattern(d.id, node.kind));
+    if (node.type === 'VariableDeclaration')
+        node.declarations.forEach((d) => bindPattern(d.id, node.kind));
     if (node.type === 'ClassDeclaration' && node.id) declare(node.id.name, 'let');
 
     // The check itself: assigning to a bare name nothing declared.
-    if (node.type === 'AssignmentExpression' && node.left.type === 'Identifier' && !resolved(node.left.name)) {
+    if (
+        node.type === 'AssignmentExpression' &&
+        node.left.type === 'Identifier' &&
+        !resolved(node.left.name)
+    ) {
         offenders.push({ name: node.left.name, line: lineOf(node) });
     }
     if (node.type === 'ForInStatement' || node.type === 'ForOfStatement') {
-        if (node.left.type === 'Identifier' && !resolved(node.left.name)) offenders.push({ name: node.left.name, line: lineOf(node) });
+        if (node.left.type === 'Identifier' && !resolved(node.left.name))
+            offenders.push({ name: node.left.name, line: lineOf(node) });
     }
 
     for (const k of Object.keys(node)) {
@@ -148,7 +256,7 @@ function walk(node, parent) {
 hoist(ast.body);
 ast.body.forEach((n) => walk(n, ast));
 
-const unique = [...new Map(offenders.map((o) => [o.name + ':' + o.line, o])).values()];
+const unique = [...new Map(offenders.map((o) => [`${o.name}:${o.line}`, o])).values()];
 for (const o of unique.slice(0, 20)) {
     console.log(`      -> ${o.name} assigned but never declared, at dist/index.js:${o.line}`);
 }

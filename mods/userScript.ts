@@ -1,8 +1,8 @@
-import initPatches from "./features/standaloneUserscript.js";
+import initPatches from './features/standaloneUserscript.js';
 if (window.location.hostname === 'localhost') {
     initPatches();
 }
-import "./features/userAgentSpoofing.js";
+import './features/userAgentSpoofing.js';
 
 // No built-in polyfills. The target is Tizen 9.0, whose engine is Chromium
 // M120, and rolldown lowers syntax to chrome120 -- fetch, DOMRect,
@@ -13,24 +13,26 @@ import "./features/userAgentSpoofing.js";
 // spatial-navigation-polyfill is not in this category: spatial navigation is a
 // draft spec that no Chromium ships, so it stays.
 
-import './translations/index.js'
-import "./features/adblock.js";
-import "./features/sponsorblock.js";
-import "./ui/ui.js";
-import "./ui/speedUI.js";
-import "./ui/theme.js";
-import "./ui/settings.js";
-import "./ui/disableWhosWatching.js";
-import "./features/moreSubtitles.js";
-import "./features/updater.js";
+import './translations/index.js';
+import './features/adblock.js';
+import './features/sponsorblock.js';
+import './ui/ui.js';
+import './ui/speedUI.js';
+import './ui/theme.js';
+import './ui/settings.js';
+import './ui/disableWhosWatching.js';
+import './features/moreSubtitles.js';
+import './features/updater.js';
 // Before pictureInPicture.js, which registers its preview veto with this module.
-import "./features/playbackPreview.js";
-import "./features/pictureInPicture.js";
-import "./features/preferredVideoQuality.js";
-import "./features/videoQueuing.js";
-import "./features/enableFeatures.js";
-import "./ui/customUI.js";
-import "./ui/customGuideAction.js";
-import "./features/autoFrameRate.js";
-import "./ui/clock.js";
-import "./ui/previewIndicator.js";
+import './features/playbackPreview.js';
+import './features/pictureInPicture.js';
+import './features/preferredVideoQuality.js';
+import './features/videoQueuing.js';
+import './features/enableFeatures.js';
+import './ui/customUI.js';
+import './ui/customGuideAction.js';
+import './features/autoFrameRate.js';
+import './ui/clock.js';
+import './ui/previewIndicator.js';
+import './features/captionRuntime.js';
+import './features/aisListRefresh.js';
