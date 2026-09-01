@@ -20,7 +20,7 @@
 
 import { configRead } from '../config.js';
 import resolveCommand from '../resolveCommand.js';
-import { channelOf } from './videoContext.js';
+import { channelForVideo } from './videoContext.js';
 import { commandFor, preferenceFor, shouldApply, type CaptionPreference } from './captionPrefs.js';
 
 /** How long to wait for the channel before falling back to the global default.
@@ -63,7 +63,12 @@ function settle(videoId: string, waitedMs: number): void {
     if (currentVideoId() !== videoId) return;
     if (!shouldApply(videoId, appliedTo)) return;
 
-    const channel = channelOf(videoId);
+    // channelForVideo, NOT channelOf: the latter falls back to the last channel
+    // seen, which from the second video of a session onward is never null. That
+    // ended the wait below on its first tick with the PREVIOUS video's channel
+    // and applied that channel's preference to this video -- the exact race this
+    // file exists to avoid, made unreachable by the fallback.
+    const channel = channelForVideo(videoId);
     if (!channel && waitedMs < CHANNEL_WAIT_MS) {
         timer = setTimeout(() => settle(videoId, waitedMs + POLL_MS), POLL_MS);
         return;

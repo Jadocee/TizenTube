@@ -22,12 +22,17 @@
 import { configRead } from '../config.js';
 import {
     parseList,
+    readLastModified,
     indexHasChannel,
     serialiseIndex,
     deserialiseIndex,
     emptyIndex,
     type ChannelIndex,
 } from './aisListParse.js';
+
+/** Native, for the same reason aisListParse captures one: readStore runs inside
+ *  adblock.ts's JSON.parse patch on the per-tile path. */
+const nativeParse = JSON.parse;
 
 const BASE = 'https://raw.githubusercontent.com/Override92/AiSList/main/AiSList/';
 export const SOURCES = {
@@ -49,7 +54,13 @@ interface Cached {
     block?: string;
     warn?: string;
     etags?: Record<string, string>;
+    /** When the BLOCKLIST was last revalidated. Kept for the settings screen and
+     *  for reading caches written before `at` existed. */
     fetchedAt?: number;
+    /** Per source, keyed by URL. One shared timestamp meant turning the warnlist
+     *  on inside the blocklist's 12-hour window fetched nothing at all, and a
+     *  warnlist left cached from months ago was used as current. */
+    at?: Record<string, number>;
 }
 
 let blockIndex: ChannelIndex = emptyIndex();
@@ -60,7 +71,7 @@ let refreshing = false;
 function readStore(): Cached {
     try {
         const raw = window.localStorage.getItem(STORE);
-        return raw ? JSON.parse(raw) : {};
+        return raw ? nativeParse(raw) : {};
     } catch (e) {
         return {};
     }
@@ -139,37 +150,116 @@ export async function refresh(force = false): Promise<void> {
     loadCached();
 
     const cached = readStore();
-    const age = Date.now() - (cached.fetchedAt || 0);
-    if (!force && age < TTL_MS && blockIndex.handles.size) return;
+    const now = Date.now();
+    const wantWarn = configRead('aisListIncludeWarnlist');
+    // Each list decides for itself. A single shared timestamp meant the answer
+    // for the warnlist was really the answer for the blocklist: turn the
+    // warnlist on an hour after a blocklist refresh and the early return below
+    // fired, so it was never fetched -- for the whole session, and again on
+    // every launch that landed inside the same 12-hour window.
+    const stale = (url: string, index: ChannelIndex): boolean =>
+        force || !index.handles.size || (now - sourceFetchedAt(cached, url)) >= TTL_MS;
+
+    const blockStale = stale(SOURCES.block, blockIndex);
+    const warnStale = wantWarn && stale(SOURCES.warn, warnIndex);
+    if (!blockStale && !warnStale) return;
 
     refreshing = true;
     try {
-        const etags = cached.etags || {};
-        const next: Cached = { ...cached, etags: { ...etags } };
-
-        const block = await fetchOne(SOURCES.block, etags[SOURCES.block]);
-        if (block.text !== null) {
-            blockIndex = parseList(block.text);
-            next.block = serialiseIndex(blockIndex);
+        // Written after EACH source rather than once at the end. The two lists
+        // are independent resources on a flaky connection, and a single
+        // all-or-nothing write meant a 404 on the warnlist discarded the 357 KB
+        // blocklist that had just been downloaded -- so it was re-downloaded and
+        // re-discarded on every launch, forever, with no console to say so.
+        if (blockStale) {
+            await fetchInto(SOURCES.block, (text) => {
+                const parsed = parseList(text);
+                if (!looksLikeList(text, parsed)) return null;
+                blockIndex = parsed;
+                return serialiseIndex(blockIndex);
+            }, 'block', now);
         }
-        if (block.etag) next.etags![SOURCES.block] = block.etag;
-
-        // Only fetched when it is actually in use -- there is no reason to spend
-        // a request on a list the user has switched off.
-        if (configRead('aisListIncludeWarnlist')) {
-            const warn = await fetchOne(SOURCES.warn, etags[SOURCES.warn]);
-            if (warn.text !== null) {
-                warnIndex = parseList(warn.text);
-                next.warn = serialiseIndex(warnIndex);
-            }
-            if (warn.etag) next.etags![SOURCES.warn] = warn.etag;
+        if (warnStale) {
+            await fetchInto(SOURCES.warn, (text) => {
+                const parsed = parseList(text);
+                if (!looksLikeList(text, parsed)) return null;
+                warnIndex = parsed;
+                return serialiseIndex(warnIndex);
+            }, 'warn', now);
         }
-
-        next.fetchedAt = Date.now();
-        writeStore(next);
-    } catch (e) {
-        console.warn('[TizenTube] could not refresh the AiSList data', e);
     } finally {
         refreshing = false;
+    }
+}
+
+/** When this source was last revalidated. Falls back to the old single
+ *  timestamp so a cache written by an earlier build is not treated as ancient
+ *  and re-downloaded on first launch after an update. */
+function sourceFetchedAt(cached: Cached, url: string): number {
+    const per = cached.at && cached.at[url];
+    if (typeof per === 'number') return per;
+    return url === SOURCES.block ? (cached.fetchedAt || 0) : 0;
+}
+
+/**
+ * Fetches one source and persists just that one.
+ *
+ * Never throws. A failure leaves the other list's cache untouched and whatever
+ * was already stored for this one in place, which is what should happen on a
+ * television with a flaky connection.
+ */
+/**
+ * Is this body actually one of the lists?
+ *
+ * A captive portal -- hotel wifi, a guest network, a TV that has not finished
+ * its own sign-on -- answers EVERY request with 200 and a login page. parseList
+ * finds no entries in HTML and returns an empty index, which then replaced a
+ * working 20,982-entry list, got cached, and had its timestamp advanced: the
+ * feature silently stopped hiding anything for the next twelve hours, on a
+ * device with no console. A real list either has entries or carries the header
+ * comment; a login page has neither.
+ *
+ * An upstream that genuinely publishes an empty list still empties the index,
+ * which is correct -- it keeps its header.
+ */
+function looksLikeList(text: string, index: ChannelIndex): boolean {
+    return index.count > 0 || readLastModified(text) !== null;
+}
+
+async function fetchInto(
+    url: string,
+    parse: (text: string) => string | null,
+    slot: 'block' | 'warn',
+    now: number,
+): Promise<void> {
+    try {
+        // Re-read rather than closing over one snapshot: the block write has
+        // already landed by the time the warn fetch resolves.
+        const cached = readStore();
+        const result = await fetchOne(url, (cached.etags || {})[url]);
+        const next: Cached = {
+            ...cached,
+            etags: { ...(cached.etags || {}) },
+            at: { ...(cached.at || {}) },
+        };
+        // null means 304: the stored copy is still current, so only its
+        // timestamp moves. Re-parsing nothing is the point of the ETag.
+        if (result.text !== null) {
+            const parsed = parse(result.text);
+            // Not a list. Leave the cache and the timestamp alone so the next
+            // launch tries again rather than sitting on a login page for the
+            // whole TTL.
+            if (parsed === null) {
+                console.warn(`[TizenTube] ${url} did not return a channel list`);
+                return;
+            }
+            next[slot] = parsed;
+        }
+        if (result.etag) next.etags![url] = result.etag;
+        next.at![url] = now;
+        if (url === SOURCES.block) next.fetchedAt = now;
+        writeStore(next);
+    } catch (e) {
+        console.warn(`[TizenTube] could not refresh ${url}`, e);
     }
 }

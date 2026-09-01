@@ -61,8 +61,13 @@ let settings = readRepo('mods', 'ui', 'settings.ts')
     .replace("from './startupError.js'", "from './startupError.generated.mts'")
     .replace("from '../features/videoContext.js'", "from './stubs.mjs'")
     .replace("from '../features/aisList.js'", "from './stubs.mjs'")
+    .replace("from '../features/tileMenu.js'", "from './stubs.mjs'")
     .replace(/^import type .*?;\n/gm, '');
-for (const gone of ['../config.js', './ytUI.js', '../features/videoContext.js', '../features/aisList.js']) {
+// The guard, not the replacements, is what makes this safe: a NEW import added
+// to settings.ts fails the tree walk with ERR_MODULE_NOT_FOUND, and this names
+// which one rather than leaving a stack trace to read.
+for (const gone of ['../config.js', './ytUI.js', '../features/videoContext.js',
+                    '../features/aisList.js', '../features/tileMenu.js']) {
     if (settings.includes(`'${gone}'`)) fail(`settings.ts import of ${gone} no longer matches; fix test/refresh.mjs`);
 }
 out('settings/settings.generated.mts', settings);
@@ -197,6 +202,46 @@ if (!rulesMatch) fail('cannot find AD_RULES in adblock.ts; fix test/refresh.mjs'
 out('json-prune/rules.generated.mts',
     "import type { PruneRule } from './mod.generated.mts';\n" +
     rulesMatch[0].replace('const AD_RULES', 'export const AD_RULES') + '\n');
+
+// aisList.ts's refresh path. Its two imports are repointed: config at a stub the
+// harness drives, and aisListParse at the module the aislist harness already
+// runs -- so the fetch/cache logic is exercised against the REAL parser rather
+// than a fake index.
+const aisList = readRepo('mods', 'features', 'aisList.ts')
+    .replace("from '../config.js'", "from './stub.mjs'")
+    .replace("from './aisListParse.js'", "from './aisListParse.generated.mts'");
+for (const gone of ['../config.js', './aisListParse.js']) {
+    if (aisList.includes(`'${gone}'`)) fail(`aisList.ts import of ${gone} no longer matches; fix test/refresh.mjs`);
+}
+if (!aisList.includes('export async function refresh')) fail('aisList.ts no longer exports refresh; fix test/refresh.mjs');
+out('aislist/mod.generated.mts', aisList);
+
+// captionRuntime.ts and the videoContext it reads. Both are lifted so the
+// harness drives the SHIPPING wiring: the predicates in captionPrefs.ts already
+// have a harness, and it passed the whole time the runtime was resolving them
+// against the wrong channel.
+const captionRuntime = readRepo('mods', 'features', 'captionRuntime.ts')
+    .replace("from '../config.js'", "from './stub.mjs'")
+    .replace("from '../resolveCommand.js'", "from './stub.mjs'")
+    .replace("from './videoContext.js'", "from './videoContext.generated.mts'")
+    .replace("from './captionPrefs.js'", "from './captionPrefs.generated.mts'");
+for (const gone of ['../config.js', '../resolveCommand.js', './videoContext.js', './captionPrefs.js']) {
+    if (captionRuntime.includes(`'${gone}'`)) fail(`captionRuntime.ts import of ${gone} no longer matches; fix test/refresh.mjs`);
+}
+out('caption-prefs/runtime.generated.mts', captionRuntime);
+out('caption-prefs/videoContext.generated.mts',
+    readRepo('mods', 'features', 'videoContext.ts').replace("from '../config.js'", "from './stub.mjs'"));
+
+// aisListRefresh.ts, whose whole job is deciding WHEN to fetch. Its aisList
+// import is stubbed with a counter: what is under test is that the toggle calls
+// refresh at all, which is what it did not do.
+const aisRefresh = readRepo('mods', 'features', 'aisListRefresh.ts')
+    .replace("from '../config.js'", "from './toggleStub.mjs'")
+    .replace("from './aisList.js'", "from './toggleStub.mjs'");
+for (const gone of ['../config.js', './aisList.js']) {
+    if (aisRefresh.includes(`'${gone}'`)) fail(`aisListRefresh.ts import of ${gone} no longer matches; fix test/refresh.mjs`);
+}
+out('aislist/refreshGate.generated.mts', aisRefresh);
 
 // videoContext.ts, which decides whether SponsorBlock is off for a channel.
 out('sponsorblock-channels/mod.generated.mts',

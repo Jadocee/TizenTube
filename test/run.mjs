@@ -37,7 +37,10 @@ const HARNESSES = [
     { name: 'tile menu suppression', dir: 'tile-menu',     file: 'test.mjs',       types: true },
     { name: 'sidebar guide filter', dir: 'guide-filter',  file: 'test.mjs',       types: true },
     { name: 'caption preferences',   dir: 'caption-prefs', file: 'test.mjs',       types: true },
+    { name: 'caption runtime',       dir: 'caption-prefs', file: 'runtime.mjs',    types: true },
     { name: 'aislist parsing',       dir: 'aislist',       file: 'test.mjs',       types: true },
+    { name: 'aislist refresh',       dir: 'aislist',       file: 'refresh.mjs',    types: true },
+    { name: 'aislist fetch gate',    dir: 'aislist',       file: 'toggle.mjs',     types: true },
     { name: 'docs match the suite',  dir: 'docs',          file: 'test.mjs' },
 ];
 

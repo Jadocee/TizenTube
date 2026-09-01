@@ -20,6 +20,8 @@ import {
     hasFeedbackRow,
     channelIdFromMenu,
     handleFromSubtitle,
+    handleFromCanonicalUrl,
+    channelFromMetadata,
     tileIdentity,
     channelKey,
     channelEntry,
@@ -166,12 +168,79 @@ check('disabled offers no rows',
 // than a surprise.
 check('a playlist tile is not the default style', F.nonDefaultStyle.style, 'TILE_STYLE_YTLR_VERTICAL_LIST');
 
+// --- the watch page ---------------------------------------------------------
+// watchPivot is lifted from a real watchNext capture. Every one of the 33 pivot
+// tiles in that up-next rail arrives with NO menu and NO showMenuCommand, so the
+// two identity sources this file started with return null for all of them: hide
+// a channel from the home feed and its videos kept appearing in the rail beside
+// every video you played, with no way to hide it from there either.
+check('a pivot tile has no menu at all', menuItems(F.watchPivot), null);
+check('  ...and no showMenuCommand subtitle',
+      F.watchPivot.onLongPressCommand?.showMenuCommand?.subtitle?.simpleText ?? null, null);
+check('  ...so the menu yields no channel id', channelIdFromMenu(menuItems(F.watchPivot)), null);
+
+const pivot = tileIdentity(F.watchPivot);
+check('the metadata line still identifies the channel', pivot.channel?.id, 'UC8NQC017i8Z0FLoet8G6bvw');
+check('  ...and the video is still read', pivot.videoId, 'XArc1QjsXJg');
+check('  ...so a hidden channel is now dropped there',
+      tileIsHidden(F.watchPivot, [], ['UC8NQC017i8Z0FLoet8G6bvw Nadir trs']), true);
+check('  ...and the channel row is offered', offeredRows(F.watchPivot, true).channel, true);
+
+// canonicalBaseUrl is percent-encoded in the payload. It has to be decoded to
+// match AiSList, which stores handles in their decoded form -- and this real
+// tile's handle is Arabic, so it is also the case the old ASCII-only regex
+// silently dropped.
+check('the canonical url yields a decoded handle',
+      handleFromCanonicalUrl('/@%D9%86%D8%AF%D9%8A%D8%B1-%D8%AA%D8%B1%D8%B3'), '@\u0646\u062f\u064a\u0631-\u062a\u0631\u0633');
+check('  ...and this tile carries one', typeof pivot.channel?.handle, 'string');
+// A malformed escape yields NO handle, deliberately, and this differs from
+// aisListParse.normaliseHandle, which keeps the raw string. The asymmetry is the
+// right way round: a list entry that cannot be decoded is inert either way, but
+// a TILE is matched against the user's own lists, so letting unvalidated text
+// out of a corrupt payload become a matching key is a risk with no upside. The
+// tile still yields its UC id, so no identity is lost here.
+check('a malformed escape yields no handle', handleFromCanonicalUrl('/@bad%zz'), null);
+check('  ...and the id is what carries the tile instead',
+      tileIdentity(F.watchPivot).channel?.id, 'UC8NQC017i8Z0FLoet8G6bvw');
+check('a url with no handle yields null', handleFromCanonicalUrl('/channel/UCabc'), null);
+check('junk yields null', handleFromCanonicalUrl(null), null);
+
+// --- non-ASCII handles ------------------------------------------------------
+// 473 of the 20,982 real AiSList entries are non-ASCII once decoded. An
+// ASCII-only class rejected every one, so aisListParse's decoding of both sides
+// could never be reached for them.
+check('a German handle is a handle', handleFromSubtitle('Langweilige W\u00e4hrung \u2022 @Langweilige W\u00e4hrung'.replace(' @Langweilige W\u00e4hrung', ' @Langweilige'.replace(' ', '') + 'W\u00e4hrung')), '@LangweiligeW\u00e4hrung');
+check('a Polish handle is a handle', handleFromSubtitle('Kana\u0142 Poznawczy \u2022 @Kana\u0142Poznawczy'), '@Kana\u0142Poznawczy');
+check('a Korean handle is a handle', handleFromSubtitle('\uc18c\uc18c\ud55c\uc791\uc5c5\uc2e4 \u2022 @\uc18c\uc18c\ud55c\uc791\uc5c5\uc2e4-z8d'), '@\uc18c\uc18c\ud55c\uc791\uc5c5\uc2e4-z8d');
+// The space is what actually separates a handle from a series name, and widening
+// the letter class must not have widened that.
+check('a series name is still not a handle',
+      handleFromSubtitle('Marques Brownlee \u2022 Retro Tech: Flying Cars'), null);
+
+// --- a channel's own tile ---------------------------------------------------
+// channelRound is a real TILE_STYLE_YTLR_ROUND tile: its whole subtitle is the
+// bare handle, with no bullet. Requiring the bullet meant AiSList dropped such a
+// channel's videos and left the channel itself in the Channels shelf.
+check('a bare subtitle is the handle', handleFromSubtitle('@TheStudio'), '@TheStudio');
+check('  ...on the real tile too', tileIdentity(F.channelRound).channel?.handle, '@TheStudio');
+check('  ...so the AiSList handle path can reach it',
+      tileIsHidden(F.channelRound, [], ['@thestudio The Studio']), false);
+check('  ...and an exact handle entry hides it',
+      tileIsHidden(F.channelRound, [], ['@TheStudio The Studio']), true);
+
+// The cheap sources still win when they are present, so an ordinary home tile
+// does not pay for the metadata walk.
+check('the menu id still wins when there is one',
+      tileIdentity(F.withChannelId).channel?.id, channelIdFromMenu(menuItems(F.withChannelId)));
+check('channelFromMetadata on a tile without one', channelFromMetadata(F.noChannelKey), null);
+
 // --- junk -------------------------------------------------------------------
 // Every one of these runs inside JSON.parse for every response the app parses;
 // a throw is swallowed by adblock.ts's catch and costs the whole payload's pass.
 let threw = null;
 const JUNK = [null, undefined, 0, '', 'str', [], {}, [null], NaN, true];
 for (const fn of [menuItems, hasFeedbackRow, channelIdFromMenu, handleFromSubtitle,
+                  handleFromCanonicalUrl, channelFromMetadata,
                   tileIdentity, channelKey, channelEntry, isVideoHidden]) {
     for (const v of JUNK) {
         try { fn(v); } catch (e) { threw = `${fn.name}(${JSON.stringify(v)}) threw ${e.message}`; }

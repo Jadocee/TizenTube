@@ -57,13 +57,32 @@ export function recordVideoContext(parsed: any): void {
     }
 }
 
-/** The channel of a given video, or the last one seen if that video is unknown. */
+/** The channel of a given video, or the last one seen if that video is unknown.
+ *
+ *  The fallback is deliberate and load-bearing for its two callers: the settings
+ *  screen's "now playing" row asks with no id at all, and SponsorBlock re-reads
+ *  at skip time when the player is unambiguously on one video. It is the WRONG
+ *  answer for anything deciding something about a NAMED video that may not have
+ *  been seen yet -- see channelForVideo. */
 export function channelOf(videoId?: string | null): ChannelRef | null {
     if (videoId) {
         const known = byVideoId.get(videoId);
         if (known) return known;
     }
     return latest;
+}
+
+/**
+ * The channel of exactly this video, or null.
+ *
+ * No fallback to the last channel seen. A caller that is waiting for a video's
+ * channel to arrive needs "not yet" and "here it is" to be distinguishable;
+ * channelOf answers the second question with the previous video's channel, which
+ * reads as an arrival and ends the wait with the wrong answer.
+ */
+export function channelForVideo(videoId?: string | null): ChannelRef | null {
+    if (!videoId) return null;
+    return byVideoId.get(videoId) || null;
 }
 
 /** Splits a stored "<id> <name>" entry. Ids never contain a space. */

@@ -26,10 +26,19 @@ export const RENDERABLE_SERVICE_ENDPOINTS = [
     'homeLocationConditionalCommand',
 ];
 
-/** A channel handle as it appears after the bullet in a tile's subtitle. Five of
- *  175 tiles in one capture put a series name there instead ("Marques Brownlee •
- *  Retro Tech: Flying Cars"), so the tail is validated rather than assumed. */
-const HANDLE = /^@[A-Za-z0-9._-]{1,60}$/;
+/** A channel handle as it appears in a tile's subtitle. Five of 175 tiles in one
+ *  capture put a series name where the handle usually goes ("Marques Brownlee •
+ *  Retro Tech: Flying Cars"), so the tail is validated rather than assumed.
+ *
+ *  UNICODE, not ASCII. 473 of the 20,982 entries on the real AiSList blocklist
+ *  are non-ASCII once percent-decoded -- "@LangweiligeWährung",
+ *  "@KanałPoznawczy", "@소소한작업실-z8d" -- and an ASCII class rejected every one
+ *  of them, so aisListParse's careful decoding of both sides could never be
+ *  reached for those channels and "Don't recommend <channel>" silently did not
+ *  appear on their tiles. What actually separates a handle from a series name is
+ *  the SPACE, which \p{L}\p{N} still excludes. \p{...} needs the u flag and has
+ *  been in Chromium since 64; this build targets 120. */
+const HANDLE = /^@[\p{L}\p{N}._-]{1,60}$/u;
 
 /** How many entries either list keeps. A television session can walk past
  *  thousands of tiles; the settings list has to stay navigable on a D-pad. */
@@ -100,14 +109,19 @@ export function channelIdFromMenu(items: any[] | null | undefined): string | nul
     return null;
 }
 
-/** The handle out of a subtitle such as "Brawl Stars • @BrawlStars". */
+/** The handle out of a subtitle such as "Brawl Stars • @BrawlStars".
+ *
+ *  A subtitle with NO bullet is not a miss. A channel's own round tile carries
+ *  the bare handle as its whole subtitle -- all six in one channel-page capture
+ *  are exactly "@TheStudio", "@AutoFocus", "@Waveform" and so on -- and
+ *  requiring the bullet meant AiSList dropped such a channel's videos while
+ *  leaving the channel itself sitting in the Channels shelf. */
 export function handleFromSubtitle(subtitle: unknown): string | null {
     if (typeof subtitle !== 'string') return null;
     // The bullet is U+2022 with spaces around it. Split on the LAST one: a
     // channel name may itself contain a bullet.
     const at = subtitle.lastIndexOf('•');
-    if (at < 0) return null;
-    const tail = subtitle.slice(at + 1).trim();
+    const tail = (at < 0 ? subtitle : subtitle.slice(at + 1)).trim();
     return HANDLE.test(tail) ? tail : null;
 }
 
@@ -125,13 +139,76 @@ export function nameFromTile(tile: any): string | null {
     return typeof run === 'string' && run ? run : null;
 }
 
+/**
+ * The channel a tile's own metadata links to.
+ *
+ * The third identity source, and the only one a watch-page tile has. Measured on
+ * a real watchNext capture: all 33 pivot tiles in the up-next rail arrive with
+ * NO menu and NO showMenuCommand, so the other two sources return null for every
+ * one of them -- yet 32 of the 33 carry the channel right here, in the
+ * navigationEndpoint of the metadata line the display name is read from.
+ *
+ * Both halves are taken. canonicalBaseUrl is percent-encoded in the payload
+ * ("/@%D9%86%D8%AF%D9%8A%D8%B1-%D8%AA%D8%B1%D8%B3"), and since the published
+ * AiSList is 100% handles and zero ids, the browseId alone would match nothing
+ * on it -- the handle is the half that does the work there, and the id is the
+ * half that matches what the user hid from a home tile.
+ */
+export function channelFromMetadata(tile: any): ChannelRef | null {
+    const lines = tile?.metadata?.tileMetadataRenderer?.lines;
+    if (!Array.isArray(lines)) return null;
+    for (const line of lines) {
+        const items = line?.lineRenderer?.items;
+        if (!Array.isArray(items)) continue;
+        for (const item of items) {
+            const runs = item?.lineItemRenderer?.text?.runs;
+            if (!Array.isArray(runs)) continue;
+            for (const run of runs) {
+                const browse = run?.navigationEndpoint?.browseEndpoint;
+                const id = browse?.browseId;
+                if (typeof id !== 'string' || !id.startsWith('UC')) continue;
+                const ref: ChannelRef = { id };
+                const handle = handleFromCanonicalUrl(browse?.canonicalBaseUrl);
+                if (handle) ref.handle = handle;
+                if (typeof run.text === 'string' && run.text) ref.name = run.text;
+                return ref;
+            }
+        }
+    }
+    return null;
+}
+
+/** "/@%D9%86%D8%AF%D9%8A%D8%B1-%D8%AA%D8%B1%D8%B3" -> "@ندير-ترس". A malformed
+ *  escape falls back to the raw tail rather than discarding the handle, the same
+ *  way aisListParse handles one. */
+export function handleFromCanonicalUrl(url: unknown): string | null {
+    if (typeof url !== 'string') return null;
+    const at = url.indexOf('/@');
+    if (at < 0) return null;
+    let tail = url.slice(at + 1);
+    if (tail.indexOf('%') !== -1) {
+        try {
+            tail = decodeURIComponent(tail);
+        } catch (e) {
+            // Leave it encoded; it can still match a list entry written the
+            // same way.
+        }
+    }
+    return HANDLE.test(tail) ? tail : null;
+}
+
 /** Everything the mod can learn about a tile without a network request. */
 export function tileIdentity(tile: any): TileIdentity {
     const items = menuItems(tile);
     const videoId = typeof tile?.contentId === 'string' && tile.contentId ? tile.contentId : null;
-    const id = channelIdFromMenu(items);
-    const handle = handleFromSubtitle(tile?.onLongPressCommand?.showMenuCommand?.subtitle?.simpleText);
-    const name = nameFromTile(tile);
+    const menuId = channelIdFromMenu(items);
+    const subtitleHandle = handleFromSubtitle(tile?.onLongPressCommand?.showMenuCommand?.subtitle?.simpleText);
+    // Only consulted when the cheaper two came up short, so the ordinary home
+    // tile -- which has both -- does not pay for the walk.
+    const meta = menuId && subtitleHandle ? null : channelFromMetadata(tile);
+    const id = menuId || meta?.id || null;
+    const handle = subtitleHandle || meta?.handle || null;
+    const name = nameFromTile(tile) || meta?.name || null;
     const channel: ChannelRef | null = id || handle ? {
         ...(id ? { id } : {}),
         ...(handle ? { handle } : {}),

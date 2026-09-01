@@ -320,8 +320,6 @@ check('SponsorBlock survived', after.sponsorblock, true);
 check('the modules after PiP still ran', after.hasQueue, true);
 check('the stylesheet survived', after.ttStyle, true);
 
-console.log(fail ? `\n${fail} FAILURES` : '\nALL PASS');
-
 // --- the filters that need a setting turned on ------------------------------
 // mods/config.ts reads localStorage ONCE at module scope, so a config-dependent
 // filter can only be exercised by a page whose storage was seeded before the
@@ -402,6 +400,13 @@ check('  ...and so does a different channel', filtered.includes('otherchan'), tr
 // the stored list says "@aislopper".
 check('a channel on the AiSList is dropped', filtered.includes('aislop'), false);
 check('exactly two tiles remain', filtered.length, 2);
+
+// LAST, after every check. It used to sit above the seeded page, so this
+// harness -- the only end-to-end proof that the three config-gated filters are
+// actually WIRED UP -- printed its ALL PASS banner and then printed the
+// failures underneath it. The exit code was right; the transcript was not, and
+// the transcript is what anyone reading a suite run actually sees.
+console.log(fail ? `\n${fail} FAILURES` : '\nALL PASS');
 
 await browser.close();
 process.exit(fail ? 1 : 0);

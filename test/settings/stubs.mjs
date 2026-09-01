@@ -48,3 +48,13 @@ export const parseChannelEntry = (entry) => {
 
 // features/aisList.js -- the settings screen reads its status for a subtitle.
 export const aisListStatus = () => ({ block: 0, warn: 0, lastModified: null, fetchedAt: 0 });
+
+/** tileMenu's stored-entry splitter. Real logic, not a stub that lies: the
+ *  settings tree renders these names, so a walk that used a different splitter
+ *  would be walking a different menu than the one that ships. */
+export const parseEntry = (entry) => {
+    if (typeof entry !== 'string') return { key: '', name: '' };
+    const space = entry.indexOf(' ');
+    if (space < 0) return { key: entry, name: entry };
+    return { key: entry.slice(0, space), name: entry.slice(space + 1) };
+};

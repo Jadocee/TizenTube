@@ -5,6 +5,7 @@ import { t } from 'i18next';
 import { readStartupError } from './startupError.js';
 import { channelOf, channelEntry, parseChannelEntry } from '../features/videoContext.js';
 import { aisListStatus } from '../features/aisList.js';
+import { parseEntry } from '../features/tileMenu.js';
 import type { Config, ConfigKey } from '../config.js';
 import type { CompactLinkRenderer, Command, Renderer } from '../types/youtube';
 
@@ -175,6 +176,45 @@ function themeColorOptions(configKey: ConfigKey): ChoiceRow[] {
  * array setting, so ticking the current channel adds it and unticking a stored
  * one removes it. Nothing here needs a separate "add" action.
  */
+/**
+ * The videos and channels suppressed from the long-press menu, so they can be
+ * un-suppressed.
+ *
+ * Without this the feature was one-way. A mis-pressed "Don't recommend this
+ * channel" -- one row away from "Hide this video" on a D-pad -- could only be
+ * undone by switching the whole feature off, which un-hid everything else the
+ * user had deliberately hidden. tileMenu caps both lists at MAX_HIDDEN with a
+ * comment about keeping the settings list navigable, which is the list this is.
+ */
+function hiddenOptions(key: 'hiddenVideos' | 'hiddenChannels'): ArrayMemberRow[] {
+    return configRead(key).map((entry): ArrayMemberRow => ({
+        name: parseEntry(entry).name,
+        value: entry,
+        icon: key === 'hiddenChannels' ? 'ACCOUNT_CIRCLE' : 'VIDEO_YOUTUBE',
+    }));
+}
+
+/** The subtitle for a hidden list: its size, or that it is empty. Reading "0" on
+ *  a row you cannot open is worse than being told there is nothing there. */
+function hiddenSubtitle(key: 'hiddenVideos' | 'hiddenChannels'): string {
+    const count = configRead(key).length;
+    return count
+        ? t('settings.options.misc.options.hidden.count', { count })
+        : t('settings.options.misc.options.hidden.empty');
+}
+
+/** The AiSList row's subtitle.
+ *
+ *  lastModified is null until a fetch has parsed the file's own header, and
+ *  interpolating that renders the sentence "0 channels, list dated " -- a
+ *  truncated string, not a placeholder, and on a fresh install the permanent
+ *  state of the row that turns the feature on. */
+function aisListSubtitle(): string {
+    const status = aisListStatus();
+    if (!status.lastModified || !status.block) return t('settings.options.aislist.statusEmpty');
+    return t('settings.options.aislist.status', status);
+}
+
 function disabledChannelOptions(): ArrayMemberRow[] {
     const stored = configRead('sponsorBlockDisabledChannels');
     const rows: ArrayMemberRow[] = stored.map((entry): ArrayMemberRow => {
@@ -569,6 +609,30 @@ export default function modernUI(update?: boolean, parameters?: number[]): void 
                     value: 'enableHideRecommendations'
                 },
                 {
+                    name: t('settings.options.misc.options.hidden.channels'),
+                    subtitle: hiddenSubtitle('hiddenChannels'),
+                    value: null,
+                    arrayToEdit: 'hiddenChannels',
+                    menuId: 'tt-hidden-channels',
+                    menuHeader: {
+                        title: t('settings.options.misc.options.hidden.channels'),
+                        subtitle: t('settings.options.misc.options.hidden.subtitle')
+                    },
+                    options: hiddenOptions('hiddenChannels')
+                },
+                {
+                    name: t('settings.options.misc.options.hidden.videos'),
+                    subtitle: hiddenSubtitle('hiddenVideos'),
+                    value: null,
+                    arrayToEdit: 'hiddenVideos',
+                    menuId: 'tt-hidden-videos',
+                    menuHeader: {
+                        title: t('settings.options.misc.options.hidden.videos'),
+                        subtitle: t('settings.options.misc.options.hidden.subtitle')
+                    },
+                    options: hiddenOptions('hiddenVideos')
+                },
+                {
                     name: t('settings.options.misc.options.hideMembersOnly'),
                     value: 'hideMembersOnlyVideos'
                 },
@@ -584,7 +648,7 @@ export default function modernUI(update?: boolean, parameters?: number[]): void 
                     options: [
                         {
                             name: t('settings.options.aislist.enable'),
-                            subtitle: t('settings.options.aislist.status', aisListStatus()),
+                            subtitle: aisListSubtitle(),
                             value: 'enableAiSList'
                         },
                         {

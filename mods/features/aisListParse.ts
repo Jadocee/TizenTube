@@ -24,6 +24,17 @@
 // case-folded here, which is also right on its own terms: YouTube treats handles
 // case-insensitively.
 
+/** The engine's own JSON.parse, captured at module evaluation.
+ *
+ *  adblock.ts REPLACES the global with one that runs every parsed value through
+ *  processResponse, and it imports this module, so this line runs first and gets
+ *  the native one. It matters: deserialiseIndex is reached from isAiChannel,
+ *  which is called per tile from inside that very patch. Parsing the 392 KB
+ *  serialised index through the patched global re-entered processResponse with
+ *  20,895 handles -- a six-rule prune over 125k nodes, synchronously, in the
+ *  middle of a live home-page parse, pruning nothing. */
+const nativeParse = JSON.parse;
+
 /** A parsed list, ready to match against. */
 export interface ChannelIndex {
     /** Case-folded, percent-decoded handles, including the leading @. */
@@ -135,7 +146,7 @@ export function serialiseIndex(index: ChannelIndex): string {
 export function deserialiseIndex(text: unknown): ChannelIndex | null {
     if (typeof text !== 'string' || !text) return null;
     try {
-        const raw = JSON.parse(text);
+        const raw = nativeParse(text);
         if (!raw || !Array.isArray(raw.h)) return null;
         const index = emptyIndex();
         for (const h of raw.h) if (typeof h === 'string') index.handles.add(h);
