@@ -58,6 +58,9 @@ export interface PreviewState {
     startedAt: number;
     /** When the first frame actually played, or 0 while still loading. */
     playingAt: number;
+    /** What the app was asked to play for. Kept so the deadline can be recomputed
+     *  from the moment playback actually began. */
+    durationMs: number;
     /** When the watchdog gives up on ever seeing stop(). */
     endsAt: number;
     anchored: boolean;
@@ -67,6 +70,7 @@ export const IDLE: PreviewState = {
     phase: 'idle',
     startedAt: 0,
     playingAt: 0,
+    durationMs: 0,
     endsAt: 0,
     anchored: false,
 };
@@ -106,8 +110,13 @@ export function reduce(state: PreviewState, event: PreviewEvent | null | undefin
                 phase: 'loading',
                 startedAt: now,
                 playingAt: 0,
-                // The deadline covers the load as well as the playback, since
-                // the app counts its duration from the frames it gets.
+                durationMs: duration,
+                // Provisional, and covers the worst case: a load that takes the
+                // full budget and then plays in full. It is REPLACED the moment
+                // the first frame arrives -- see 'resume' -- because the app
+                // counts its duration from the frames it gets, so leaving the
+                // load budget in a deadline that starts at playback would let a
+                // stranded mark outlive its preview by the whole 12 seconds.
                 endsAt: now + LOADING_TIMEOUT_MS + duration + WATCHDOG_SLACK_MS,
                 anchored: !!event.anchored,
             };
@@ -143,10 +152,16 @@ export function reduce(state: PreviewState, event: PreviewEvent | null | undefin
             // The first frame. This is the only transition out of loading, which
             // is what makes the spinner mean "waiting for video" rather than
             // "some time has passed".
+            const playingAt = state.playingAt || now;
             return {
                 ...state,
                 phase: 'playing',
-                playingAt: state.playingAt || now,
+                playingAt,
+                // Re-based on the first frame, dropping the load budget that has
+                // now demonstrably not been needed. A preview that loaded
+                // instantly kept a deadline 12s past the end of its own playback,
+                // which is 12s of a mark claiming a still thumbnail is playing.
+                endsAt: playingAt + state.durationMs + WATCHDOG_SLACK_MS,
             };
         }
 

@@ -51,7 +51,17 @@ check(
 // --- loading resolves -------------------------------------------------------
 check('the first frame starts playback', playing.phase, 'playing');
 check('  ...and is recorded', playing.playingAt, T0 + 900);
-check('  ...without moving the deadline', playing.endsAt, started.endsAt);
+// The deadline is RE-BASED on the first frame, dropping the load budget that has
+// now demonstrably not been needed. Keeping it meant a preview that loaded
+// instantly held its deadline 12 seconds past the end of its own playback --
+// twelve seconds of a mark claiming a still thumbnail is playing.
+check(
+    '  ...and re-bases the deadline on that frame',
+    playing.endsAt,
+    T0 + 900 + 40000 + WATCHDOG_SLACK_MS,
+);
+check('  ...which is sooner than the provisional one', playing.endsAt < started.endsAt, true);
+check('  ...by the whole load budget', started.endsAt - playing.endsAt, LOADING_TIMEOUT_MS - 900);
 check(
     'a second frame does not re-record the start',
     reduce(playing, { type: 'resume', now: T0 + 5000 }).playingAt,
@@ -173,6 +183,27 @@ check(
     reduce(reduce(playing, { type: 'stall' }), { type: 'resume', now: T0 + 9000 }).playingAt,
     T0 + 900,
 );
+
+// --- a preview that starts on top of another ---------------------------------
+// The app's teardown is `end`, not `stop`, and playbackPreview wrapped a method
+// the service does not have -- so for the whole life of this feature NO stop
+// ever arrived and every consecutive preview landed as start-on-top-of-start.
+// The reducer has to make that transition visible to the dispatcher, or the
+// watchdog stays keyed to a deadline that has already been replaced.
+const restarted = reduce(playing, {
+    type: 'start',
+    now: T0 + 20000,
+    durationMs: 40000,
+    anchored: false,
+});
+check('a start over a live preview restarts it', restarted.phase, 'loading');
+check('  ...with a new start time', restarted.startedAt, T0 + 20000);
+check('  ...and no frame played yet', restarted.playingAt, 0);
+// This is what the dispatcher keys its reset off: without a changed startedAt it
+// cannot tell a restart from an ordinary phase change, which is how the previous
+// preview's speaker ended up drawn over the new one's spinner.
+check('  ...so the dispatcher can see it is new', restarted.startedAt !== playing.startedAt, true);
+check('  ...and the deadline moved with it', restarted.endsAt !== playing.endsAt, true);
 
 // --- does it make a noise? --------------------------------------------------
 // Three answers, and the third is the point: a speaker drawn on a silent video

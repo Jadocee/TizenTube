@@ -11,13 +11,26 @@
 // depends on module order, so there is one wrapper and everything else
 // registers with it:
 //
-//   addPreviewVeto(fn)   -- return true to suppress start() and stop() outright.
-//                           This is picture-in-picture's existing behaviour.
+//   addPreviewVeto(fn)   -- return true to suppress start() and the teardown
+//                           outright. This is picture-in-picture's behaviour.
 //   onPreviewStart(fn)   -- called after a start() that was actually forwarded.
-//   onPreviewStop(fn)    -- likewise for stop().
+//   onPreviewStop(fn)    -- likewise for the teardown.
 //
 // Registration order does not matter: callers may register before the service
 // exists, and the wrap picks them up when it installs.
+//
+// THE TEARDOWN IS NOT CALLED stop(). This file wrapped `service.stop` for its
+// whole life, and the shipped service has no such method: its prototype carries
+// start, end, isActive, pause, reset, select and togglePlaying. So the wrapper
+// assigned a brand-new property nothing ever called, and onPreviewStop had
+// never once fired -- every consecutive preview arrived as a start with no
+// intervening stop, which is exactly the case the indicator's state machine
+// handled worst. `end` is the real teardown (it cancels the timer, clears the
+// active flags and runs the fade), and it is what the app calls.
+//
+// Both names are wrapped, and only the ones that exist. `stop` is kept because
+// wrapping a method that is absent costs nothing and YouTube renames things;
+// what is NOT kept is the assumption that one particular name is there.
 
 type Veto = () => boolean;
 type Listener = () => void;
@@ -28,8 +41,20 @@ const stopListeners: Listener[] = [];
 
 export type HookStatus = 'pending' | 'hooked' | 'missing';
 
+/** The teardown, in the order this build is likely to name it. `end` is what the
+ *  shipped service has; `stop` is what this file used to assume it had. */
+const TEARDOWN_METHODS = ['end', 'stop'] as const;
+
 let status: HookStatus = 'pending';
 let attempts = 0;
+let teardownHooked = false;
+
+/** Whether a teardown was found to wrap. False means onPreviewStop cannot fire
+ *  and anything relying on it has to survive on its own -- which is worth
+ *  knowing rather than discovering as a mark that never goes away. */
+export function previewStopHooked(): boolean {
+    return teardownHooked;
+}
 
 /** What happened when we went looking for the service. The settings panel shows
  *  this, because a television has no console and "the icon never appears" is
@@ -102,9 +127,15 @@ function install(): void {
             return;
         }
 
-        const originalStart = service.start;
-        const originalStop = service.stop;
+        if (typeof service.start !== 'function') {
+            // No start to wrap means this is not the service we think it is.
+            // Retrying would be worse than saying so: the settings screen shows
+            // this, and "missing" is a diagnosis where a silent no-op is not.
+            status = 'missing';
+            return;
+        }
 
+        const originalStart = service.start;
         service.start = function (this: any, ...args: any[]) {
             if (vetoed()) return;
             const result = originalStart.apply(this, args);
@@ -112,12 +143,20 @@ function install(): void {
             return result;
         };
 
-        service.stop = function (this: any, ...args: any[]) {
-            if (vetoed()) return;
-            const result = originalStop.apply(this, args);
-            notify(stopListeners);
-            return result;
-        };
+        // Whichever teardown names this build actually has. Wrapping an absent
+        // one used to create it, which is worse than not wrapping: it looks
+        // hooked and can never fire.
+        for (const name of TEARDOWN_METHODS) {
+            const original = service[name];
+            if (typeof original !== 'function') continue;
+            service[name] = function (this: any, ...args: any[]) {
+                if (vetoed()) return;
+                const result = original.apply(this, args);
+                notify(stopListeners);
+                return result;
+            };
+            teardownHooked = true;
+        }
 
         status = 'hooked';
     } catch (err) {

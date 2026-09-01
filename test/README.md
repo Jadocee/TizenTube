@@ -1,6 +1,6 @@
 # Harnesses
 
-Thirty-three regression harnesses. They exist because the things that break TizenTube
+Thirty-five regression harnesses. They exist because the things that break TizenTube
 mostly cannot be caught by a typechecker or by reading a diff: a renderer shape
 that only appears at runtime, a focus trap you only find with a D-pad, a
 stylesheet that works until CSP is enforced, a script that behaves differently
@@ -39,6 +39,8 @@ here (no browser, no built bundle) report as *skipped*, not passed.
 | `splash/test.mjs` | The standalone launch page's state machine over all four service states, its retry path, and that a rejected TV key cannot abort the launch. |
 | `preview-indicator/state.mjs` | The mark that says a focused thumbnail is playing: that it is cancelled by the focus move that caused it, cleared when playback ends, never stranded by a missed stop event, and never anchored to anything but the tile it belongs to. Each of those arrives on a television as "the icon is weird" and nothing more. |
 | `preview-indicator/style.mjs` | The same mark's stylesheet in Chromium, including a negative control — a rule that never matches must show nothing rather than parking a disc in the corner — and physical rather than logical insets, since `document.body` inherits the app's `direction` and an Arabic account would otherwise get it off the opposite edge. |
+| `preview-indicator/runtime.mjs` | The DOM shell around the state machine, on a fake clock and a fake DOM. It exists because of *where* the bugs were: the reducer had a harness from day one and was correct, while every defect a review found was in the dispatcher around it — what gets reset on a restart, which timer is re-armed, what `disable()` tears down. None of that is visible from a pure function's return value. |
+| `preview-indicator/hook.mjs` | The wrapper around YouTube's `PlaybackPreviewService`, against a fake service with the *real* prototype's methods — `start` and `end`, and no `stop`. The wrapper hooked `stop` for its whole life, which merely created a property nothing called, so it reported itself hooked and `onPreviewStop` never fired once. A fixture invented to suit the code would have had a `stop` and passed. |
 | `tile-fixes/test.mjs` | The per-tile and per-shelf decisions the home page depends on: picking a thumbnail that actually exists instead of synthesising a 4:3 URL and declaring it fact, deciding a tile is previewable, reading the members-only badge out of the real `lineItemRenderer` path, and recognising an emptied shelf. |
 | `tile-fixes/dearrow.mjs` | How many DeArrow requests actually leave the machine, driven with a counting fake `fetch`. Uncached, a first home screen was on the order of a hundred and fifty outbound requests fired at once at a television SoC, again on every continuation. |
 | `focus-motion/test.mjs` | That one failing write to `tectonicConfig` costs only its own switch. All six lived in a single bare `try`/`catch` whose first statement dereferenced an object the app may not have published yet, so the two most-felt animation switches were lost silently. |

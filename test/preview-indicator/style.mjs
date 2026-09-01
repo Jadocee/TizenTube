@@ -296,6 +296,23 @@ check('  ...clipped to one side', withSound.waveClip !== 'none', true);
 // The shape change is itself part of the signal: it reads at three metres before
 // either glyph resolves.
 check('sound widens the disc into a pill', withSound.pill.width > withSound.pill.height, true);
+
+// ...which is exactly why the mark has to be re-placed when the speaker appears.
+// The placement clamp keeps it inside the viewport, and it last ran while this
+// was still a disc -- so a pill positioned with the disc's width hangs past the
+// edge it was clamped to. Asserted here as the SIZE CHANGE that makes the
+// re-place necessary; that previewIndicator.ts actually re-places is asserted by
+// the source check below, since the runtime is not loaded in this page.
+// px(): `playing` comes from getComputedStyle and is the string "64px", while
+// pill.width is a number off getBoundingClientRect. Subtracting them raw yields
+// NaN, and NaN >= 24 is false -- an assertion that fails for the wrong reason is
+// only marginally better than one that passes for the wrong reason.
+check('  ...by enough to matter', withSound.pill.width - px(playing.width) >= 24, true);
+check(
+    'the runtime re-places the mark when the speaker appears',
+    /sound = next;[\s\S]{0,600}?place\(\);/.test(source),
+    true,
+);
 check('  ...and the disc was square without it', playing.width === playing.height, true);
 
 // --- readable over arbitrary video ------------------------------------------

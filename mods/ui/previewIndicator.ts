@@ -84,6 +84,14 @@ function refreshSound(): void {
     if (next === sound) return;
     sound = next;
     render();
+    // The mark CHANGES SIZE here: an audible one is a pill roughly 1.75x the
+    // width of the silent disc. place() measures the node, but it last ran at
+    // start(), while this was still a disc -- so the clamp that keeps the mark
+    // inside the viewport and the title-safe box was computed for a width the
+    // element no longer has, and the speaker end hung outside it. Re-measuring
+    // is one getBoundingClientRect, once per preview, on a transition that has
+    // already changed the shape.
+    place();
 }
 
 function ensureElement(): HTMLDivElement | null {
@@ -180,6 +188,9 @@ function place(): void {
     // chipOrigin validates the rect itself and falls back to the title-safe
     // corner when it is not plausibly a tile, so a wrong guess costs placement
     // and never correctness.
+    // Measured, never assumed: the mark is a disc while silent and a wider pill
+    // once a speaker is drawn, and the fallback below is only for the frame
+    // before it has been laid out at all.
     const size = node.getBoundingClientRect();
     const chip = {
         width: size.width || 64,
@@ -230,21 +241,23 @@ function dispatch(event: Parameters<typeof reduce>[1]): void {
     state = reduce(state, event);
     if (state === before) return;
 
-    const wasIdle = before.phase === 'idle';
     const isIdle = state.phase === 'idle';
-
-    if (wasIdle && !isIdle) {
-        listenToMedia(true);
-        media = null;
-        sound = 'unknown';
-        render();
-        place();
-        clearWatchdog();
-        // The app stops its own previews. This only bounds the case where that
-        // never happens, because a mark left up claims a still is playing.
-        armWatchdog();
-        return;
-    }
+    // A NEW preview, whether or not one was already running. Keying this off
+    // "was idle" was wrong: the app's teardown is `end`, not `stop`, so for the
+    // whole life of this feature no stop ever arrived and every consecutive
+    // preview landed here as start-on-top-of-start. That path reset nothing and
+    // re-armed nothing, so the previous preview's speaker was drawn over the new
+    // one's spinner and the watchdog stayed keyed to a deadline that had already
+    // been replaced -- and once that stale timer fired into an unchanged state,
+    // dispatch returned early and NOTHING was left scheduled. The spinner then
+    // animated in one screen position until the user pressed a key.
+    // `|| before.phase === 'idle'` is not redundant: IDLE.startedAt is 0, so a
+    // preview that starts at timestamp 0 would compare equal and the media
+    // listeners would never attach. A clock reading exactly 0 is unreachable on
+    // a television, which is precisely why it is the kind of thing that sits in
+    // the code for years -- the invariant wanted here is "a new preview needs
+    // initialising", and coming from idle is always that.
+    const restarted = before.phase === 'idle' || state.startedAt !== before.startedAt;
 
     if (isIdle) {
         listenToMedia(false);
@@ -256,9 +269,23 @@ function dispatch(event: Parameters<typeof reduce>[1]): void {
         return;
     }
 
+    if (restarted) {
+        listenToMedia(true);
+        clearSoundTimer();
+        media = null;
+        sound = 'unknown';
+        render();
+        place();
+        armWatchdog();
+        return;
+    }
+
     render();
-    // The deadline changes when loading resolves into playing.
-    if (before.phase === 'loading' && state.phase !== 'loading') armWatchdog();
+    // Any state change can move the deadline -- loading resolving into playing
+    // re-bases it on the first frame. Re-arming unconditionally is cheaper than
+    // enumerating which transitions do, and an enumeration that misses one is
+    // how the mark got stranded in the first place.
+    armWatchdog();
 }
 
 /** A real D-pad move. Called from ui.ts's existing keydown handler rather than
@@ -282,12 +309,28 @@ function onRouteChange(): void {
 }
 
 let started = false;
+/** The preview callbacks can only be registered once -- playbackPreview keeps a
+ *  list with no way to remove from it -- so re-enabling reuses them and the
+ *  `started` gate inside decides whether they do anything. */
+let registered = false;
 
 function enable(): void {
     if (started) return;
     started = true;
 
+    document.addEventListener('focusin', onFocusIn, true);
+    // A preview that becomes a full-screen watch changes the route without ever
+    // calling the teardown.
+    window.addEventListener('hashchange', onRouteChange);
+
+    if (registered) return;
+    registered = true;
+
     onPreviewStart(() => {
+        // playbackPreview has no unregister, so the gate is here. Without it a
+        // disabled indicator still ran its state machine and rebuilt its own
+        // element on the next preview.
+        if (!started) return;
         const now = Date.now();
         dispatch({
             type: 'start',
@@ -296,16 +339,30 @@ function enable(): void {
             anchored: shouldAnchor(lastMoveAt, now),
         });
     });
-    onPreviewStop(() => dispatch({ type: 'stop' }));
-
-    document.addEventListener('focusin', onFocusIn, true);
-    // A preview that becomes a full-screen watch changes the route without ever
-    // calling stop().
-    window.addEventListener('hashchange', onRouteChange);
+    onPreviewStop(() => {
+        if (!started) return;
+        dispatch({ type: 'stop' });
+    });
 }
 
 function disable(): void {
-    dispatch({ type: 'stop' });
+    if (!started) return;
+    started = false;
+
+    // Actually tear down. This used to dispatch a stop and drop the element,
+    // which left the focusin and hashchange listeners attached and the preview
+    // callbacks registered -- so the next preview rebuilt the element through
+    // ensureElement() and the mark came back with the setting switched off.
+    document.removeEventListener('focusin', onFocusIn, true);
+    window.removeEventListener('hashchange', onRouteChange);
+    listenToMedia(false);
+    clearWatchdog();
+    clearSoundTimer();
+
+    state = IDLE;
+    media = null;
+    sound = 'unknown';
+
     if (element) {
         element.remove();
         element = null;

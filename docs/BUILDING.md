@@ -36,7 +36,7 @@ injector, and a `.wgt` cannot exist unsigned — see
 
 | | Version | Why |
 | --- | --- | --- |
-| Node | **22.6 or newer** | twenty harnesses run under `--experimental-strip-types`, which lands in 22.6. On Node 20 they fail before a single assertion. CI pins 22. |
+| Node | **22.6 or newer** | twenty-two harnesses run under `--experimental-strip-types`, which lands in 22.6. On Node 20 they fail before a single assertion. CI pins 22. |
 | pnpm | 10.33.0 | pinned by `packageManager` in the root `package.json`; `corepack enable` picks it up |
 | Chromium | any recent | only for the five browser harnesses. Without it they *skip*, which is fine locally and a failure in CI |
 | `tizen.js` | from git `main` | only to package a `.wgt`. Not needed to build, typecheck or test |
@@ -55,7 +55,7 @@ pnpm install                              # all four trees, one lockfile
 (cd service && pnpm run build)            # 2. the DIAL service
 (cd standalone/service && pnpm run build) # 3. the app's service
 
-pnpm test                                 # 33 harnesses
+pnpm test                                 # 35 harnesses
 ```
 
 Under ten seconds in total on a warm checkout. If you only want the TizenBrew
@@ -116,7 +116,7 @@ copy. This is the one way to get a `.wgt` that is quietly a version behind.
 ```sh
 pnpm check                                         # Biome: format + lint
 pnpm -r --workspace-concurrency=1 run typecheck   # all three TypeScript trees
-pnpm test                                          # 33 harnesses
+pnpm test                                          # 35 harnesses
 pnpm test settings                                 # just the ones matching "settings"
 ```
 
@@ -252,7 +252,7 @@ upgrade semantics, and it is also what triggers a release in CI.
 
 **`[embed] Missing ...`** — you skipped a build. Run them in order.
 
-**Twenty harnesses fail before asserting anything** — Node is older than 22.6.
+**Twenty-two harnesses fail before asserting anything** — Node is older than 22.6.
 `node -v`.
 
 **`ERR_PNPM_OUTDATED_LOCKFILE` in CI** — a manifest changed without the lockfile.
