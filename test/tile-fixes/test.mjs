@@ -37,9 +37,17 @@ check('empty array yields null', bestThumbnail([]), null);
 check('null yields null', bestThumbnail(null), null);
 check('undefined yields null', bestThumbnail(undefined), null);
 check('a non-array yields null', bestThumbnail('nope'), null);
-check('entries with no url are skipped', bestThumbnail([{ width: 9999 }, THUMBS[0]]).url, THUMBS[0].url);
+check(
+    'entries with no url are skipped',
+    bestThumbnail([{ width: 9999 }, THUMBS[0]]).url,
+    THUMBS[0].url,
+);
 check('an entry with no width still beats nothing', bestThumbnail([{ url: 'x' }]).url, 'x');
-check('  ...but loses to one that declares a width', bestThumbnail([{ url: 'x' }, THUMBS[0]]).width, 120);
+check(
+    '  ...but loses to one that declares a width',
+    bestThumbnail([{ url: 'x' }, THUMBS[0]]).width,
+    120,
+);
 
 // --- which tiles get a preview ----------------------------------------------
 const videoTile = () => ({
@@ -58,10 +66,10 @@ check('a Shorts tile is not', previewableTile(shortsTile), false);
 
 const ytOwnFocus = videoTile();
 ytOwnFocus.tileRenderer.onFocusCommand = { playbackEndpoint: {} };
-check('YouTube\'s own focus playback wins', previewableTile(ytOwnFocus), false);
+check("YouTube's own focus playback wins", previewableTile(ytOwnFocus), false);
 const ytExecutor = videoTile();
 ytExecutor.tileRenderer.onFocusCommand = { commandExecutorCommand: {} };
-check('YouTube\'s own command executor wins', previewableTile(ytExecutor), false);
+check("YouTube's own command executor wins", previewableTile(ytExecutor), false);
 
 // Idempotence. A payload can reach both JSON.parse and Response.json, and a
 // shelf can be cloned into a second surface.
@@ -74,19 +82,39 @@ check('a non-tile is not', previewableTile({ adSlotRenderer: {} }), false);
 check('null is not', previewableTile(null), false);
 
 // --- the command itself -----------------------------------------------------
-const cmd = startInlinePlayback({ watchEndpoint: { videoId: 'abc' } }, { durationMs: 12000, muted: true });
+const cmd = startInlinePlayback(
+    { watchEndpoint: { videoId: 'abc' } },
+    { durationMs: 12000, muted: true },
+);
 check('carries the requested duration', cmd.startInlinePlaybackCommand.durationMs, 12000);
 check('carries the requested mute', cmd.startInlinePlaybackCommand.muted, true);
-check('mutes false by default', startInlinePlayback({}, null).startInlinePlaybackCommand.muted, false);
-check('keeps the endpoint it was handed',
-      cmd.startInlinePlaybackCommand.playbackEndpoint.watchEndpoint.videoId, 'abc');
-for (const [label, duration] of [['NaN', NaN], ['zero', 0], ['negative', -1], ['absent', undefined]]) {
-    check(`a ${label} duration falls back to the default`,
-          startInlinePlayback({}, { durationMs: duration }).startInlinePlaybackCommand.durationMs,
-          DEFAULT_PREVIEW_DURATION_MS);
+check(
+    'mutes false by default',
+    startInlinePlayback({}, null).startInlinePlaybackCommand.muted,
+    false,
+);
+check(
+    'keeps the endpoint it was handed',
+    cmd.startInlinePlaybackCommand.playbackEndpoint.watchEndpoint.videoId,
+    'abc',
+);
+for (const [label, duration] of [
+    ['NaN', NaN],
+    ['zero', 0],
+    ['negative', -1],
+    ['absent', undefined],
+]) {
+    check(
+        `a ${label} duration falls back to the default`,
+        startInlinePlayback({}, { durationMs: duration }).startInlinePlaybackCommand.durationMs,
+        DEFAULT_PREVIEW_DURATION_MS,
+    );
 }
-check('a NaN delay falls back rather than reaching the payload',
-      Number.isFinite(startInlinePlayback({}, { delayMs: NaN }).startInlinePlaybackCommand.delayMs), true);
+check(
+    'a NaN delay falls back rather than reaching the payload',
+    Number.isFinite(startInlinePlayback({}, { delayMs: NaN }).startInlinePlaybackCommand.delayMs),
+    true,
+);
 
 // --- which surface are we on ------------------------------------------------
 // The vocabulary here is fixed by the settings list: search, home, music,
@@ -98,13 +126,18 @@ check('search is search', pageNameFromHash('/search?q=cats'), 'search');
 check('a browse id keeps working', pageNameFromHash('/browse?c=FEtopics_home'), 'home');
 check('  ...for music', pageNameFromHash('/browse?c=FEmusic'), 'music');
 check('  ...for subscriptions', pageNameFromHash('/browse?c=FEsubscriptions'), 'subscriptions');
-check('something unrecognised yields nothing rather than a wrong page',
-      pageNameFromHash('/watch'), '');
+check(
+    'something unrecognised yields nothing rather than a wrong page',
+    pageNameFromHash('/watch'),
+    '',
+);
 check('null does not throw', pageNameFromHash(null), '');
 check('a number does not throw', pageNameFromHash(42), '');
 
 // --- shelves filtered down to nothing ---------------------------------------
-const shelfWith = (items) => ({ shelfRenderer: { content: { horizontalListRenderer: { items } } } });
+const shelfWith = (items) => ({
+    shelfRenderer: { content: { horizontalListRenderer: { items } } },
+});
 check('a shelf filtered to zero is empty', shelfIsEmpty(shelfWith([])), true);
 // Deliberately not "fewer than two": a one-tile shelf may be one a continuation
 // is about to fill.
@@ -125,30 +158,69 @@ const badgedTile = (style, label) => ({
         style: 'TILE_STYLE_YTLR_DEFAULT',
         contentId: 'abc',
         onSelectCommand: { watchEndpoint: { videoId: 'abc' } },
-        metadata: { tileMetadataRenderer: {
-            title: { simpleText: 'A video' },
-            lines: [
-                { lineRenderer: { items: [
-                    { lineItemRenderer: { badge: { metadataBadgeRenderer: { style, label } } } },
-                    { lineItemRenderer: { text: { simpleText: '150K views' } } },
-                ] } },
-            ],
-        } },
+        metadata: {
+            tileMetadataRenderer: {
+                title: { simpleText: 'A video' },
+                lines: [
+                    {
+                        lineRenderer: {
+                            items: [
+                                {
+                                    lineItemRenderer: {
+                                        badge: { metadataBadgeRenderer: { style, label } },
+                                    },
+                                },
+                                { lineItemRenderer: { text: { simpleText: '150K views' } } },
+                            ],
+                        },
+                    },
+                ],
+            },
+        },
     },
 });
-check('a members-only badge is found', hasMembersOnlyBadge(badgedTile(MEMBERS_ONLY_BADGE, 'Members only').tileRenderer), true);
+check(
+    'a members-only badge is found',
+    hasMembersOnlyBadge(badgedTile(MEMBERS_ONLY_BADGE, 'Members only').tileRenderer),
+    true,
+);
 // The two badges that DO appear on real tiles must not be mistaken for it.
-check('a 4K badge is not members-only', hasMembersOnlyBadge(badgedTile('BADGE_STYLE_TYPE_SIMPLE', '4K').tileRenderer), false);
-check('a CC badge is not members-only', hasMembersOnlyBadge(badgedTile('BADGE_STYLE_TYPE_SIMPLE', 'CC').tileRenderer), false);
-check('a verified badge is not members-only', hasMembersOnlyBadge(badgedTile('BADGE_STYLE_TYPE_VERIFIED', null).tileRenderer), false);
+check(
+    'a 4K badge is not members-only',
+    hasMembersOnlyBadge(badgedTile('BADGE_STYLE_TYPE_SIMPLE', '4K').tileRenderer),
+    false,
+);
+check(
+    'a CC badge is not members-only',
+    hasMembersOnlyBadge(badgedTile('BADGE_STYLE_TYPE_SIMPLE', 'CC').tileRenderer),
+    false,
+);
+check(
+    'a verified badge is not members-only',
+    hasMembersOnlyBadge(badgedTile('BADGE_STYLE_TYPE_VERIFIED', null).tileRenderer),
+    false,
+);
 check('an unbadged tile is not members-only', hasMembersOnlyBadge(videoTile().tileRenderer), false);
 // Found wherever it sits: the badge is on line 0 above, but nothing says it
 // always will be.
 const secondLine = badgedTile('BADGE_STYLE_TYPE_SIMPLE', '4K');
-secondLine.tileRenderer.metadata.tileMetadataRenderer.lines.push(
-    { lineRenderer: { items: [{ lineItemRenderer: { badge: { metadataBadgeRenderer: { style: MEMBERS_ONLY_BADGE } } } }] } });
+secondLine.tileRenderer.metadata.tileMetadataRenderer.lines.push({
+    lineRenderer: {
+        items: [
+            {
+                lineItemRenderer: {
+                    badge: { metadataBadgeRenderer: { style: MEMBERS_ONLY_BADGE } },
+                },
+            },
+        ],
+    },
+});
 check('a badge on a later line is still found', hasMembersOnlyBadge(secondLine.tileRenderer), true);
-check('a tile with no metadata is not members-only', hasMembersOnlyBadge({ contentId: 'x' }), false);
+check(
+    'a tile with no metadata is not members-only',
+    hasMembersOnlyBadge({ contentId: 'x' }),
+    false,
+);
 check('null is not', hasMembersOnlyBadge(null), false);
 
 // --- junk -------------------------------------------------------------------
@@ -157,7 +229,13 @@ check('null is not', hasMembersOnlyBadge(null), false);
 // for that payload, which is the worst possible way for this to fail.
 let threw = null;
 const JUNK = [null, undefined, 0, '', 'string', [], {}, [null], [{}], NaN, true];
-for (const fn of [bestThumbnail, previewableTile, pageNameFromHash, shelfIsEmpty, hasMembersOnlyBadge]) {
+for (const fn of [
+    bestThumbnail,
+    previewableTile,
+    pageNameFromHash,
+    shelfIsEmpty,
+    hasMembersOnlyBadge,
+]) {
     for (const value of JUNK) {
         try {
             fn(value);

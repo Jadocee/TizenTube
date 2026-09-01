@@ -18,7 +18,9 @@ let attempts = 0;
 function enableFeatures() {
     if (!previewFlags) {
         previewFlags = window._yttv
-            ? Object.values(window._yttv).find(a => a instanceof Map && a.has("ENABLE_PREVIEWS_WITH_SOUND"))
+            ? Object.values(window._yttv).find(
+                  (a) => a instanceof Map && a.has('ENABLE_PREVIEWS_WITH_SOUND'),
+              )
             : null;
         if (!previewFlags) {
             // The retry used to cover only the outer `!window._yttv` test, but
@@ -34,7 +36,7 @@ function enableFeatures() {
     }
 
     // Enable preview mode
-    previewFlags.set("ENABLE_PREVIEWS_WITH_SOUND", configRead('enablePreviews'));
+    previewFlags.set('ENABLE_PREVIEWS_WITH_SOUND', configRead('enablePreviews'));
 }
 
 if (document.readyState === 'complete') {

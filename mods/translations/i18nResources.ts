@@ -9,7 +9,7 @@ import SpanishResource from './resources/es.json';
 import SpanishLatinAmericaResource from './resources/es-419.json';
 import IndonesianResource from './resources/id.json';
 import FinnishResource from './resources/fi-FI.json';
-import FrenchResource from './resources/fr.json'
+import FrenchResource from './resources/fr.json';
 import RomanianResource from './resources/ro.json';
 import BosnianResource from './resources/bs.json';
 import CroatianResource from './resources/hr.json';
@@ -31,96 +31,96 @@ import ArabicResource from './resources/ar.json';
 
 export default {
     da: {
-        translation: DanishResource
+        translation: DanishResource,
     },
     en: {
-        translation: EnglishResource
+        translation: EnglishResource,
     },
     tr: {
-        translation: TurkishResource
+        translation: TurkishResource,
     },
     vi: {
-        translation: VietnameseResource
+        translation: VietnameseResource,
     },
     de: {
-        translation: GermanResource
+        translation: GermanResource,
     },
     lv: {
-        translation: LatvianResource
+        translation: LatvianResource,
     },
-    "pt-PT": {
-        translation: PortuguesePortugalResource
+    'pt-PT': {
+        translation: PortuguesePortugalResource,
     },
-    "es-419": {
-        translation: SpanishLatinAmericaResource
+    'es-419': {
+        translation: SpanishLatinAmericaResource,
     },
     es: {
-        translation: SpanishResource
+        translation: SpanishResource,
     },
     id: {
-        translation: IndonesianResource
+        translation: IndonesianResource,
     },
     // Keyed "fi", not "fi-FI": YouTube's hl for Finnish is "fi" and a device
     // reporting fi-FI narrows to it, so the qualified key could never be
     // selected from either entry path. The file keeps its name.
     fi: {
-        translation: FinnishResource
+        translation: FinnishResource,
     },
     fr: {
-        translation: FrenchResource
+        translation: FrenchResource,
     },
     ro: {
-        translation: RomanianResource
+        translation: RomanianResource,
     },
     bs: {
-        translation: BosnianResource
+        translation: BosnianResource,
     },
     hr: {
-        translation: CroatianResource
+        translation: CroatianResource,
     },
-    "sr-Latn": {
-        translation: SerbianLatinResource
+    'sr-Latn': {
+        translation: SerbianLatinResource,
     },
     sr: {
-        translation: SerbianCyrillicResource
+        translation: SerbianCyrillicResource,
     },
     tlh: {
-        translation: KlingonResource
+        translation: KlingonResource,
     },
-    "pt-BR": {
-        translation: BrazilianPortugueseResource
+    'pt-BR': {
+        translation: BrazilianPortugueseResource,
     },
     ru: {
-        translation: RussianResource
+        translation: RussianResource,
     },
     lt: {
-        translation: LithuanianResource
+        translation: LithuanianResource,
     },
     hu: {
-        translation: HungarianResource
+        translation: HungarianResource,
     },
     it: {
-        translation: ItalianResource
+        translation: ItalianResource,
     },
     uk: {
-        translation: UkrainianResource
+        translation: UkrainianResource,
     },
     ja: {
-        translation: JapaneseResource
+        translation: JapaneseResource,
     },
     el: {
-        translation: GreekResource
+        translation: GreekResource,
     },
-    "zh-TW": {
-        translation: TaiwaneseResource
+    'zh-TW': {
+        translation: TaiwaneseResource,
     },
     cs: {
-        translation: CzechResource
-    }, 
+        translation: CzechResource,
+    },
     pl: {
-        translation: PolishResource
+        translation: PolishResource,
     },
     ar: {
-        translation: ArabicResource
-    }
+        translation: ArabicResource,
+    },
 };

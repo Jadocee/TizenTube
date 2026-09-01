@@ -41,7 +41,10 @@ const UPDATE_SOURCE: { manifest: string; userScript: string } | null = null;
 
 const ALLOW_CDN_UPDATES = UPDATE_SOURCE !== null;
 
-interface PackagedUserScript { version: string; source: string }
+interface PackagedUserScript {
+    version: string;
+    source: string;
+}
 
 let packaged: PackagedUserScript | null = null;
 try {
@@ -121,7 +124,9 @@ function refresh(): Promise<boolean> {
         })
         .then((manifest: { version?: string } | null) => {
             if (!manifest || !manifest.version || !isNewer(manifest.version, version)) return false;
-            console.log(`[TizenTube] Newer userscript published (${manifest.version} > ${version}); fetching.`);
+            console.log(
+                `[TizenTube] Newer userscript published (${manifest.version} > ${version}); fetching.`,
+            );
             const published = manifest.version;
             return download().then((text) => {
                 // download() falls back to the packaged copy on failure, and that

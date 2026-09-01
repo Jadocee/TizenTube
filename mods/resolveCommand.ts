@@ -28,7 +28,11 @@ export default function resolveCommand(cmd: Command, _?: any): any {
     // Because the client might change, we should find it first.
 
     for (const key in window._yttv) {
-        if (window._yttv[key] && window._yttv[key].instance && window._yttv[key].instance.resolveCommand) {
+        if (
+            window._yttv[key] &&
+            window._yttv[key].instance &&
+            window._yttv[key].instance.resolveCommand
+        ) {
             return window._yttv[key].instance.resolveCommand(cmd, _);
         }
     }
@@ -36,7 +40,11 @@ export default function resolveCommand(cmd: Command, _?: any): any {
 
 export function findFunction(funcName: string): any {
     for (const key in window._yttv) {
-        if (window._yttv[key] && window._yttv[key][funcName] && typeof window._yttv[key][funcName] === 'function') {
+        if (
+            window._yttv[key] &&
+            window._yttv[key][funcName] &&
+            typeof window._yttv[key][funcName] === 'function'
+        ) {
             return window._yttv[key][funcName];
         }
     }
@@ -46,10 +54,17 @@ export function findFunction(funcName: string): any {
 
 export function patchResolveCommand(): void {
     for (const key in window._yttv) {
-        if (window._yttv[key] && window._yttv[key].instance && window._yttv[key].instance.resolveCommand) {
-
+        if (
+            window._yttv[key] &&
+            window._yttv[key].instance &&
+            window._yttv[key].instance.resolveCommand
+        ) {
             const ogResolve = window._yttv[key].instance.resolveCommand;
-            window._yttv[key].instance.resolveCommand = function (this: any, cmd: Command, _?: any): any {
+            window._yttv[key].instance.resolveCommand = function (
+                this: any,
+                cmd: Command,
+                _?: any,
+            ): any {
                 // First statement, before any branch that returns early: the
                 // sidebar refresh works by noticing that a press dispatched
                 // NOTHING, so the counter has to move for every command the app
@@ -64,10 +79,16 @@ export function patchResolveCommand(): void {
                     // array, so with N entries in one command every entry was
                     // applied N times -- an arrayValue toggle applied twice is a
                     // no-op, which is how this stayed invisible.
-                    for (const setting of cmd.setClientSettingEndpoint.settingDatas as SettingDataPayload[]) {
+                    for (const setting of cmd.setClientSettingEndpoint
+                        .settingDatas as SettingDataPayload[]) {
                         if (!setting.clientSettingEnum.item.includes('_')) {
-                            const valName = Object.keys(setting).find(key => key.includes('Value'));
-                            const value = valName === 'intValue' ? Number(setting[valName]) : setting[valName!];
+                            const valName = Object.keys(setting).find((key) =>
+                                key.includes('Value'),
+                            );
+                            const value =
+                                valName === 'intValue'
+                                    ? Number(setting[valName])
+                                    : setting[valName!];
                             // The item comes straight out of the command payload, so it is
                             // only a setting name if it actually names one.
                             const item = setting.clientSettingEnum.item;
@@ -90,8 +111,8 @@ export function patchResolveCommand(): void {
                             document.cookie = `PREF=hl=${lang}; expires=${date.toUTCString()};`;
                             resolveCommand({
                                 signalAction: {
-                                    signal: 'RELOAD_PAGE'
-                                }
+                                    signal: 'RELOAD_PAGE',
+                                },
                             });
                             return true;
                         }
@@ -100,28 +121,42 @@ export function patchResolveCommand(): void {
                     customAction(cmd.customAction.action, cmd.customAction.parameters);
                     return true;
                 } else if (cmd?.signalAction?.customAction) {
-                    customAction(cmd.signalAction.customAction.action, cmd.signalAction.customAction.parameters);
+                    customAction(
+                        cmd.signalAction.customAction.action,
+                        cmd.signalAction.customAction.parameters,
+                    );
                     return true;
                 } else if (cmd?.showEngagementPanelEndpoint?.customAction) {
-                    customAction(cmd.showEngagementPanelEndpoint.customAction.action, cmd.showEngagementPanelEndpoint.customAction.parameters);
+                    customAction(
+                        cmd.showEngagementPanelEndpoint.customAction.action,
+                        cmd.showEngagementPanelEndpoint.customAction.parameters,
+                    );
                     return true;
                 } else if (cmd?.playlistEditEndpoint?.customAction) {
-                    customAction(cmd.playlistEditEndpoint.customAction.action, cmd.playlistEditEndpoint.customAction.parameters);
+                    customAction(
+                        cmd.playlistEditEndpoint.customAction.action,
+                        cmd.playlistEditEndpoint.customAction.parameters,
+                    );
                     return true;
                 } else if (cmd?.openPopupAction?.uniqueId === 'playback-settings') {
                     // Patch the playback settings popup to use TizenTube speed settings
-                    const items = cmd.openPopupAction.popup.overlaySectionRenderer.overlay.overlayTwoPanelRenderer.actionPanel.overlayPanelRenderer.content.overlayPanelItemListRenderer.items;
+                    const items =
+                        cmd.openPopupAction.popup.overlaySectionRenderer.overlay
+                            .overlayTwoPanelRenderer.actionPanel.overlayPanelRenderer.content
+                            .overlayPanelItemListRenderer.items;
                     for (const item of items) {
                         if (item?.compactLinkRenderer?.icon?.iconType === 'SLOW_MOTION_VIDEO') {
-                            item.compactLinkRenderer.subtitle && (item.compactLinkRenderer.subtitle.simpleText = t('player.withTizenTube'));
+                            item.compactLinkRenderer.subtitle &&
+                                (item.compactLinkRenderer.subtitle.simpleText =
+                                    t('player.withTizenTube'));
                             item.compactLinkRenderer.serviceEndpoint = {
-                                clickTrackingParams: "null",
+                                clickTrackingParams: 'null',
                                 signalAction: {
                                     customAction: {
                                         action: 'TT_SPEED_SETTINGS_SHOW',
-                                        parameters: []
-                                    }
-                                }
+                                        parameters: [],
+                                    },
+                                },
                             };
                         }
                     }
@@ -130,47 +165,65 @@ export function patchResolveCommand(): void {
                     // (customUI.ts does the same before its PiP and speed rows).
                     // Nothing here guarantees YouTube hands back a fresh endpoint
                     // object, and these splice into it in place.
-                    const settingsItems = cmd.openPopupAction.popup.overlaySectionRenderer.overlay.overlayTwoPanelRenderer.actionPanel.overlayPanelRenderer.content.overlayPanelItemListRenderer.items;
-                    const hasAction = (action: string) => settingsItems.some((item: any) =>
-                        item?.compactLinkRenderer?.serviceEndpoint?.commandExecutorCommand?.commands?.some(
-                            (c: any) => c?.customAction?.action === action));
+                    const settingsItems =
+                        cmd.openPopupAction.popup.overlaySectionRenderer.overlay
+                            .overlayTwoPanelRenderer.actionPanel.overlayPanelRenderer.content
+                            .overlayPanelItemListRenderer.items;
+                    const hasAction = (action: string) =>
+                        settingsItems.some((item: any) =>
+                            item?.compactLinkRenderer?.serviceEndpoint?.commandExecutorCommand?.commands?.some(
+                                (c: any) => c?.customAction?.action === action,
+                            ),
+                        );
 
                     if (!hasAction('ENTER_MP')) {
-                        settingsItems.splice(2, 0,
+                        settingsItems.splice(
+                            2,
+                            0,
                             buttonItem(
                                 { title: t('player.miniPlayer') },
-                                { icon: 'CLEAR_COOKIES' }, [
-                                {
-                                    customAction: {
-                                        action: 'ENTER_MP'
-                                    }
-                                }
-                            ])
+                                { icon: 'CLEAR_COOKIES' },
+                                [
+                                    {
+                                        customAction: {
+                                            action: 'ENTER_MP',
+                                        },
+                                    },
+                                ],
+                            ),
                         );
                     }
 
-                    if (window.h5vcc && window.h5vcc.tizentube && window.h5vcc.tizentube.HasSystemFeature &&
-                        window.h5vcc.tizentube.HasSystemFeature('android.software.picture_in_picture') &&
-                        !hasAction('ENTER_PIP')) {
+                    if (
+                        window.h5vcc &&
+                        window.h5vcc.tizentube &&
+                        window.h5vcc.tizentube.HasSystemFeature &&
+                        window.h5vcc.tizentube.HasSystemFeature(
+                            'android.software.picture_in_picture',
+                        ) &&
+                        !hasAction('ENTER_PIP')
+                    ) {
                         // Placed after the mini-player row wherever that ended up,
                         // rather than at a hardcoded index that assumed it went in.
-                        settingsItems.splice(settingsItems.findIndex((item: any) =>
-                            item?.compactLinkRenderer?.serviceEndpoint?.commandExecutorCommand?.commands?.some(
-                                (c: any) => c?.customAction?.action === 'ENTER_MP')) + 1, 0,
-                            buttonItem(
-                                { title: t('player.pictureInPicture') },
-                                { icon: 'TV' }, [
+                        settingsItems.splice(
+                            settingsItems.findIndex((item: any) =>
+                                item?.compactLinkRenderer?.serviceEndpoint?.commandExecutorCommand?.commands?.some(
+                                    (c: any) => c?.customAction?.action === 'ENTER_MP',
+                                ),
+                            ) + 1,
+                            0,
+                            buttonItem({ title: t('player.pictureInPicture') }, { icon: 'TV' }, [
                                 {
                                     customAction: {
-                                        action: 'ENTER_PIP'
-                                    }
+                                        action: 'ENTER_PIP',
+                                    },
                                 },
                                 {
                                     signalAction: {
-                                         signal: 'POPUP_BACK'
-                                    }
-                                }
-                            ])
+                                        signal: 'POPUP_BACK',
+                                    },
+                                },
+                            ]),
                         );
                     }
                 } else if (cmd?.watchEndpoint?.videoId) {
@@ -178,7 +231,9 @@ export function patchResolveCommand(): void {
                     // Guarded like the analogous lookup in ui.ts. A throw here
                     // stopped the watch command from ever reaching ogResolve, so
                     // the video would not open at all.
-                    document.querySelector<HTMLElement>('ytlr-player-container')?.style.removeProperty('z-index');
+                    document
+                        .querySelector<HTMLElement>('ytlr-player-container')
+                        ?.style.removeProperty('z-index');
                 }
 
                 // ogResolve, not the registry slot -- that slot is this very
@@ -188,13 +243,25 @@ export function patchResolveCommand(): void {
                 if (cmd.commandExecutorCommand && cmd.commandExecutorCommand.commands) {
                     for (const command of cmd.commandExecutorCommand.commands) {
                         if (command.customAction) {
-                            customAction(command.customAction.action, command.customAction.parameters);
+                            customAction(
+                                command.customAction.action,
+                                command.customAction.parameters,
+                            );
                         } else if (command.signalAction?.customAction) {
-                            customAction(command.signalAction.customAction.action, command.signalAction.customAction.parameters);
+                            customAction(
+                                command.signalAction.customAction.action,
+                                command.signalAction.customAction.parameters,
+                            );
                         } else if (command.showEngagementPanelEndpoint?.customAction) {
-                            customAction(command.showEngagementPanelEndpoint.customAction.action, command.showEngagementPanelEndpoint.customAction.parameters);
+                            customAction(
+                                command.showEngagementPanelEndpoint.customAction.action,
+                                command.showEngagementPanelEndpoint.customAction.parameters,
+                            );
                         } else if (command.playlistEditEndpoint?.customAction) {
-                            customAction(command.playlistEditEndpoint.customAction.action, command.playlistEditEndpoint.customAction.parameters);
+                            customAction(
+                                command.playlistEditEndpoint.customAction.action,
+                                command.playlistEditEndpoint.customAction.parameters,
+                            );
                         } else {
                             ogResolve.call(this, command, _);
                         }
@@ -202,20 +269,23 @@ export function patchResolveCommand(): void {
                     return true;
                 }
 
-                if (cmd?.requestAccountSelectorCommand
-                    && cmd.requestAccountSelectorCommand?.identityActionContext?.eventTrigger === 'ACCOUNT_EVENT_TRIGGER_ON_EXIT') {
+                if (
+                    cmd?.requestAccountSelectorCommand &&
+                    cmd.requestAccountSelectorCommand?.identityActionContext?.eventTrigger ===
+                        'ACCOUNT_EVENT_TRIGGER_ON_EXIT'
+                ) {
                     if (!configRead('enableWhosWatchingMenuOnAppExit')) {
                         ogResolve.call(this, {
                             signalAction: {
-                                signal: 'EXIT_APP'
-                            }
+                                signal: 'EXIT_APP',
+                            },
                         });
                         return false;
                     }
                 }
 
                 return ogResolve.call(this, cmd, _);
-            }
+            };
         }
     }
 }
@@ -265,7 +335,10 @@ function customAction(action: string, parameters?: any): void {
             break;
         case 'UPDATE_DOWNLOAD':
             window.h5vcc!.tizentube!.InstallAppFromURL(parameters);
-            showToast(t('settings.options.updater.downloading.title'), t('settings.options.updater.downloading.subtitle'));
+            showToast(
+                t('settings.options.updater.downloading.title'),
+                t('settings.options.updater.downloading.subtitle'),
+            );
             break;
         case 'SET_PLAYER_SPEED':
             const speed = Number(parameters);
@@ -286,7 +359,10 @@ function customAction(action: string, parameters?: any): void {
             // playback in a loop between the two copies. Position is inferred
             // from identity, so identity has to be unique.
             const contentId = parameters?.tileRenderer?.contentId;
-            if (!contentId || !window.queuedVideos.videos.some(v => v.tileRenderer?.contentId === contentId)) {
+            if (
+                !contentId ||
+                !window.queuedVideos.videos.some((v) => v.tileRenderer?.contentId === contentId)
+            ) {
                 window.queuedVideos.videos.push(parameters);
             }
             showToast('TizenTube 9', t('toasts.videoAddedToQueue'));
@@ -308,8 +384,14 @@ function customAction(action: string, parameters?: any): void {
             // the stored list.
             const videoId = parameters?.videoId;
             if (typeof videoId !== 'string' || !videoId) break;
-            const label = typeof parameters?.title === 'string' && parameters.title ? parameters.title : videoId;
-            configWrite('hiddenVideos', addEntry(configRead('hiddenVideos'), `${videoId} ${label}`));
+            const label =
+                typeof parameters?.title === 'string' && parameters.title
+                    ? parameters.title
+                    : videoId;
+            configWrite(
+                'hiddenVideos',
+                addEntry(configRead('hiddenVideos'), `${videoId} ${label}`),
+            );
             // The app contributes only CLOSE_POPUP for a customAction endpoint --
             // its native removeItemAction is reserved for real playlist edits --
             // so without this the tile stays on screen and the press is
@@ -327,7 +409,10 @@ function customAction(action: string, parameters?: any): void {
             // runs on the payload, not the DOM -- so without a refetch a
             // channel-wide action produces a one-tile effect.
             resolveCommand({ signalAction: { signal: 'SOFT_RELOAD_PAGE' } });
-            showToast('TizenTube 9', t('toasts.channelHidden', { channel: parseEntry(entry).name }));
+            showToast(
+                'TizenTube 9',
+                t('toasts.channelHidden', { channel: parseEntry(entry).name }),
+            );
             break;
         }
     }

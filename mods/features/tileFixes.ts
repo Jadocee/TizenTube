@@ -95,12 +95,17 @@ export interface PreviewOptions {
  * mutate both at once.
  */
 export function startInlinePlayback(endpoint: any, options?: PreviewOptions | null): any {
-    const asked = options && Number.isFinite(options.durationMs as number) ? (options.durationMs as number) : NaN;
+    const asked =
+        options && Number.isFinite(options.durationMs as number)
+            ? (options.durationMs as number)
+            : NaN;
     // A zero or negative duration would ask the app to play for no time at all,
     // and NaN would put NaN in the payload. Both fall back to the default.
     const durationMs = Number.isFinite(asked) && asked > 0 ? asked : DEFAULT_PREVIEW_DURATION_MS;
-    const askedDelay = options && Number.isFinite(options.delayMs as number) ? (options.delayMs as number) : NaN;
-    const delayMs = Number.isFinite(askedDelay) && askedDelay >= 0 ? askedDelay : DEFAULT_PREVIEW_DELAY_MS;
+    const askedDelay =
+        options && Number.isFinite(options.delayMs as number) ? (options.delayMs as number) : NaN;
+    const delayMs =
+        Number.isFinite(askedDelay) && askedDelay >= 0 ? askedDelay : DEFAULT_PREVIEW_DELAY_MS;
     return {
         startInlinePlaybackCommand: {
             blockAdoption: true,
@@ -132,7 +137,12 @@ export function pageNameFromHash(rawHash: string | null | undefined): string {
     if (hash === '' || hash === '/') return 'home';
     if (hash.startsWith('/search')) return 'search';
     return (
-        hash.split('?')[1]?.split('&')[0]?.split('=')[1]?.replace('FE', '')?.replace('topics_', '') ?? ''
+        hash
+            .split('?')[1]
+            ?.split('&')[0]
+            ?.split('=')[1]
+            ?.replace('FE', '')
+            ?.replace('topics_', '') ?? ''
     );
 }
 

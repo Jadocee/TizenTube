@@ -1,5 +1,5 @@
-import { configRead } from "../config.js";
-import type { YouTubePlayer } from "../types/youtube";
+import { configRead } from '../config.js';
+import type { YouTubePlayer } from '../types/youtube';
 
 // The resume timer from the last frame-rate switch, at module scope so a second
 // switch supersedes the first rather than stacking another play() on top of it.
@@ -19,7 +19,12 @@ function attachToVideoPlayer() {
 
             if (resolutionMatch) {
                 const fps = resolutionMatch[3];
-                if (configRead('autoFrameRate') && window.h5vcc && window.h5vcc.tizentube && window.h5vcc.tizentube.SetFrameRate) {
+                if (
+                    configRead('autoFrameRate') &&
+                    window.h5vcc &&
+                    window.h5vcc.tizentube &&
+                    window.h5vcc.tizentube.SetFrameRate
+                ) {
                     // Re-queried per use, the way every other consumer in the mod
                     // does it. This used to be captured once next to the player
                     // probe above -- before the guard that decides the player even
@@ -54,7 +59,12 @@ function attachToVideoPlayer() {
     // nothing at all when leaving one, so the panel stayed locked at whatever
     // refresh rate the last video needed.
     window.addEventListener('hashchange', () => {
-        if (configRead('autoFrameRate') && window.h5vcc && window.h5vcc.tizentube && window.h5vcc.tizentube.SetFrameRate) {
+        if (
+            configRead('autoFrameRate') &&
+            window.h5vcc &&
+            window.h5vcc.tizentube &&
+            window.h5vcc.tizentube.SetFrameRate
+        ) {
             window.h5vcc.tizentube.SetFrameRate(0);
         }
     });

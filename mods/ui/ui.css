@@ -7,45 +7,45 @@
    the bundler, so nothing here has to survive a build step. */
 
 .ytaf-ui-container {
-  /* One place to change the look. Scoped to the panel rather than :root so
+    /* One place to change the look. Scoped to the panel rather than :root so
      nothing leaks into YouTube's own styles. */
-  --tt-surface: rgb(18 18 18 / 96%);
-  --tt-ink: #f1f1f1;
-  --tt-ink-dim: #a8a8a8;
-  --tt-line: rgb(255 255 255 / 12%);
-  --tt-row: rgb(255 255 255 / 7%);
-  --tt-row-focus: rgb(255 255 255 / 22%);
-  --tt-focus-ring: #f1f1f1;
+    --tt-surface: rgb(18 18 18 / 96%);
+    --tt-ink: #f1f1f1;
+    --tt-ink-dim: #a8a8a8;
+    --tt-line: rgb(255 255 255 / 12%);
+    --tt-row: rgb(255 255 255 / 7%);
+    --tt-row-focus: rgb(255 255 255 / 22%);
+    --tt-focus-ring: #f1f1f1;
 
-  /* Generous, because a 10-foot UI reads shapes before it reads edges, and a
+    /* Generous, because a 10-foot UI reads shapes before it reads edges, and a
      tight radius is indistinguishable from a square at that distance. */
-  --tt-radius-panel: 2rem;
-  --tt-radius-row: 1.25rem;
-  --tt-radius-field: 0.75rem;
+    --tt-radius-panel: 2rem;
+    --tt-radius-row: 1.25rem;
+    --tt-radius-field: 0.75rem;
 
-  --tt-gap: 1rem;
-  --tt-pad-block: 2.25rem;
-  --tt-pad-inline: 2.5rem;
+    --tt-gap: 1rem;
+    --tt-pad-block: 2.25rem;
+    --tt-pad-inline: 2.5rem;
 
-  position: fixed;
-  /* Sized to its content and centred, rather than stretched to a fixed box:
+    position: fixed;
+    /* Sized to its content and centred, rather than stretched to a fixed box:
      the panel holds two rows, and a half-empty full-height sheet reads as a
      rendering fault on a TV. */
-  inset-block-start: 50%;
-  inset-inline: 8%;
-  transform: translateY(-50%);
-  max-block-size: 84%;
+    inset-block-start: 50%;
+    inset-inline: 8%;
+    transform: translateY(-50%);
+    max-block-size: 84%;
 
-  display: flex;
-  flex-direction: column;
-  gap: var(--tt-gap);
+    display: flex;
+    flex-direction: column;
+    gap: var(--tt-gap);
 
-  box-sizing: border-box;
-  overflow-y: auto;
-  padding-block: var(--tt-pad-block);
-  padding-inline: var(--tt-pad-inline);
+    box-sizing: border-box;
+    overflow-y: auto;
+    padding-block: var(--tt-pad-block);
+    padding-inline: var(--tt-pad-inline);
 
-  /* background-color stays a real colour, with the gradient layered over it as
+    /* background-color stays a real colour, with the gradient layered over it as
      background-image. Two reasons: the panel is translucent, so what the text
      is actually read against is this fill composited over the video behind it,
      and that is what the contrast check measures -- a gradient in the shorthand
@@ -54,203 +54,211 @@
      the top edge and a cool wash at the bottom, enough to stop a 10-foot panel
      reading as a flat grey slab, cheap enough to rasterise once, and nowhere
      near bright enough to give an OLED something to hold. */
-  background-color: var(--tt-surface);
-  background-image:
-    linear-gradient(160deg, rgb(255 255 255 / 6%) 0%, rgb(255 255 255 / 0%) 38%),
-    radial-gradient(120% 80% at 12% 0%, rgb(120 170 255 / 8%) 0%, rgb(120 170 255 / 0%) 55%),
-    radial-gradient(100% 70% at 92% 100%, rgb(150 120 255 / 7%) 0%, rgb(150 120 255 / 0%) 60%);
-  color: var(--tt-ink);
-  border-radius: var(--tt-radius-panel);
-  /* Lifts the panel off the artwork behind it without a bright fill, which an
+    background-color: var(--tt-surface);
+    background-image:
+        linear-gradient(160deg, rgb(255 255 255 / 6%) 0%, rgb(255 255 255 / 0%) 38%),
+        radial-gradient(120% 80% at 12% 0%, rgb(120 170 255 / 8%) 0%, rgb(120 170 255 / 0%) 55%),
+        radial-gradient(100% 70% at 92% 100%, rgb(150 120 255 / 7%) 0%, rgb(150 120 255 / 0%) 60%);
+    color: var(--tt-ink);
+    border-radius: var(--tt-radius-panel);
+    /* Lifts the panel off the artwork behind it without a bright fill, which an
      OLED would be holding at full brightness for as long as this is open. */
-  border: 0.0625rem solid var(--tt-line);
-  box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 60%);
-  font-size: 1.5rem;
-  line-height: 1.4;
-  z-index: 1000;
+    border: 0.0625rem solid var(--tt-line);
+    box-shadow: 0 1.5rem 4rem rgb(0 0 0 / 60%);
+    font-size: 1.5rem;
+    line-height: 1.4;
+    z-index: 1000;
 
-  /* Fallback highlight for the moment the container itself holds focus, before
+    /* Fallback highlight for the moment the container itself holds focus, before
      a control inside it does. */
-  &:focus {
-    outline: 0.25rem solid var(--tt-focus-ring);
-    outline-offset: 0.25rem;
-  }
+    &:focus {
+        outline: 0.25rem solid var(--tt-focus-ring);
+        outline-offset: 0.25rem;
+    }
 
-  & h1 {
-    margin: 0;
-    font-size: 2.5rem;
-    font-weight: 500;
-    text-align: center;
-    text-wrap: balance;
-  }
+    & h1 {
+        margin: 0;
+        font-size: 2.5rem;
+        font-weight: 500;
+        text-align: center;
+        text-wrap: balance;
+    }
 
-  & .ytaf-ui-subtitle {
-    margin: 0;
-    margin-block-end: 0.75rem;
-    text-align: center;
-    text-wrap: balance;
-    font-size: 1.2rem;
-    color: var(--tt-ink-dim);
-  }
+    & .ytaf-ui-subtitle {
+        margin: 0;
+        margin-block-end: 0.75rem;
+        text-align: center;
+        text-wrap: balance;
+        font-size: 1.2rem;
+        color: var(--tt-ink-dim);
+    }
 
-  & .ytaf-ui-row {
-    /* Label left, value right. Block layout left the value hard against the
+    & .ytaf-ui-row {
+        /* Label left, value right. Block layout left the value hard against the
        left edge with the rest of the row empty, which on a wide panel reads as
        a broken column rather than a setting. */
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1.5rem;
-    box-sizing: border-box;
-    inline-size: 100%;
-    padding-block: 1.1rem;
-    padding-inline: 1.5rem;
-    border-radius: var(--tt-radius-row);
-    /* A hairline top-edge lift, so a row reads as a raised surface rather than
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1.5rem;
+        box-sizing: border-box;
+        inline-size: 100%;
+        padding-block: 1.1rem;
+        padding-inline: 1.5rem;
+        border-radius: var(--tt-radius-row);
+        /* A hairline top-edge lift, so a row reads as a raised surface rather than
        a painted rectangle. Same reasoning as the panel: colour underneath,
        gradient over it. */
-    background-image: linear-gradient(180deg, rgb(255 255 255 / 5%) 0%, rgb(255 255 255 / 0%) 50%);
-    background: var(--tt-row);
+        background-image: linear-gradient(
+            180deg,
+            rgb(255 255 255 / 5%) 0%,
+            rgb(255 255 255 / 0%) 50%
+        );
+        background: var(--tt-row);
 
-    /* The fill lives on the row, not the control: the two text inputs are the
+        /* The fill lives on the row, not the control: the two text inputs are the
        only focusable things in here, and input[type='text'] wins on
        specificity, so a fill on :focus never showed at all. */
-    &:focus-within {
-      background: var(--tt-row-focus);
+        &:focus-within {
+            background: var(--tt-row-focus);
+        }
     }
-  }
 
-  & .ytaf-ui-row-label {
-    font-size: 1.5rem;
-  }
+    & .ytaf-ui-row-label {
+        font-size: 1.5rem;
+    }
 
-  & .ytaf-ui-row-value {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    white-space: nowrap;
-  }
+    & .ytaf-ui-row-value {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        white-space: nowrap;
+    }
 
-  /* A live swatch of the colour that is currently stored, so the hex code
+    /* A live swatch of the colour that is currently stored, so the hex code
      beside it means something without leaving the panel. */
-  & .ytaf-ui-swatch {
-    inline-size: 2.25rem;
-    block-size: 2.25rem;
-    border: 0.125rem solid rgb(255 255 255 / 50%);
-    border-radius: var(--tt-radius-field);
-  }
+    & .ytaf-ui-swatch {
+        inline-size: 2.25rem;
+        block-size: 2.25rem;
+        border: 0.125rem solid rgb(255 255 255 / 50%);
+        border-radius: var(--tt-radius-field);
+    }
 
-  & input[type='text'] {
-    box-sizing: border-box;
-    inline-size: 11rem;
-    padding-block: 0.55rem;
-    padding-inline: 0.9rem;
-    border: 0.125rem solid rgb(255 255 255 / 25%);
-    border-radius: var(--tt-radius-field);
-    background: rgb(0 0 0 / 60%);
-    color: var(--tt-ink);
-    font-family: inherit;
-    font-size: 1.5rem;
-  }
+    & input[type="text"] {
+        box-sizing: border-box;
+        inline-size: 11rem;
+        padding-block: 0.55rem;
+        padding-inline: 0.9rem;
+        border: 0.125rem solid rgb(255 255 255 / 25%);
+        border-radius: var(--tt-radius-field);
+        background: rgb(0 0 0 / 60%);
+        color: var(--tt-ink);
+        font-family: inherit;
+        font-size: 1.5rem;
+    }
 
-  & :is(input[type='checkbox'], input[type='radio']) {
-    inline-size: 1.4rem;
-    block-size: 1.4rem;
-    /* Native controls follow this instead of rendering a light-mode default on
+    & :is(input[type="checkbox"], input[type="radio"]) {
+        inline-size: 1.4rem;
+        block-size: 1.4rem;
+        /* Native controls follow this instead of rendering a light-mode default on
        a dark panel. */
-    accent-color: var(--tt-focus-ring);
-  }
+        accent-color: var(--tt-focus-ring);
+    }
 
-  /* Focus has to read from across a room, so it is a light ring plus a filled
+    /* Focus has to read from across a room, so it is a light ring plus a filled
      row rather than a hairline outline. Saturated red is deliberately avoided:
      TVs bleed it and it is the hardest colour to resolve at a distance. */
-  & :focus {
-    outline: 0.25rem solid var(--tt-focus-ring);
-    outline-offset: 0.15rem;
-  }
+    & :focus {
+        outline: 0.25rem solid var(--tt-focus-ring);
+        outline-offset: 0.15rem;
+    }
 
-  & .ytaf-ui-hint {
-    margin-block-start: 0.5rem;
-    text-align: center;
-    font-size: 1.2rem;
-    color: var(--tt-ink-dim);
-  }
+    & .ytaf-ui-hint {
+        margin-block-start: 0.5rem;
+        text-align: center;
+        font-size: 1.2rem;
+        color: var(--tt-ink-dim);
+    }
 }
 
 /* Fixes transparency effect for the video player */
 
-:is(.ytLrWatchDefaultShadow, div[idomkey='shadow']) {
-  background-image: linear-gradient(to bottom, rgb(0 0 0 / 0%) 0, rgb(0 0 0 / 80%) 90%) !important;
-  background-color: rgb(0 0 0 / 30%) !important;
-  display: block !important;
-  block-size: 100% !important;
-  inline-size: 100% !important;
-  pointer-events: none !important;
-  position: absolute !important;
+:is(.ytLrWatchDefaultShadow, div[idomkey="shadow"]) {
+    background-image: linear-gradient(
+        to bottom,
+        rgb(0 0 0 / 0%) 0,
+        rgb(0 0 0 / 80%) 90%
+    ) !important;
+    background-color: rgb(0 0 0 / 30%) !important;
+    display: block !important;
+    block-size: 100% !important;
+    inline-size: 100% !important;
+    pointer-events: none !important;
+    position: absolute !important;
 }
 
 /* https://github.com/webosbrew/youtube-webos/commit/4fbe38a18df31ddd62b6cf15f141dd58e1d1a71d */
 .ytLrWatchDefault2025Shadow {
-  background-color: rgb(11 11 11 / 50%) !important;
+    background-color: rgb(11 11 11 / 50%) !important;
 }
 
 /* Fixes shorts having a black background */
 .ytLrTileHeaderRendererShorts {
-  background-image: none !important;
+    background-image: none !important;
 }
 
 /* Multiline support for strings in the UI */
 .ytLrOverlayPanelHeaderRendererSubtitle {
-  white-space: pre-wrap !important;
+    white-space: pre-wrap !important;
 }
 
 /* Fixes SponsorBlock segments overlapping with the playhead */
 :is(.ytLrProgressBarPlayhead, .ytLrProgressBarPlayed) {
-  z-index: 1 !important;
+    z-index: 1 !important;
 }
 
 .ytLrSearchBarSearchVoice {
-  display: block;
-  position: absolute;
-  inset-block-start: 0;
-  inset-inline-start: 0;
-  pointer-events: auto;
+    display: block;
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-start: 0;
+    pointer-events: auto;
 }
 
 .ytLrSearchVoiceHost {
-  font-size: 3rem;
+    font-size: 3rem;
 }
 
 .ytLrSearchVoiceMicButtonHost {
-  display: block;
-  inline-size: 1em;
-  block-size: 1em;
-  border-radius: 50%;
-  background-color: rgb(255 255 255 / 10%);
-  color: var(--tt-ink, #f1f1f1);
-  text-align: center;
+    display: block;
+    inline-size: 1em;
+    block-size: 1em;
+    border-radius: 50%;
+    background-color: rgb(255 255 255 / 10%);
+    color: var(--tt-ink, #f1f1f1);
+    text-align: center;
 }
 
 .ytLrSearchVoiceMicButtonIcon {
-  display: inline-block;
-  /* The declaration order here used to set .5em and then immediately overwrite
+    display: inline-block;
+    /* The declaration order here used to set .5em and then immediately overwrite
      it with 1em; only the 1em ever applied. */
-  font-size: 0.5em;
-  inline-size: 1em;
-  block-size: 1em;
-  margin-block-start: 0.5em;
-  vertical-align: top !important;
+    font-size: 0.5em;
+    inline-size: 1em;
+    block-size: 1em;
+    margin-block-start: 0.5em;
+    vertical-align: top !important;
 }
 
 .ytContribIconHost {
-  display: inline-block;
-  vertical-align: middle;
+    display: inline-block;
+    vertical-align: middle;
 
-  &::before {
-    font-family: 'YouTube Icons Outlined';
-  }
+    &::before {
+        font-family: "YouTube Icons Outlined";
+    }
 }
 
 .ytContribIconTvArrowLeft::before {
-  content: '\e822';
+    content: "\e822";
 }

@@ -13,7 +13,7 @@ const RECURRING_ACTIONS_KEY = 'yt.leanback.default::recurring_actions';
 const STARTUP_ACTIONS = [
     'startup-screen-account-selector-with-guest',
     'whos_watching_fullscreen_zero_accounts',
-    'startup-screen-signed-out-welcome-back'
+    'startup-screen-signed-out-welcome-back',
 ];
 
 configChangeEmitter.addEventListener('configChange', (event) => {
@@ -71,7 +71,8 @@ function disableWhosWatching(value: unknown): void {
         return;
     }
 
-    const lastFired = LeanbackRecurringActions.data.data['startup-screen-account-selector-with-guest']?.lastFired;
+    const lastFired =
+        LeanbackRecurringActions.data.data['startup-screen-account-selector-with-guest']?.lastFired;
     const sinceLastFired = date.getTime() - lastFired;
     // Do nothing if the last fired action is less than 2 hours ago.
     if (sinceLastFired > 0 && sinceLastFired < 2 * 60 * 60 * 1000 && !shouldPermanentlyEnable) {

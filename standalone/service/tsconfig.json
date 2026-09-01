@@ -1,22 +1,22 @@
 {
-  "compilerOptions": {
-    // The Tizen web-service runtime is old, so emit conservatively rather than
-    // assuming modern Node. rolldown.config.mjs lowers to the same line.
-    "target": "ES2018",
-    // Rolldown bundles this, so resolution is the bundler's -- and TypeScript 7
-    // removed the old node10 resolver, which is what this used to ask for.
-    "module": "preserve",
-    "moduleResolution": "bundler",
-    "lib": ["ES2018"],
+    "compilerOptions": {
+        // The Tizen web-service runtime is old, so emit conservatively rather than
+        // assuming modern Node. rolldown.config.mjs lowers to the same line.
+        "target": "ES2018",
+        // Rolldown bundles this, so resolution is the bundler's -- and TypeScript 7
+        // removed the old node10 resolver, which is what this used to ask for.
+        "module": "preserve",
+        "moduleResolution": "bundler",
+        "lib": ["ES2018"],
 
-    "strict": true,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
+        "strict": true,
+        "esModuleInterop": true,
+        "forceConsistentCasingInFileNames": true,
 
-    "noEmit": true,
-    "skipLibCheck": true,
-    "resolveJsonModule": true
-  },
-  "include": ["*.ts", "types/*.d.ts"],
-  "exclude": ["node_modules", "dist"]
+        "noEmit": true,
+        "skipLibCheck": true,
+        "resolveJsonModule": true
+    },
+    "include": ["*.ts", "types/*.d.ts"],
+    "exclude": ["node_modules", "dist"]
 }

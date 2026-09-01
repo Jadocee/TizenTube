@@ -1,5 +1,5 @@
-import { configRead, configChangeEmitter } from "../config.js";
-import type { YouTubePlayer } from "../types/youtube";
+import { configRead, configChangeEmitter } from '../config.js';
+import type { YouTubePlayer } from '../types/youtube';
 
 const SELECTORS = {
     PLAYER: '.html5-video-player',
@@ -69,7 +69,7 @@ class PreferredQualityHandler {
             // before the player API is attached, where the unguarded call threw
             // and took the whole handler with it.
             const stats = this.#player?.getVideoStats?.();
-            const isShorts = stats ? Object.values(stats).some(a => a === 'shortspage') : false;
+            const isShorts = stats ? Object.values(stats).some((a) => a === 'shortspage') : false;
             if (!isShorts) {
                 this.#applyQuality();
                 this.#hasAppliedQuality = true;
@@ -85,7 +85,7 @@ class PreferredQualityHandler {
             const quality = this.#determineQuality(preferredQuality);
 
             if (quality) {
-              this.#player.setPlaybackQualityRange(quality, quality)
+                this.#player.setPlaybackQualityRange(quality, quality);
             }
         } catch (e) {
             console.warn('[PreferredQuality] Failed to apply quality:', e);
@@ -104,14 +104,14 @@ class PreferredQualityHandler {
 
         // Copy before sorting: the array is YouTube's, not ours.
         const sorted = [...availableQualities].sort(
-            (a, b) => getQualityValue(b.qualityLabel) - getQualityValue(a.qualityLabel)
+            (a, b) => getQualityValue(b.qualityLabel) - getQualityValue(a.qualityLabel),
         );
         // The preference is a cap, so take the best rendition at or below it.
         // Matching the height exactly and falling back to 'highres' otherwise
         // meant a stream without that exact label was pinned to the MAXIMUM --
         // the opposite of what the setting asks for. Subsumes the exact match;
         // when every rendition is above the request, lands on the lowest.
-        const atOrBelow = sorted.find(q => getQualityValue(q.qualityLabel) <= targetValue);
+        const atOrBelow = sorted.find((q) => getQualityValue(q.qualityLabel) <= targetValue);
         return (atOrBelow ?? sorted[sorted.length - 1]).quality;
     }
 }

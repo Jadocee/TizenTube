@@ -58,13 +58,21 @@ const MAX_NODES = 20000;
  */
 const MAX_DEPTH = 200;
 
-const isObject = (v: unknown): v is Record<string, unknown> =>
-    typeof v === 'object' && v !== null;
+const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
 
 /** Does `node` have something at `path`? Used by dropItemsWith. */
 function hasPath(node: unknown, segments: string[]): boolean {
     let found = false;
-    resolve(node, segments, 0, { n: 0 }, () => { found = true; }, 0);
+    resolve(
+        node,
+        segments,
+        0,
+        { n: 0 },
+        () => {
+            found = true;
+        },
+        0,
+    );
     return found;
 }
 
@@ -93,21 +101,41 @@ function resolve(
         if (index + 1 < segments.length) resolve(node, segments, index + 1, budget, onMatch, depth);
         // Or one level down, repeatedly.
         for (const key of Object.keys(node)) {
-            resolve((node as Record<string, unknown>)[key], segments, index, budget, onMatch, depth + 1);
+            resolve(
+                (node as Record<string, unknown>)[key],
+                segments,
+                index,
+                budget,
+                onMatch,
+                depth + 1,
+            );
         }
         return;
     }
 
-    const keys = segment === '*'
-        ? Object.keys(node)
-        : (Object.prototype.hasOwnProperty.call(node, segment) ? [segment] : []);
+    const keys =
+        segment === '*'
+            ? Object.keys(node)
+            : Object.prototype.hasOwnProperty.call(node, segment)
+              ? [segment]
+              : [];
 
     for (const key of keys) {
         if (budget.n++ > MAX_NODES) return;
         if (last) {
-            onMatch(node as Record<string, unknown> | unknown[], Array.isArray(node) ? Number(key) : key);
+            onMatch(
+                node as Record<string, unknown> | unknown[],
+                Array.isArray(node) ? Number(key) : key,
+            );
         } else {
-            resolve((node as Record<string, unknown>)[key], segments, index + 1, budget, onMatch, depth + 1);
+            resolve(
+                (node as Record<string, unknown>)[key],
+                segments,
+                index + 1,
+                budget,
+                onMatch,
+                depth + 1,
+            );
         }
     }
 }
@@ -122,7 +150,16 @@ export function applyRule(root: unknown, rule: PruneRule): number {
     // Collected before mutating: deleting keys while walking the same object
     // skips siblings.
     const matches: Array<[Record<string, unknown> | unknown[], string | number]> = [];
-    resolve(root, segments, 0, budget, (parent, key) => { matches.push([parent, key]); }, 0);
+    resolve(
+        root,
+        segments,
+        0,
+        budget,
+        (parent, key) => {
+            matches.push([parent, key]);
+        },
+        0,
+    );
 
     for (const [parent, key] of matches) {
         const current = (parent as Record<string | number, unknown>)[key];

@@ -133,7 +133,9 @@ export function nameFromTile(tile: any): string | null {
         const head = (at < 0 ? subtitle : subtitle.slice(0, at)).trim();
         if (head) return head;
     }
-    const line = tile?.metadata?.tileMetadataRenderer?.lines?.[0]?.lineRenderer?.items?.[0]?.lineItemRenderer?.text;
+    const line =
+        tile?.metadata?.tileMetadataRenderer?.lines?.[0]?.lineRenderer?.items?.[0]?.lineItemRenderer
+            ?.text;
     if (typeof line?.simpleText === 'string' && line.simpleText) return line.simpleText;
     const run = line?.runs?.[0]?.text;
     return typeof run === 'string' && run ? run : null;
@@ -202,18 +204,23 @@ export function tileIdentity(tile: any): TileIdentity {
     const items = menuItems(tile);
     const videoId = typeof tile?.contentId === 'string' && tile.contentId ? tile.contentId : null;
     const menuId = channelIdFromMenu(items);
-    const subtitleHandle = handleFromSubtitle(tile?.onLongPressCommand?.showMenuCommand?.subtitle?.simpleText);
+    const subtitleHandle = handleFromSubtitle(
+        tile?.onLongPressCommand?.showMenuCommand?.subtitle?.simpleText,
+    );
     // Only consulted when the cheaper two came up short, so the ordinary home
     // tile -- which has both -- does not pay for the walk.
     const meta = menuId && subtitleHandle ? null : channelFromMetadata(tile);
     const id = menuId || meta?.id || null;
     const handle = subtitleHandle || meta?.handle || null;
     const name = nameFromTile(tile) || meta?.name || null;
-    const channel: ChannelRef | null = id || handle ? {
-        ...(id ? { id } : {}),
-        ...(handle ? { handle } : {}),
-        ...(name ? { name } : {}),
-    } : null;
+    const channel: ChannelRef | null =
+        id || handle
+            ? {
+                  ...(id ? { id } : {}),
+                  ...(handle ? { handle } : {}),
+                  ...(name ? { name } : {}),
+              }
+            : null;
     return { videoId, channel };
 }
 
@@ -277,7 +284,9 @@ export function isVideoHidden(videoId: unknown, entries: unknown): boolean {
 /** Adds an entry, keeping the list bounded and free of duplicates. Returns the
  *  same array reference when nothing changed, so a caller can skip the write. */
 export function addEntry(entries: unknown, entry: string | null | undefined): string[] {
-    const list = Array.isArray(entries) ? entries.filter((e) => typeof e === 'string') as string[] : [];
+    const list = Array.isArray(entries)
+        ? (entries.filter((e) => typeof e === 'string') as string[])
+        : [];
     if (typeof entry !== 'string' || !entry) return list;
     const key = parseEntry(entry).key;
     if (!key) return list;

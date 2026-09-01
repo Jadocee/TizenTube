@@ -16,8 +16,13 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { checker } from '../lib/repo.mjs';
 import {
-    parseList, indexHasChannel, normaliseHandle, readLastModified,
-    serialiseIndex, deserialiseIndex, emptyIndex,
+    parseList,
+    indexHasChannel,
+    normaliseHandle,
+    readLastModified,
+    serialiseIndex,
+    deserialiseIndex,
+    emptyIndex,
 } from './aisListParse.generated.mts';
 
 const { check, done } = checker();
@@ -25,14 +30,19 @@ const SAMPLE = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'sampl
 const index = parseList(SAMPLE);
 
 // --- the real file --------------------------------------------------------
-check('comments and blanks are not entries', index.count > 0 && index.count < SAMPLE.split('\n').length, true);
+check(
+    'comments and blanks are not entries',
+    index.count > 0 && index.count < SAMPLE.split('\n').length,
+    true,
+);
 check('the header date is read', /^\d{4}-\d{2}-\d{2}$/.test(index.lastModified || ''), true);
 // The count is the real invariant: exactly the lines that open with @ or UC
 // become entries, and nothing else does. (The explicit `!`/`#` comment guard in
 // the parser is belt and braces rather than load-bearing -- the @/UC dispatch
 // already rejects a comment line -- so this asserts the property that matters
 // instead of pretending to cover a branch no input can reach.)
-const entryLines = SAMPLE.split('\n').map((l) => l.trim())
+const entryLines = SAMPLE.split('\n')
+    .map((l) => l.trim())
     .filter((l) => l.startsWith('@') || /^UC\S{8,}$/.test(l));
 check('exactly the entry lines are parsed', index.count, entryLines.length);
 
@@ -50,7 +60,11 @@ check('every encoded handle matches its decoded form', missed, null);
 
 // --- case ------------------------------------------------------------------
 const anyHandle = [...index.handles][0];
-check('matching is case-insensitive', indexHasChannel(index, { handle: anyHandle.toUpperCase() }), true);
+check(
+    'matching is case-insensitive',
+    indexHasChannel(index, { handle: anyHandle.toUpperCase() }),
+    true,
+);
 check('  ...and the stored form is folded', anyHandle, anyHandle.toLowerCase());
 
 // --- normalisation ---------------------------------------------------------
@@ -64,11 +78,22 @@ check('null is not a handle', normaliseHandle(null), null);
 check('an empty string is not', normaliseHandle(''), null);
 
 // --- misses ----------------------------------------------------------------
-check('a channel not on the list does not match', indexHasChannel(index, { handle: '@definitelynotonthelist' }), false);
-check('an empty index matches nothing', indexHasChannel(emptyIndex(), { handle: anyHandle }), false);
+check(
+    'a channel not on the list does not match',
+    indexHasChannel(index, { handle: '@definitelynotonthelist' }),
+    false,
+);
+check(
+    'an empty index matches nothing',
+    indexHasChannel(emptyIndex(), { handle: anyHandle }),
+    false,
+);
 check('a null channel matches nothing', indexHasChannel(index, null), false);
-check('a channel with only an id does not match a handle list',
-      indexHasChannel(index, { id: 'UC123456789012345678' }), false);
+check(
+    'a channel with only an id does not match a handle list',
+    indexHasChannel(index, { id: 'UC123456789012345678' }),
+    false,
+);
 
 // --- the UC form the header promises ---------------------------------------
 const withIds = parseList('! header\nUC1234567890abcdefgh\n@handle\n');
@@ -88,8 +113,15 @@ check('null deserialises to null', deserialiseIndex(null), null);
 // --- junk ------------------------------------------------------------------
 let threw = null;
 for (const v of [null, undefined, 0, [], {}, NaN, true, '']) {
-    try { parseList(v); indexHasChannel(v, v); normaliseHandle(v); readLastModified(v); deserialiseIndex(v); }
-    catch (e) { threw = `${JSON.stringify(v)} threw ${e.message}`; }
+    try {
+        parseList(v);
+        indexHasChannel(v, v);
+        normaliseHandle(v);
+        readLastModified(v);
+        deserialiseIndex(v);
+    } catch (e) {
+        threw = `${JSON.stringify(v)} threw ${e.message}`;
+    }
 }
 check('junk never throws', threw, null);
 check('a non-string parses to an empty index', parseList(null).count, 0);

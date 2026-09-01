@@ -23,7 +23,7 @@ const deviceProfiles: DeviceProfile[] = [
         modelYear: 13140765,
         firmwareVersion: '52.1.C.0.268',
         brand: 'KDDI',
-        model: 'SOV38'
+        model: 'SOV38',
     },
     {
         architecture: 'Linux armeabi-v7a',
@@ -35,7 +35,7 @@ const deviceProfiles: DeviceProfile[] = [
         modelYear: 2020,
         firmwareVersion: 'UTTC.250917.004',
         brand: 'google',
-        model: 'Chromecast'
+        model: 'Chromecast',
     },
     {
         architecture: 'Linux armeabi-v7a',
@@ -47,7 +47,7 @@ const deviceProfiles: DeviceProfile[] = [
         modelYear: 2023,
         firmwareVersion: 'STT2.221228.001',
         brand: 'TCL',
-        model: 'Smart TV Pro'
+        model: 'Smart TV Pro',
     },
     {
         architecture: 'Linux armeabi-v7a',
@@ -59,9 +59,9 @@ const deviceProfiles: DeviceProfile[] = [
         modelYear: 0,
         firmwareVersion: 'NS6294',
         brand: 'Amazon',
-        model: 'AFTMM'
-    }
-]
+        model: 'AFTMM',
+    },
+];
 
 const cobaltVersion = '25.lts.30.1034958-gold';
 const v8Version = 'v8/8.8.278.17-jit';
@@ -72,14 +72,20 @@ function generateUserAgent(profile: DeviceProfile): string {
     return `Mozilla/5.0 (${profile.architecture}; ${profile.os}) Cobalt/${cobaltVersion} (unlike Gecko) ${v8Version} ${profile.rasterizer} Starboard/${starboardVersion}, ${profile.manufacturer}_${profile.deviceType}_${profile.chipsetModel}_${profile.modelYear}/${profile.firmwareVersion} (${profile.brand}, ${profile.model}) ${auxField}`;
 }
 
-if (document.querySelector('.content-container') && window.h5vcc && window.h5vcc.tizentube && window.h5vcc.tizentube.SetUserAgent) {
+if (
+    document.querySelector('.content-container') &&
+    window.h5vcc &&
+    window.h5vcc.tizentube &&
+    window.h5vcc.tizentube.SetUserAgent
+) {
     // location.reload() queues a navigation, it does not stop the running
     // script -- so with no `return` the stored agent was applied and then
     // immediately overwritten by a freshly randomised one, SetUserAgent was
     // called twice with two different strings, and the reload was armed twice.
     // The persisted agent was therefore never actually reused.
-    const ua = localStorage.getItem('userAgent')
-        || generateUserAgent(deviceProfiles[Math.floor(Math.random() * deviceProfiles.length)]);
+    const ua =
+        localStorage.getItem('userAgent') ||
+        generateUserAgent(deviceProfiles[Math.floor(Math.random() * deviceProfiles.length)]);
     localStorage.setItem('userAgent', ua);
     window.h5vcc.tizentube.SetUserAgent(ua);
     location.reload();

@@ -92,7 +92,10 @@ export function shouldArm(input: ArmInput | null | undefined): boolean {
  * away from. So every signal that anything at all happened -- a command reaching
  * the wrapper, the route moving, focus moving -- stands us down.
  */
-export function decide(before: Snapshot | null | undefined, after: Snapshot | null | undefined): Decision {
+export function decide(
+    before: Snapshot | null | undefined,
+    after: Snapshot | null | undefined,
+): Decision {
     if (!before || !after) return 'none';
     // A dispatched command is the strongest possible evidence that the press was
     // a real navigation. It is checked first because it is the one signal that

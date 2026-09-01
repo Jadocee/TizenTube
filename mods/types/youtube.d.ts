@@ -4,11 +4,21 @@
 // `any`, because its shape changes per release and the mod only ever probes it.
 
 /** A localized or plain string, in YouTube's two text shapes. */
-export interface SimpleText { simpleText: string }
-export interface TextRuns { runs: { text: string }[] }
+export interface SimpleText {
+    simpleText: string;
+}
+export interface TextRuns {
+    runs: { text: string }[];
+}
 
-export interface Thumbnail { url: string; width?: number; height?: number }
-export interface Thumbnails { thumbnails: Thumbnail[] }
+export interface Thumbnail {
+    url: string;
+    width?: number;
+    height?: number;
+}
+export interface Thumbnails {
+    thumbnails: Thumbnail[];
+}
 
 /** Anything the mod passes to resolveCommand. */
 export interface Command {
@@ -53,11 +63,13 @@ export interface CompactLinkRenderer {
 export type Renderer = CompactLinkRenderer | Record<string, any>;
 
 /** Header of a modal: either a bare title or a title/subtitle pair. */
-export type ModalHeader = string | {
-    title?: string;
-    subtitle?: string;
-    overlayPanelHeaderRenderer?: Record<string, any>;
-};
+export type ModalHeader =
+    | string
+    | {
+          title?: string;
+          subtitle?: string;
+          overlayPanelHeaderRenderer?: Record<string, any>;
+      };
 
 /** A tile the mod has queued for playback. */
 export interface QueuedTile {
@@ -82,7 +94,7 @@ export interface YouTubePlayer extends Element {
     /** Optional: not attached until the player API is ready, and the one call
      *  site guards it. Declaring it as always-present hid that from the compiler. */
     getVideoStats?(): Record<string, any>;
-    getStatsForNerds(): { resolution: string;[key: string]: any };
-    getAvailableQualityData(): { quality: string; qualityLabel: string;[key: string]: any }[];
+    getStatsForNerds(): { resolution: string; [key: string]: any };
+    getAvailableQualityData(): { quality: string; qualityLabel: string; [key: string]: any }[];
     setPlaybackQualityRange(min: string, max: string): void;
 }

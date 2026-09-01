@@ -1,40 +1,40 @@
 {
-  "compilerOptions": {
-    // Rolldown does the downlevelling (transform.target in rolldown.config.js),
-    // so emit modern here and let the bundler lower it.
-    "target": "ESNext",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
+    "compilerOptions": {
+        // Rolldown does the downlevelling (transform.target in rolldown.config.js),
+        // so emit modern here and let the bundler lower it.
+        "target": "ESNext",
+        "module": "ESNext",
+        "moduleResolution": "bundler",
 
-    // The whole point of this setting: `lib` describes the built-ins the
-    // runtime actually has, so using one it does not becomes a compile error.
-    //
-    // The target is Tizen 9.0 (2025 TVs), whose web engine is Chromium M120.
-    // ES2023 is the newest language edition M120 implements in full -- the last
-    // of it, Array.prototype.toSorted and friends, landed in M110. ES2024 is
-    // NOT safe to claim: Promise.withResolvers only arrived in M119 and the
-    // rest of that edition straddles the boundary, so ES2023 is the honest
-    // line. Anything newer than this must be checked against caniuse by hand
-    // before it goes in.
-    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+        // The whole point of this setting: `lib` describes the built-ins the
+        // runtime actually has, so using one it does not becomes a compile error.
+        //
+        // The target is Tizen 9.0 (2025 TVs), whose web engine is Chromium M120.
+        // ES2023 is the newest language edition M120 implements in full -- the last
+        // of it, Array.prototype.toSorted and friends, landed in M110. ES2024 is
+        // NOT safe to claim: Promise.withResolvers only arrived in M119 and the
+        // rest of that edition straddles the boundary, so ES2023 is the honest
+        // line. Anything newer than this must be checked against caniuse by hand
+        // before it goes in.
+        "lib": ["ES2023", "DOM", "DOM.Iterable"],
 
-    "strict": true,
-    "noImplicitOverride": true,
-    "noFallthroughCasesInSwitch": true,
-    "forceConsistentCasingInFileNames": true,
+        "strict": true,
+        "noImplicitOverride": true,
+        "noFallthroughCasesInSwitch": true,
+        "forceConsistentCasingInFileNames": true,
 
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "resolveJsonModule": true,
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,
+        "resolveJsonModule": true,
 
-    // The vendored polyfills stay JavaScript: they are third-party spec
-    // implementations and converting them buys nothing.
-    "allowJs": true,
-    "checkJs": false,
+        // The vendored polyfills stay JavaScript: they are third-party spec
+        // implementations and converting them buys nothing.
+        "allowJs": true,
+        "checkJs": false,
 
-    "noEmit": true,
-    "skipLibCheck": true
-  },
-  "include": ["**/*.ts", "types/**/*.d.ts"],
-  "exclude": ["node_modules", "dist"]
+        "noEmit": true,
+        "skipLibCheck": true
+    },
+    "include": ["**/*.ts", "types/**/*.d.ts"],
+    "exclude": ["node_modules", "dist"]
 }

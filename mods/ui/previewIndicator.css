@@ -19,79 +19,79 @@
    wrong way. clock.css records the same trap; this is the same trap. */
 
 #tizentube-preview-indicator {
-  /* 64px at a 16px root, and the root on a television is larger than that --
+    /* 64px at a 16px root, and the root on a television is larger than that --
      panel-style/test.mjs records that every rem number here is a floor rather
      than what a set actually shows. Sized against the ~45 arcmin a simple
      non-text glyph needs to resolve at three metres. */
-  --tt-pi-size: 4rem;
-  /* Written by previewIndicator.ts in physical viewport pixels. */
-  --tt-pi-x: 0px;
-  --tt-pi-y: 0px;
+    --tt-pi-size: 4rem;
+    /* Written by previewIndicator.ts in physical viewport pixels. */
+    --tt-pi-x: 0px;
+    --tt-pi-y: 0px;
 
-  position: fixed;
-  left: 0;
-  top: 0;
-  transform: translate3d(var(--tt-pi-x), var(--tt-pi-y), 0);
+    position: fixed;
+    left: 0;
+    top: 0;
+    transform: translate3d(var(--tt-pi-x), var(--tt-pi-y), 0);
 
-  box-sizing: border-box;
-  inline-size: var(--tt-pi-size);
-  block-size: var(--tt-pi-size);
+    box-sizing: border-box;
+    inline-size: var(--tt-pi-size);
+    block-size: var(--tt-pi-size);
 
-  display: flex;
-  align-items: center;
-  justify-content: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
-  border-radius: 50%;
-  /* Dark rather than bright: this sits over arbitrary video, and a light fill
+    border-radius: 50%;
+    /* Dark rather than bright: this sits over arbitrary video, and a light fill
      in the same place on every focused tile is exactly the shape an OLED holds
      on to. A dark disc with a light hairline reads at distance without giving
      the panel anything to burn. */
-  background-color: rgb(0 0 0 / 72%);
-  border: 0.125rem solid rgb(255 255 255 / 55%);
-  color: #f1f1f1;
+    background-color: rgb(0 0 0 / 72%);
+    border: 0.125rem solid rgb(255 255 255 / 55%);
+    color: #f1f1f1;
 
-  /* Under no circumstances may this take a press or perturb what is under it.
+    /* Under no circumstances may this take a press or perturb what is under it.
      The element is out of flow and inert; that is a stronger guarantee than any
      rule hosted on YouTube's own tile could offer. */
-  pointer-events: none;
-  z-index: 900;
+    pointer-events: none;
+    z-index: 900;
 
-  /* Hidden until previewIndicator.ts sets data-state. A rule that never matches
+    /* Hidden until previewIndicator.ts sets data-state. A rule that never matches
      therefore shows nothing, rather than parking a disc in the corner. */
-  visibility: hidden;
-  opacity: 0;
-  transition: opacity 160ms linear;
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 160ms linear;
 
-  &[data-state='playing'],
-  &[data-state='stalled'] {
-    visibility: visible;
-    opacity: 1;
-  }
+    &[data-state="playing"],
+    &[data-state="stalled"] {
+        visibility: visible;
+        opacity: 1;
+    }
 
-  /* Buffering. Dimmed rather than swapped for a spinner: the state is worth
+    /* Buffering. Dimmed rather than swapped for a spinner: the state is worth
      distinguishing, but not worth a second shape or a rotation that never
      stops. */
-  &[data-state='stalled'] {
-    opacity: 0.55;
-  }
+    &[data-state="stalled"] {
+        opacity: 0.55;
+    }
 }
 
 /* The triangle, as borders, so there is no glyph font to miss and no SVG to
    inline. Physical borders on purpose, per the note above. */
 #tizentube-preview-indicator > span {
-  display: block;
-  inline-size: 0;
-  block-size: 0;
-  /* Optical centring: a triangle's visual centre of mass sits behind its
+    display: block;
+    inline-size: 0;
+    block-size: 0;
+    /* Optical centring: a triangle's visual centre of mass sits behind its
      geometric one, so it needs nudging right of centre to look centred. */
-  margin-left: 0.3rem;
-  border-top: 0.7rem solid transparent;
-  border-bottom: 0.7rem solid transparent;
-  border-left: 1.15rem solid currentColor;
+    margin-left: 0.3rem;
+    border-top: 0.7rem solid transparent;
+    border-bottom: 0.7rem solid transparent;
+    border-left: 1.15rem solid currentColor;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  #tizentube-preview-indicator {
-    transition: none;
-  }
+    #tizentube-preview-indicator {
+        transition: none;
+    }
 }

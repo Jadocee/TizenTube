@@ -115,7 +115,12 @@ export function isAiChannel(channel: { id?: string; handle?: string } | null | u
 }
 
 /** What the settings screen shows, so the feature is not invisible. */
-export function aisListStatus(): { block: number; warn: number; lastModified: string | null; fetchedAt: number } {
+export function aisListStatus(): {
+    block: number;
+    warn: number;
+    lastModified: string | null;
+    fetchedAt: number;
+} {
     loadCached();
     const cached = readStore();
     return {
@@ -126,7 +131,10 @@ export function aisListStatus(): { block: number; warn: number; lastModified: st
     };
 }
 
-async function fetchOne(url: string, etag: string | undefined): Promise<{ text: string | null; etag: string | null }> {
+async function fetchOne(
+    url: string,
+    etag: string | undefined,
+): Promise<{ text: string | null; etag: string | null }> {
     const headers: Record<string, string> = {};
     // A conditional request turns the recurring cost into a 304 rather than
     // another 358 KB download. raw.githubusercontent.com sends a strong ETag.
@@ -158,7 +166,7 @@ export async function refresh(force = false): Promise<void> {
     // fired, so it was never fetched -- for the whole session, and again on
     // every launch that landed inside the same 12-hour window.
     const stale = (url: string, index: ChannelIndex): boolean =>
-        force || !index.handles.size || (now - sourceFetchedAt(cached, url)) >= TTL_MS;
+        force || !index.handles.size || now - sourceFetchedAt(cached, url) >= TTL_MS;
 
     const blockStale = stale(SOURCES.block, blockIndex);
     const warnStale = wantWarn && stale(SOURCES.warn, warnIndex);
@@ -172,20 +180,30 @@ export async function refresh(force = false): Promise<void> {
         // blocklist that had just been downloaded -- so it was re-downloaded and
         // re-discarded on every launch, forever, with no console to say so.
         if (blockStale) {
-            await fetchInto(SOURCES.block, (text) => {
-                const parsed = parseList(text);
-                if (!looksLikeList(text, parsed)) return null;
-                blockIndex = parsed;
-                return serialiseIndex(blockIndex);
-            }, 'block', now);
+            await fetchInto(
+                SOURCES.block,
+                (text) => {
+                    const parsed = parseList(text);
+                    if (!looksLikeList(text, parsed)) return null;
+                    blockIndex = parsed;
+                    return serialiseIndex(blockIndex);
+                },
+                'block',
+                now,
+            );
         }
         if (warnStale) {
-            await fetchInto(SOURCES.warn, (text) => {
-                const parsed = parseList(text);
-                if (!looksLikeList(text, parsed)) return null;
-                warnIndex = parsed;
-                return serialiseIndex(warnIndex);
-            }, 'warn', now);
+            await fetchInto(
+                SOURCES.warn,
+                (text) => {
+                    const parsed = parseList(text);
+                    if (!looksLikeList(text, parsed)) return null;
+                    warnIndex = parsed;
+                    return serialiseIndex(warnIndex);
+                },
+                'warn',
+                now,
+            );
         }
     } finally {
         refreshing = false;
@@ -198,7 +216,7 @@ export async function refresh(force = false): Promise<void> {
 function sourceFetchedAt(cached: Cached, url: string): number {
     const per = cached.at && cached.at[url];
     if (typeof per === 'number') return per;
-    return url === SOURCES.block ? (cached.fetchedAt || 0) : 0;
+    return url === SOURCES.block ? cached.fetchedAt || 0 : 0;
 }
 
 /**

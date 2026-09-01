@@ -58,7 +58,10 @@ export function parseEntry(entry: string): { key: string; name: string } {
 /** Does this channel appear in a stored list? Matched on id or handle only,
  *  never on a display name -- two channels share a name far more often than
  *  they share either of those. */
-export function listHasChannel(entries: unknown, channel: { id?: string; handle?: string } | null | undefined): boolean {
+export function listHasChannel(
+    entries: unknown,
+    channel: { id?: string; handle?: string } | null | undefined,
+): boolean {
     if (!channel || !Array.isArray(entries) || entries.length === 0) return false;
     for (const entry of entries) {
         if (typeof entry !== 'string') continue;

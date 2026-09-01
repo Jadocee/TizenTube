@@ -21,7 +21,11 @@ declare module '@patrickkfkan/peer-dial' {
         uuid: string;
         delegate: {
             getApp(appName: string): DialApp | undefined;
-            launchApp(appName: string, launchData: string, callback: (pid: string | null) => void): void;
+            launchApp(
+                appName: string,
+                launchData: string,
+                callback: (pid: string | null) => void,
+            ): void;
             stopApp(appName: string, pid: string, callback: (stopped: boolean) => void): void;
         };
     }

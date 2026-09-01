@@ -61,7 +61,11 @@ globalThis.fetch = async (url, init) => {
 const { refresh, isAiChannel, aisListStatus, SOURCES } = await import('./mod.generated.mts');
 
 const { check, done } = checker();
-const reset = () => { requests = []; storage.clear(); storageThrows = false; };
+const reset = () => {
+    requests = [];
+    storage.clear();
+    storageThrows = false;
+};
 const urls = () => requests.map((r) => r.url);
 const blockCount = () => aisListStatus().block;
 
@@ -76,7 +80,11 @@ check('  ...and cached', storage.has('tizentube.aislist'), true);
 // form. That both sides are normalised is what makes 473 of the real list's
 // entries matchable at all, and this is the only check that proves it survives
 // the whole fetch-serialise-cache-deserialise round trip.
-check('  ...and matches a decoded handle', isAiChannel({ handle: '@LangweiligeW\u00e4hrung' }), true);
+check(
+    '  ...and matches a decoded handle',
+    isAiChannel({ handle: '@LangweiligeW\u00e4hrung' }),
+    true,
+);
 
 // A second call inside the TTL does nothing.
 requests = [];
@@ -88,9 +96,10 @@ check('a second call inside the TTL fetches nothing', urls().length, 0);
 // the blocklist was downloaded and thrown away on every single launch.
 reset();
 store.aisListIncludeWarnlist = true;
-responder = (url) => (url === SOURCES.warn
-    ? { status: 404, body: 'Not Found' }
-    : { status: 200, body: SAMPLE, etag: '"v1"' });
+responder = (url) =>
+    url === SOURCES.warn
+        ? { status: 404, body: 'Not Found' }
+        : { status: 200, body: SAMPLE, etag: '"v1"' };
 await refresh();
 check('both lists are attempted', urls().length, 2);
 check('the blocklist survives a warnlist 404', storage.has('tizentube.aislist'), true);
@@ -98,12 +107,16 @@ const afterFail = JSON.parse(storage.get('tizentube.aislist'));
 check('  ...and its body was stored', typeof afterFail.block, 'string');
 check('  ...with its own etag', afterFail.etags[SOURCES.block], '"v1"');
 check('  ...and the failed source got no timestamp', afterFail.at[SOURCES.warn] ?? null, null);
-check('  ...so a hidden channel matches on the next launch',
-      isAiChannel({ handle: '@LangweiligeW\u00e4hrung' }), true);
+check(
+    '  ...so a hidden channel matches on the next launch',
+    isAiChannel({ handle: '@LangweiligeW\u00e4hrung' }),
+    true,
+);
 
 // A network throw, not just a bad status.
 reset();
-responder = (url) => (url === SOURCES.warn ? { throws: 'ENOTFOUND' } : { status: 200, body: SAMPLE, etag: '"v1"' });
+responder = (url) =>
+    url === SOURCES.warn ? { throws: 'ENOTFOUND' } : { status: 200, body: SAMPLE, etag: '"v1"' };
 await refresh();
 check('the blocklist survives a warnlist throw', storage.has('tizentube.aislist'), true);
 check('  ...and refresh still resolves', true, true);
@@ -117,7 +130,7 @@ responder = () => ({ status: 200, body: SAMPLE, etag: '"v1"' });
 await refresh();
 check('a warnlist-off run fetches one list', urls(), [SOURCES.block]);
 
-now += 60 * 60 * 1000;            // one hour: well inside the 12-hour TTL
+now += 60 * 60 * 1000; // one hour: well inside the 12-hour TTL
 store.aisListIncludeWarnlist = true;
 requests = [];
 await refresh();
@@ -130,7 +143,7 @@ await refresh();
 check('and then stops fetching it', urls().length, 0);
 
 // --- a stale warnlist is revalidated ----------------------------------------
-now += 13 * 60 * 60 * 1000;       // past the TTL for both
+now += 13 * 60 * 60 * 1000; // past the TTL for both
 requests = [];
 await refresh();
 check('both are revalidated once stale', urls().sort(), [SOURCES.block, SOURCES.warn].sort());
@@ -146,8 +159,11 @@ responder = () => ({ status: 304, body: '' });
 requests = [];
 await refresh();
 check('a 304 is not re-parsed', blockCount(), before);
-check('  ...and still moves the timestamp',
-      JSON.parse(storage.get('tizentube.aislist')).at[SOURCES.block], now);
+check(
+    '  ...and still moves the timestamp',
+    JSON.parse(storage.get('tizentube.aislist')).at[SOURCES.block],
+    now,
+);
 requests = [];
 await refresh();
 check('  ...so the next call is inside the TTL again', urls().length, 0);
@@ -170,8 +186,11 @@ check('a working index survives every kind of failure', blockCount() >= 1, true)
 // like a failure: a captive portal answers 200 for every URL, so nothing in the
 // response says anything went wrong.
 check('  ...including a 200 that is a login page', blockCount(), good);
-check('  ...and does not cache the emptiness',
-      JSON.parse(storage.get('tizentube.aislist')).at[SOURCES.block] < now, true);
+check(
+    '  ...and does not cache the emptiness',
+    JSON.parse(storage.get('tizentube.aislist')).at[SOURCES.block] < now,
+    true,
+);
 
 // A 200 that parses to nothing is the one case that legitimately empties it --
 // an upstream that publishes an empty list has published an empty list.
@@ -185,7 +204,11 @@ responder = () => ({ status: 200, body: SAMPLE, etag: '"v1"' });
 storageThrows = true;
 await refresh();
 check('a failed write does not throw', true, true);
-check('  ...and the list still works this session', isAiChannel({ handle: '@LangweiligeW\u00e4hrung' }), true);
+check(
+    '  ...and the list still works this session',
+    isAiChannel({ handle: '@LangweiligeW\u00e4hrung' }),
+    true,
+);
 
 // --- the master switch --------------------------------------------------------
 reset();

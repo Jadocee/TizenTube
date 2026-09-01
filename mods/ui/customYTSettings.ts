@@ -8,7 +8,12 @@ function PatchSettings(settingsObject: { items: Renderer[] }): void {
     // caller tests title.runs, which says nothing about `items`.
     if (!Array.isArray(settingsObject?.items)) return;
     // Idempotent: the settings response can be parsed more than once.
-    if (settingsObject.items.some((i: any) => i?.settingCategoryCollectionRenderer?.categoryId === 'tizentube_category')) return;
+    if (
+        settingsObject.items.some(
+            (i: any) => i?.settingCategoryCollectionRenderer?.categoryId === 'tizentube_category',
+        )
+    )
+        return;
 
     const tizentubeOpenAction = SettingActionRenderer(
         t('settings.ttSettings.title'),
@@ -16,22 +21,16 @@ function PatchSettings(settingsObject: { items: Renderer[] }): void {
         {
             customAction: {
                 action: 'TT_SETTINGS_SHOW',
-                parameters: []
-            }
+                parameters: [],
+            },
         },
         t('settings.ttSettings.summary'),
-        'https://www.gstatic.com/ytlr/img/parent_code.png'
-    )
-
-    const tizenTubeCategory = SettingsCategory(
-        'tizentube_category',
-        [tizentubeOpenAction]
+        'https://www.gstatic.com/ytlr/img/parent_code.png',
     );
+
+    const tizenTubeCategory = SettingsCategory('tizentube_category', [tizentubeOpenAction]);
     // Add it as the first item in the settings object
     settingsObject.items.unshift(tizenTubeCategory);
-
 }
 
-export {
-    PatchSettings
-}
+export { PatchSettings };

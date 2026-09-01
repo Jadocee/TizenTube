@@ -46,8 +46,7 @@ const icons = (payload) => {
 const original = fresh();
 check('the fixture is recognised as a guide', isGuidePayload(original), true);
 check('it carries eleven entries in total', icons(original).length, 11);
-check('  ...nine of them in items',
-      icons({ items: original.items }).length, 9);
+check('  ...nine of them in items', icons({ items: original.items }).length, 9);
 // This is the gap the capture exposed. Filtering only `items` misses these.
 check('  ...one in the footer', icons({ f: original.footer }), ['SETTINGS']);
 check('  ...and one in the topbar', icons({ t: original.topbar }), ['SIGN_IN']);
@@ -58,7 +57,11 @@ check('nothing is removed with no options set', filterGuide(payload, {}), 0);
 check('  ...and the payload is untouched', icons(payload).length, 11);
 
 payload = fresh();
-check('two chosen icons are removed', filterGuide(payload, { disabledIcons: ['GAMING', 'NEWS'] }), 2);
+check(
+    'two chosen icons are removed',
+    filterGuide(payload, { disabledIcons: ['GAMING', 'NEWS'] }),
+    2,
+);
 const left = icons(payload);
 check('  ...exactly those two', left.includes('GAMING') || left.includes('NEWS'), false);
 check('  ...and nothing else went with them', left.length, 9);
@@ -87,16 +90,31 @@ const watchLaterEntry = (browseId, icon) => ({
     },
 });
 for (const id of WATCH_LATER_BROWSE_IDS) {
-    check(`browseId ${id} is recognised`, isWatchLaterEntry(watchLaterEntry(id).guideEntryRenderer), true);
+    check(
+        `browseId ${id} is recognised`,
+        isWatchLaterEntry(watchLaterEntry(id).guideEntryRenderer),
+        true,
+    );
 }
-check('the icon alone is enough', isWatchLaterEntry(watchLaterEntry(null, 'WATCH_LATER').guideEntryRenderer), true);
-check('an ordinary entry is not Watch Later',
-      isWatchLaterEntry(original.items[0].guideSectionRenderer.items[1].guideEntryRenderer), false);
+check(
+    'the icon alone is enough',
+    isWatchLaterEntry(watchLaterEntry(null, 'WATCH_LATER').guideEntryRenderer),
+    true,
+);
+check(
+    'an ordinary entry is not Watch Later',
+    isWatchLaterEntry(original.items[0].guideSectionRenderer.items[1].guideEntryRenderer),
+    false,
+);
 check('null is not', isWatchLaterEntry(null), false);
 
 payload = fresh();
 payload.items[0].guideSectionRenderer.items.push(watchLaterEntry('VLWL', 'WATCH_LATER'));
-check('the setting off leaves Watch Later alone', filterGuide(payload, { hideWatchLater: false }), 0);
+check(
+    'the setting off leaves Watch Later alone',
+    filterGuide(payload, { hideWatchLater: false }),
+    0,
+);
 check('  ...and it is still there', icons(payload).includes('WATCH_LATER'), true);
 check('the setting on removes it', filterGuide(payload, { hideWatchLater: true }), 1);
 check('  ...and only it', icons(payload).length, 11);
@@ -109,7 +127,10 @@ payload = fresh();
 check('no signed-out entry is a channel row', filterGuide(payload, { hideChannels: true }), 0);
 payload = fresh();
 payload.items[0].guideSectionRenderer.items.push({
-    guideEntryRenderer: { thumbnail: { thumbnails: [{ url: 'x' }] }, formattedTitle: { simpleText: 'A Channel' } },
+    guideEntryRenderer: {
+        thumbnail: { thumbnails: [{ url: 'x' }] },
+        formattedTitle: { simpleText: 'A Channel' },
+    },
 });
 check('a channel row is removed when asked', filterGuide(payload, { hideChannels: true }), 1);
 check('  ...and kept when not', filterGuide(fresh(), { hideChannels: false }), 0);
@@ -117,23 +138,39 @@ check('  ...and kept when not', filterGuide(fresh(), { hideChannels: false }), 0
 // --- combinations -----------------------------------------------------------
 payload = fresh();
 payload.items[0].guideSectionRenderer.items.push(watchLaterEntry('VLWL', 'WATCH_LATER'));
-check('every rule applies at once',
-      filterGuide(payload, { disabledIcons: ['GAMING'], hideWatchLater: true }), 2);
+check(
+    'every rule applies at once',
+    filterGuide(payload, { disabledIcons: ['GAMING'], hideWatchLater: true }),
+    2,
+);
 
 // --- junk -------------------------------------------------------------------
 // This runs inside JSON.parse for every parse the page makes, and a throw is
 // caught by customGuideAction's handler -- which would silently cost the filter
 // for that payload.
 let threw = null;
-const JUNK = [null, undefined, 0, '', 'str', [], {}, { items: null }, { items: [null] },
-              { items: [{ guideSectionRenderer: null }] }, { items: [{ guideSectionRenderer: { items: null } }] }];
+const JUNK = [
+    null,
+    undefined,
+    0,
+    '',
+    'str',
+    [],
+    {},
+    { items: null },
+    { items: [null] },
+    { items: [{ guideSectionRenderer: null }] },
+    { items: [{ guideSectionRenderer: { items: null } }] },
+];
 for (const v of JUNK) {
     try {
         filterGuide(v, { disabledIcons: ['GAMING'], hideChannels: true, hideWatchLater: true });
         isGuidePayload(v);
         shouldRemoveEntry(v, { disabledIcons: ['GAMING'] });
         isWatchLaterEntry(v);
-    } catch (e) { threw = `${JSON.stringify(v)} threw ${e.message}`; }
+    } catch (e) {
+        threw = `${JSON.stringify(v)} threw ${e.message}`;
+    }
 }
 check('junk never throws', threw, null);
 check('a non-guide payload is not treated as one', isGuidePayload({ contents: {} }), false);
@@ -142,8 +179,11 @@ check('a non-guide payload is not treated as one', isGuidePayload({ contents: {}
 // the trap processShelves records. Two adjacent removals prove it.
 payload = fresh();
 const section = payload.items[0].guideSectionRenderer.items;
-check('adjacent entries are both removed',
-      filterGuide(payload, { disabledIcons: ['GAMING', 'NEWS', 'TROPHY'] }), 3);
+check(
+    'adjacent entries are both removed',
+    filterGuide(payload, { disabledIcons: ['GAMING', 'NEWS', 'TROPHY'] }),
+    3,
+);
 check('  ...leaving the rest intact', icons(payload).length, 8);
 
 done();

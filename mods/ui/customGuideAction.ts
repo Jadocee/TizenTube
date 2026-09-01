@@ -1,6 +1,6 @@
-import { configChangeEmitter, configRead } from "../config.js";
-import getCommandExecutor from "./customCommandExecution.js";
-import { filterGuide, isGuidePayload } from "../features/guideFilter.js";
+import { configChangeEmitter, configRead } from '../config.js';
+import getCommandExecutor from './customCommandExecution.js';
+import { filterGuide, isGuidePayload } from '../features/guideFilter.js';
 
 const origParse = JSON.parse;
 JSON.parse = function () {
@@ -19,20 +19,24 @@ JSON.parse = function () {
                 hideWatchLater: configRead('hideWatchLaterInSidebar'),
             });
         }
-
     } catch (e) {
         console.error('An error occured while processing the guide JSON:', e);
     }
 
     return r;
-}
+};
 
 configChangeEmitter.addEventListener('configChange', (e) => {
-    if (e.detail.key === 'disabledSidebarContents' || e.detail.key === 'disableChannelsOnSidebar'
-        || e.detail.key === 'hideWatchLaterInSidebar') {
+    if (
+        e.detail.key === 'disabledSidebarContents' ||
+        e.detail.key === 'disableChannelsOnSidebar' ||
+        e.detail.key === 'hideWatchLaterInSidebar'
+    ) {
         const commandExecutor = getCommandExecutor();
         if (commandExecutor) {
-            commandExecutor.executeFunction(new commandExecutor.commandFunction('reloadGuideAction'));
+            commandExecutor.executeFunction(
+                new commandExecutor.commandFunction('reloadGuideAction'),
+            );
         }
     }
 });

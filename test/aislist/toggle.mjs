@@ -15,17 +15,25 @@ import { store, calls, configWrite } from './toggleStub.mjs';
 
 // A controllable clock, installed before the import: the module schedules its
 // first fetch 15s out so the download never competes with the home screen.
-let clock = 0, seq = 0;
+let clock = 0,
+    seq = 0;
 const pending = new Map();
-globalThis.setTimeout = (fn, ms) => { const id = ++seq; pending.set(id, { at: clock + (ms || 0), fn }); return id; };
+globalThis.setTimeout = (fn, ms) => {
+    const id = ++seq;
+    pending.set(id, { at: clock + (ms || 0), fn });
+    return id;
+};
 globalThis.clearTimeout = (id) => pending.delete(id);
 function tick(ms) {
     const until = clock + ms;
     for (;;) {
         let next = null;
-        for (const [id, t] of pending) if (t.at <= until && (!next || t.at < next[1].at)) next = [id, t];
+        for (const [id, t] of pending)
+            if (t.at <= until && (!next || t.at < next[1].at)) next = [id, t];
         if (!next) break;
-        pending.delete(next[0]); clock = next[1].at; next[1].fn();
+        pending.delete(next[0]);
+        clock = next[1].at;
+        next[1].fn();
     }
     clock = until;
 }
@@ -35,7 +43,9 @@ store.enableAiSList = false;
 await import('./refreshGate.generated.mts');
 
 const { check, done } = checker();
-const reset = () => { calls.length = 0; };
+const reset = () => {
+    calls.length = 0;
+};
 
 // --- the fresh install --------------------------------------------------------
 tick(30000);

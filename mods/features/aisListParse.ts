@@ -77,7 +77,7 @@ export function normaliseHandle(handle: unknown): string | null {
 /** The `! Last Modified: 2026-07-19` line, if the file carries one. */
 export function readLastModified(text: string): string | null {
     if (typeof text !== 'string') return null;
-    const match = text.match(/^!\s*Last Modified:\s*(.+)$/mi);
+    const match = text.match(/^!\s*Last Modified:\s*(.+)$/im);
     return match ? match[1].trim() : null;
 }
 
@@ -150,7 +150,8 @@ export function deserialiseIndex(text: unknown): ChannelIndex | null {
         if (!raw || !Array.isArray(raw.h)) return null;
         const index = emptyIndex();
         for (const h of raw.h) if (typeof h === 'string') index.handles.add(h);
-        if (Array.isArray(raw.i)) for (const i of raw.i) if (typeof i === 'string') index.ids.add(i);
+        if (Array.isArray(raw.i))
+            for (const i of raw.i) if (typeof i === 'string') index.ids.add(i);
         index.lastModified = typeof raw.m === 'string' ? raw.m : null;
         index.count = index.handles.size + index.ids.size;
         return index;

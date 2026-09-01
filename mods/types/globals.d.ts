@@ -40,10 +40,12 @@ declare global {
         preferredVideoQualityHandler?: unknown;
 
         /** From the vendored spatial-navigation polyfill. */
-        __spatialNavigation__: { // The values the polyfill's setter actually accepts. It coerces anything else
-        // to 'ARROW', so the two that used to be declared here stored the opposite
-        // of what they named.
-        keyMode: 'NONE' | 'ARROW' | 'SHIFTARROW' };
+        __spatialNavigation__: {
+            // The values the polyfill's setter actually accepts. It coerces anything else
+            // to 'ARROW', so the two that used to be declared here stored the opposite
+            // of what they named.
+            keyMode: 'NONE' | 'ARROW' | 'SHIFTARROW';
+        };
         navigate(direction: 'left' | 'right' | 'up' | 'down'): void;
     }
 

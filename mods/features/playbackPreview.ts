@@ -75,7 +75,8 @@ function notify(listeners: Listener[]): void {
 
 function install(): void {
     try {
-        const mappings = window._yttv && Object.values(window._yttv).find((a: any) => a && a.mappings);
+        const mappings =
+            window._yttv && Object.values(window._yttv).find((a: any) => a && a.mappings);
         // Having a `mappings` property does not make an entry the registry, and
         // the registry appears progressively as the app boots.
         if (!mappings || typeof mappings.get !== 'function') {

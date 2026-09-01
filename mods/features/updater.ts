@@ -1,6 +1,13 @@
 // TizenTube Cobalt Update Checker
 
-import { buttonItem, showModal, showToast, overlayPanelItemListRenderer, scrollPaneRenderer, overlayMessageRenderer } from '../ui/ytUI.js';
+import {
+    buttonItem,
+    showModal,
+    showToast,
+    overlayPanelItemListRenderer,
+    scrollPaneRenderer,
+    overlayMessageRenderer,
+} from '../ui/ytUI.js';
 import { configRead } from '../config.js';
 import { t } from 'i18next';
 import type { Renderer } from '../types/youtube';
@@ -24,19 +31,23 @@ setTimeout(() => {
     if (window.h5vcc && window.h5vcc.tizentube && configRead('enableUpdater')) {
         const currentEpoch = Math.floor(Date.now() / 1000);
         if (configRead('dontCheckUpdateUntil') > currentEpoch) {
-            console.info('Skipping update check until', new Date(configRead('dontCheckUpdateUntil') * 1000).toLocaleString());
+            console.info(
+                'Skipping update check until',
+                new Date(configRead('dontCheckUpdateUntil') * 1000).toLocaleString(),
+            );
         } else checkForUpdates();
     }
 }, 2500);
 
 function getLatestRelease(): Promise<GitHubRelease> {
-    return fetch('https://api.github.com/repos/reisxd/TizenTubeCobalt/releases/latest')
-        .then(response => {
+    return fetch('https://api.github.com/repos/reisxd/TizenTubeCobalt/releases/latest').then(
+        (response) => {
             if (!response.ok) {
                 throw new Error('Network response was not ok');
             }
             return response.json();
-        });
+        },
+    );
 }
 
 // 'Check for updates' shows nothing while it runs, so a user who thinks the row
@@ -52,7 +63,7 @@ function checkForUpdates(isUserInitiated?: boolean): void {
     const currentEpoch = Math.floor(Date.now() / 1000);
 
     getLatestRelease()
-        .then(release => {
+        .then((release) => {
             const latestVersion = release.tag_name.replace('v', '');
             const releaseDate = new Date(release.published_at).getTime() / 1000;
 
@@ -68,56 +79,83 @@ function checkForUpdates(isUserInitiated?: boolean): void {
             // matching APK, and assets[0] assumes the release has any asset at
             // all. The resulting TypeError was swallowed by the catch below, so
             // a user-initiated check just looked like nothing happened.
-            const wanted = architecture ? (architecture === 'arm64-v8a' ? 'arm64.apk' : 'arm.apk') : null;
-            const asset = wanted ? release.assets.find(a => a.name.includes(wanted)) : release.assets[0];
+            const wanted = architecture
+                ? architecture === 'arm64-v8a'
+                    ? 'arm64.apk'
+                    : 'arm.apk'
+                : null;
+            const asset = wanted
+                ? release.assets.find((a) => a.name.includes(wanted))
+                : release.assets[0];
             if (!asset) {
-                console.warn('No matching release asset', release.tag_name, architecture, release.assets.map(a => a.name));
+                console.warn(
+                    'No matching release asset',
+                    release.tag_name,
+                    architecture,
+                    release.assets.map((a) => a.name),
+                );
                 if (isUserInitiated) {
-                    showToast(t('settings.options.updater.checkFailed.title'), t('settings.options.updater.checkFailed.subtitle'), null);
+                    showToast(
+                        t('settings.options.updater.checkFailed.title'),
+                        t('settings.options.updater.checkFailed.subtitle'),
+                        null,
+                    );
                 }
                 return;
             }
             downloadUrl = asset.browser_download_url;
 
             if (latestVersion !== currentAppVersion) {
-                console.info(`New version available: ${latestVersion} (current: ${currentAppVersion})`);
-                const msg = `${t('settings.options.updater.releaseDate', { date: new Date(releaseDate * 1000).toLocaleString() })}\n${release.body}`.replace(/#/g, '').replace(/\*/g, '').trim();
+                console.info(
+                    `New version available: ${latestVersion} (current: ${currentAppVersion})`,
+                );
+                const msg =
+                    `${t('settings.options.updater.releaseDate', { date: new Date(releaseDate * 1000).toLocaleString() })}\n${release.body}`
+                        .replace(/#/g, '')
+                        .replace(/\*/g, '')
+                        .trim();
 
                 const buttons: Renderer[] = [
                     buttonItem(
-                        { title: t('settings.options.updater.updateNow.title'), subtitle: t('settings.options.updater.updateNow.subtitle') },
+                        {
+                            title: t('settings.options.updater.updateNow.title'),
+                            subtitle: t('settings.options.updater.updateNow.subtitle'),
+                        },
                         { icon: 'DOWN_ARROW' },
                         [
                             {
                                 customAction: {
                                     action: 'UPDATE_DOWNLOAD',
-                                    parameters: downloadUrl
-                                }
+                                    parameters: downloadUrl,
+                                },
                             },
                             {
                                 signalAction: {
-                                    signal: 'POPUP_BACK'
-                                }
-                            }
-                        ]
+                                    signal: 'POPUP_BACK',
+                                },
+                            },
+                        ],
                     ),
                     buttonItem(
-                        { title: t('settings.options.updater.remindLater.title'), subtitle: t('settings.options.updater.remindLater.subtitle') },
+                        {
+                            title: t('settings.options.updater.remindLater.title'),
+                            subtitle: t('settings.options.updater.remindLater.subtitle'),
+                        },
                         { icon: 'SEARCH_HISTORY' },
                         [
                             {
                                 customAction: {
                                     action: 'UPDATE_REMIND_LATER',
-                                    parameters: currentEpoch + 86400
-                                }
+                                    parameters: currentEpoch + 86400,
+                                },
                             },
                             {
                                 signalAction: {
-                                    signal: 'POPUP_BACK'
-                                }
-                            }
-                        ]
-                    )
+                                    signal: 'POPUP_BACK',
+                                },
+                            },
+                        ],
+                    ),
                 ];
 
                 // Add an empty message so the CSS doesn't get screwed after user input
@@ -127,28 +165,41 @@ function checkForUpdates(isUserInitiated?: boolean): void {
                 showModal(
                     {
                         title: t('settings.options.updater.updateAvailable.title'),
-                        subtitle: t('settings.options.updater.updateAvailable.subtitle', { latestVersion, currentVersion: currentAppVersion })
+                        subtitle: t('settings.options.updater.updateAvailable.subtitle', {
+                            latestVersion,
+                            currentVersion: currentAppVersion,
+                        }),
                     },
                     // An unasked-for modal must not open with "Update Now" under the
                     // cursor: on a TV, OK is the button most likely to be pressed by
                     // reflex, and it starts an APK download.
                     overlayPanelItemListRenderer(buttons, isUserInitiated ? 0 : 1),
                     'tt-update-modal',
-                    false
-                )
+                    false,
+                );
             } else {
                 console.info('You are using the latest version of TizenTube.');
                 if (isUserInitiated) {
-                    showToast(t('settings.options.updater.upToDate.title'), t('settings.options.updater.upToDate.subtitle', { version: currentAppVersion }), null);
+                    showToast(
+                        t('settings.options.updater.upToDate.title'),
+                        t('settings.options.updater.upToDate.subtitle', {
+                            version: currentAppVersion,
+                        }),
+                        null,
+                    );
                 }
             }
         })
-        .catch(error => {
+        .catch((error) => {
             console.error('Error fetching the latest release:', error);
             // Only worth interrupting for when the user asked; otherwise every
             // launch without a network shows an error nobody requested.
             if (isUserInitiated) {
-                showToast(t('settings.options.updater.checkFailed.title'), t('settings.options.updater.checkFailed.subtitle'), null);
+                showToast(
+                    t('settings.options.updater.checkFailed.title'),
+                    t('settings.options.updater.checkFailed.subtitle'),
+                    null,
+                );
             }
         })
         .finally(() => {

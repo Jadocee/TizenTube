@@ -21,10 +21,7 @@ export const readRepo = (...parts) => readFileSync(repoPath(...parts), 'utf8');
  * under test.
  */
 export async function chromium() {
-    const candidates = [
-        'playwright',
-        '/opt/node22/lib/node_modules/playwright/index.mjs',
-    ];
+    const candidates = ['playwright', '/opt/node22/lib/node_modules/playwright/index.mjs'];
     for (const spec of candidates) {
         try {
             const mod = await import(spec);
@@ -47,7 +44,11 @@ export function chromiumExecutable() {
     if (pinned && existsSync(pinned)) return pinned;
     const base = process.env.PLAYWRIGHT_BROWSERS_PATH;
     if (base) {
-        for (const rel of ['chromium/chrome-linux/chrome', 'chromium-1194/chrome-linux/chrome', 'chromium']) {
+        for (const rel of [
+            'chromium/chrome-linux/chrome',
+            'chromium-1194/chrome-linux/chrome',
+            'chromium',
+        ]) {
             const p = resolve(base, rel);
             if (existsSync(p)) return p;
         }
@@ -61,7 +62,9 @@ export function checker() {
     const check = (description, got, want) => {
         const ok = JSON.stringify(got) === JSON.stringify(want);
         if (!ok) state.failures++;
-        console.log(`${ok ? '  ok  ' : 'FAIL  '}${description.padEnd(56)} ${JSON.stringify(got)}${ok ? '' : '  want ' + JSON.stringify(want)}`);
+        console.log(
+            `${ok ? '  ok  ' : 'FAIL  '}${description.padEnd(56)} ${JSON.stringify(got)}${ok ? '' : '  want ' + JSON.stringify(want)}`,
+        );
     };
     const done = (label) => {
         console.log(`\n${state.failures ? state.failures + ' FAILURES' : label || 'ALL PASS'}`);

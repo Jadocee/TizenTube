@@ -15,14 +15,14 @@ interface CDPClient {
     };
     on(
         event: 'Runtime.executionContextCreated',
-        handler: (message: { context: { id: number } }) => void
+        handler: (message: { context: { id: number } }) => void,
     ): void;
 }
 
 declare module 'chrome-remote-interface' {
     function CDP(
         options: { host: string; port: number; local?: boolean },
-        callback: (client: CDPClient) => void
+        callback: (client: CDPClient) => void,
     ): { on(event: 'error', handler: (err: Error) => void): void };
     export = CDP;
 }

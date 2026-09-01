@@ -73,7 +73,8 @@ export function reduce(state: PreviewState, event: PreviewEvent | null | undefin
             // A missing, zero or nonsense duration still has to produce a finite
             // deadline, or the watchdog never fires and the indicator is
             // permanent.
-            const duration = Number.isFinite(event.durationMs) && event.durationMs > 0 ? event.durationMs : 0;
+            const duration =
+                Number.isFinite(event.durationMs) && event.durationMs > 0 ? event.durationMs : 0;
             return {
                 phase: 'playing',
                 startedAt: now,
@@ -86,7 +87,11 @@ export function reduce(state: PreviewState, event: PreviewEvent | null | undefin
             // The focus change the app itself makes when it starts a preview
             // arrives immediately after start(). Retiring on that would mean the
             // indicator never survived its own first frame.
-            if (state.phase !== 'idle' && Number.isFinite(event.now) && event.now - state.startedAt < MOVE_GRACE_MS) {
+            if (
+                state.phase !== 'idle' &&
+                Number.isFinite(event.now) &&
+                event.now - state.startedAt < MOVE_GRACE_MS
+            ) {
                 return state;
             }
             return IDLE;
@@ -102,7 +107,9 @@ export function reduce(state: PreviewState, event: PreviewEvent | null | undefin
             return state.phase === 'stalled' ? { ...state, phase: 'playing' } : state;
 
         case 'tick':
-            return state.phase !== 'idle' && Number.isFinite(event.now) && event.now >= state.endsAt ? IDLE : state;
+            return state.phase !== 'idle' && Number.isFinite(event.now) && event.now >= state.endsAt
+                ? IDLE
+                : state;
 
         default:
             return state;
@@ -128,7 +135,10 @@ export interface Size {
  * never costs a broken layout, and it never suppresses playback -- which is why
  * this can afford to be strict.
  */
-export function anchorUsable(rect: Rect | null | undefined, viewport: Size | null | undefined): boolean {
+export function anchorUsable(
+    rect: Rect | null | undefined,
+    viewport: Size | null | undefined,
+): boolean {
     if (!rect || !viewport) return false;
     if (!Number.isFinite(rect.width) || !Number.isFinite(rect.height)) return false;
     if (!Number.isFinite(rect.left) || !Number.isFinite(rect.top)) return false;

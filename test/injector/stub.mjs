@@ -5,22 +5,27 @@
 
 export const trace = [];
 export const knobs = {
-    uploadMs: 50,        // how long the script upload takes
-    navigateMs: 10,      // how long Page.navigate takes
-    connectMs: 5,        // how long CDP takes to hand back a client
-    fetchOk: true,       // whether the debugger port answers HTTP
-    registerOk: true,    // whether addScriptToEvaluateOnNewDocument succeeds
+    uploadMs: 50, // how long the script upload takes
+    navigateMs: 10, // how long Page.navigate takes
+    connectMs: 5, // how long CDP takes to hand back a client
+    fetchOk: true, // whether the debugger port answers HTTP
+    registerOk: true, // whether addScriptToEvaluateOnNewDocument succeeds
     userScript: 'console.log("tizentube")',
-    debugPort: 7011,     // what sdbd reports back
-    sdbReplyMs: 10,      // how long sdbd takes to answer
+    debugPort: 7011, // what sdbd reports back
+    sdbReplyMs: 10, // how long sdbd takes to answer
 };
 
 export const reset = () => {
     trace.length = 0;
     Object.assign(knobs, {
-        uploadMs: 50, navigateMs: 10, connectMs: 5,
-        fetchOk: true, registerOk: true, userScript: 'console.log("tizentube")',
-        debugPort: 7011, sdbReplyMs: 10,
+        uploadMs: 50,
+        navigateMs: 10,
+        connectMs: 5,
+        fetchOk: true,
+        registerOk: true,
+        userScript: 'console.log("tizentube")',
+        debugPort: 7011,
+        sdbReplyMs: 10,
     });
 };
 
@@ -30,11 +35,16 @@ export const nodeFetch = (url) => {
     trace.push('fetch:' + url);
     // The daemon probe, answered as a developer-mode TV pointed at itself.
     if (String(url).includes('8001/api/v2')) {
-        return Promise.resolve({ json: () => Promise.resolve({
-            device: { developerIP: '127.0.0.1', developerMode: '1', ip: '127.0.0.1' },
-        }) });
+        return Promise.resolve({
+            json: () =>
+                Promise.resolve({
+                    device: { developerIP: '127.0.0.1', developerMode: '1', ip: '127.0.0.1' },
+                }),
+        });
     }
-    return knobs.fetchOk ? Promise.resolve({ ok: true }) : Promise.reject(new Error('ECONNREFUSED'));
+    return knobs.fetchOk
+        ? Promise.resolve({ ok: true })
+        : Promise.reject(new Error('ECONNREFUSED'));
 };
 
 export const userScript = {
@@ -45,26 +55,46 @@ export const userScript = {
 function makeClient() {
     const listeners = {};
     return {
-        on: (evt, fn) => { (listeners[evt] ||= []).push(fn); },
+        on: (evt, fn) => {
+            (listeners[evt] ||= []).push(fn);
+        },
         Runtime: {
-            enable: () => { trace.push('Runtime.enable'); return Promise.resolve(); },
-            evaluate: () => { trace.push('Runtime.evaluate'); return Promise.resolve(); },
+            enable: () => {
+                trace.push('Runtime.enable');
+                return Promise.resolve();
+            },
+            evaluate: () => {
+                trace.push('Runtime.evaluate');
+                return Promise.resolve();
+            },
         },
         Page: {
-            enable: () => { trace.push('Page.enable'); return Promise.resolve(); },
-            setBypassCSP: () => { trace.push('Page.setBypassCSP'); return Promise.resolve(); },
+            enable: () => {
+                trace.push('Page.enable');
+                return Promise.resolve();
+            },
+            setBypassCSP: () => {
+                trace.push('Page.setBypassCSP');
+                return Promise.resolve();
+            },
             addScriptToEvaluateOnNewDocument: () => {
                 trace.push('upload:start');
                 if (!knobs.registerOk) return Promise.reject(new Error('not supported'));
-                return later(knobs.uploadMs).then(() => { trace.push('upload:done'); });
+                return later(knobs.uploadMs).then(() => {
+                    trace.push('upload:done');
+                });
             },
             addScriptToEvaluateOnLoad: () => {
                 trace.push('upload:legacy');
-                return later(knobs.uploadMs).then(() => { trace.push('upload:done'); });
+                return later(knobs.uploadMs).then(() => {
+                    trace.push('upload:done');
+                });
             },
             navigate: () => {
                 trace.push('navigate:start');
-                return later(knobs.navigateMs).then(() => { trace.push('navigate:done'); });
+                return later(knobs.navigateMs).then(() => {
+                    trace.push('navigate:done');
+                });
             },
         },
     };
@@ -73,8 +103,16 @@ function makeClient() {
 /** chrome-remote-interface's callback form: returns a bare EventEmitter. */
 export default function CDP(_opts, cb) {
     const handlers = {};
-    setTimeout(() => { trace.push('cdp:connected'); cb(makeClient()); }, knobs.connectMs);
-    return { on: (evt, fn) => { (handlers[evt] ||= []).push(fn); }, emit: (evt, a) => (handlers[evt] || []).forEach((f) => f(a)) };
+    setTimeout(() => {
+        trace.push('cdp:connected');
+        cb(makeClient());
+    }, knobs.connectMs);
+    return {
+        on: (evt, fn) => {
+            (handlers[evt] ||= []).push(fn);
+        },
+        emit: (evt, a) => (handlers[evt] || []).forEach((f) => f(a)),
+    };
 }
 
 /**
@@ -88,13 +126,21 @@ export const adbhost = {
         const streamHandlers = {};
         const client = {
             _stream: {
-                on: (evt, fn) => { (streamHandlers[evt] ||= []).push(fn); },
-                end: () => { trace.push('sdb:end'); },
+                on: (evt, fn) => {
+                    (streamHandlers[evt] ||= []).push(fn);
+                },
+                end: () => {
+                    trace.push('sdb:end');
+                },
             },
             createStream: (cmd) => {
                 trace.push('sdb:' + cmd);
                 const h = {};
-                const shell = { on: (evt, fn) => { (h[evt] ||= []).push(fn); } };
+                const shell = {
+                    on: (evt, fn) => {
+                        (h[evt] ||= []).push(fn);
+                    },
+                };
                 // sdbd answers a moment later, in two chunks.
                 setTimeout(() => {
                     (h.data || []).forEach((f) => f(Buffer.from('debug_por')));
@@ -103,7 +149,10 @@ export const adbhost = {
                 return shell;
             },
         };
-        setTimeout(() => { trace.push('sdb:connected'); (streamHandlers.connect || []).forEach((f) => f()); }, 1);
+        setTimeout(() => {
+            trace.push('sdb:connected');
+            (streamHandlers.connect || []).forEach((f) => f());
+        }, 1);
         return client;
     },
 };

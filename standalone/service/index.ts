@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 // TizenTube Standalone service
 
@@ -32,8 +32,10 @@ app.get(USERSCRIPT_PATH, (_req: Request, res: Response) => {
 
         // Never fail the request: an empty script tag is invisible, and a
         // session silently running without the mod is the thing being fixed.
-        res.send('console.error("[TizenTube] The userscript is unavailable. '
-            + 'Reinstall the app or check the TV\'s network connection.");');
+        res.send(
+            'console.error("[TizenTube] The userscript is unavailable. ' +
+                'Reinstall the app or check the TV\'s network connection.");',
+        );
     });
 });
 
@@ -77,7 +79,9 @@ app.get('/tizentube/debugger', (req: Request, res: Response) => {
         tizen.application.getAppsContext((appsContext: any[]) => {
             if (started) return;
             const packageId = tizen.application.getAppInfo().packageId;
-            const app = appsContext.find((entry: any) => entry.appId === `${packageId}.TizenTubeStandalone`);
+            const app = appsContext.find(
+                (entry: any) => entry.appId === `${packageId}.TizenTubeStandalone`,
+            );
             if (!app) {
                 started = true;
                 clearInterval(interval);
@@ -134,7 +138,7 @@ app.all('*', (req: Request, res: Response) => {
         method: req.method,
         headers: headers,
         body: hasBody ? req : undefined,
-        redirect: 'manual' as const
+        redirect: 'manual' as const,
     };
 
     nodeFetch(targetUrl, fetchOptions)
@@ -149,7 +153,13 @@ app.all('*', (req: Request, res: Response) => {
             for (const key in headerKeys) {
                 if (Object.prototype.hasOwnProperty.call(headerKeys, key)) {
                     const lowerKey = key.toLowerCase();
-                    const skipHeaders = ['content-encoding', 'content-length', 'transfer-encoding', 'content-security-policy', 'alt-svc'];
+                    const skipHeaders = [
+                        'content-encoding',
+                        'content-length',
+                        'transfer-encoding',
+                        'content-security-policy',
+                        'alt-svc',
+                    ];
                     if (isCorsBypass) skipHeaders.push('access-control-allow-origin');
 
                     if (skipHeaders.indexOf(lowerKey) !== -1) continue;
@@ -166,13 +176,16 @@ app.all('*', (req: Request, res: Response) => {
                     // resolve against the proxy origin, so they are left alone.
                     if (lowerKey === 'location' && /^https?:\/\//i.test(value)) {
                         const yt = value.match(/^https?:\/\/www\.youtube\.com(\/.*)?$/i);
-                        res.setHeader(key, yt ? (yt[1] || '/') : `http://localhost:${PORT}/cors-bypass/${value}`);
+                        res.setHeader(
+                            key,
+                            yt ? yt[1] || '/' : `http://localhost:${PORT}/cors-bypass/${value}`,
+                        );
                         continue;
                     }
                     if (lowerKey === 'set-cookie') {
                         const rawCookies = headerKeys[key];
                         if (Array.isArray(rawCookies)) {
-                            const modifiedCookies = rawCookies.map(cookieStr => {
+                            const modifiedCookies = rawCookies.map((cookieStr) => {
                                 return cookieStr
                                     .replace(/^__Secure-/i, '__LocalSecure-')
                                     .replace(/^__Host-/i, '__LocalHost-')
@@ -195,11 +208,12 @@ app.all('*', (req: Request, res: Response) => {
 
             const contentType = response.headers.get('content-type') || '';
 
-            if (contentType.indexOf('text/html') !== -1 ||
+            if (
+                contentType.indexOf('text/html') !== -1 ||
                 contentType.indexOf('application/json') !== -1 ||
                 contentType.indexOf('javascript') !== -1 ||
-                contentType.indexOf('text/css') !== -1) {
-
+                contentType.indexOf('text/css') !== -1
+            ) {
                 return response.text().then((text) => {
                     if (req.url.indexOf('/tv') === 0 && req.url.indexOf('/tv_config') === -1) {
                         // Insert the userscript for TizenTube, as the first thing in
@@ -220,34 +234,97 @@ app.all('*', (req: Request, res: Response) => {
                     const proxyPrefix = `http://localhost:${PORT}/cors-bypass/`;
 
                     // Rewrite rules for replacing URLs so CORS and presumably YT is happy.
-                    text = text.replace(/https:\/\/([a-zA-Z0-9-.]+)\.googlevideo\.com/g, `${proxyPrefix}https://$1.googlevideo.com`);
-                    text = text.replace(/https:\\\/\\\/([a-zA-Z0-9-.]+)\.googlevideo\.com/g, `http:\\\/\\\/localhost:${PORT}\\\/cors-bypass\\\/https:\\\/\\\/$1.googlevideo.com`);
-                    text = text.replace(/"\/\/([a-zA-Z0-9-.]+)\.googlevideo\.com/g, `"${proxyPrefix}https://$1.googlevideo.com`);
+                    text = text.replace(
+                        /https:\/\/([a-zA-Z0-9-.]+)\.googlevideo\.com/g,
+                        `${proxyPrefix}https://$1.googlevideo.com`,
+                    );
+                    text = text.replace(
+                        /https:\\\/\\\/([a-zA-Z0-9-.]+)\.googlevideo\.com/g,
+                        `http:\\\/\\\/localhost:${PORT}\\\/cors-bypass\\\/https:\\\/\\\/$1.googlevideo.com`,
+                    );
+                    text = text.replace(
+                        /"\/\/([a-zA-Z0-9-.]+)\.googlevideo\.com/g,
+                        `"${proxyPrefix}https://$1.googlevideo.com`,
+                    );
 
-                    text = text.replace(/https:\/\/www\.gstatic\.com/g, `${proxyPrefix}https://www.gstatic.com`);
-                    text = text.replace(/http:\/\/www\.gstatic\.com/g, `${proxyPrefix}https://www.gstatic.com`);
-                    text = text.replace(/"\/\/www\.gstatic\.com/g, `"${proxyPrefix}https://www.gstatic.com`);
-                    text = text.replace(/\(\/\/www\.gstatic\.com/g, `(${proxyPrefix}https://www.gstatic.com`);
+                    text = text.replace(
+                        /https:\/\/www\.gstatic\.com/g,
+                        `${proxyPrefix}https://www.gstatic.com`,
+                    );
+                    text = text.replace(
+                        /http:\/\/www\.gstatic\.com/g,
+                        `${proxyPrefix}https://www.gstatic.com`,
+                    );
+                    text = text.replace(
+                        /"\/\/www\.gstatic\.com/g,
+                        `"${proxyPrefix}https://www.gstatic.com`,
+                    );
+                    text = text.replace(
+                        /\(\/\/www\.gstatic\.com/g,
+                        `(${proxyPrefix}https://www.gstatic.com`,
+                    );
 
-                    text = text.replace(/https:\/\/yt3\.ggpht\.com/g, `${proxyPrefix}https://yt3.ggpht.com`);
+                    text = text.replace(
+                        /https:\/\/yt3\.ggpht\.com/g,
+                        `${proxyPrefix}https://yt3.ggpht.com`,
+                    );
 
-                    text = text.replace(/https:\/\/clients1\.google\.com/g, `${proxyPrefix}https://clients1.google.com`);
-                    text = text.replace(/http:\/\/clients1\.google\.com/g, `${proxyPrefix}https://clients1.google.com`);
-                    text = text.replace(/"\/\/clients1\.google\.com/g, `"${proxyPrefix}https://clients1.google.com`);
+                    text = text.replace(
+                        /https:\/\/clients1\.google\.com/g,
+                        `${proxyPrefix}https://clients1.google.com`,
+                    );
+                    text = text.replace(
+                        /http:\/\/clients1\.google\.com/g,
+                        `${proxyPrefix}https://clients1.google.com`,
+                    );
+                    text = text.replace(
+                        /"\/\/clients1\.google\.com/g,
+                        `"${proxyPrefix}https://clients1.google.com`,
+                    );
 
-                    text = text.replace('Set(["www.youtube.com","accounts.google.com"]);', 'Set(["www.youtube.com", "accounts.google.com", "localhost"]);');
-                    text = text.replace(/:document\.location\.toString\(\)/g, ':document.location.toString().replace("http://localhost:8099", "https://www.youtube.com")');
-                    text = text.replace(/euri:[^,]+,/g, 'euri:document.location.toString().replace("http://localhost:8099", "https://www.youtube.com"),')
-                    text = text.replace(/https:\/\/s\.youtube\.com/g, `${proxyPrefix}https://s.youtube.com`);
-                    text = text.replace(/redirector.googlevideo.com/g, `${proxyPrefix}https://redirector.googlevideo.com`);
+                    text = text.replace(
+                        'Set(["www.youtube.com","accounts.google.com"]);',
+                        'Set(["www.youtube.com", "accounts.google.com", "localhost"]);',
+                    );
+                    text = text.replace(
+                        /:document\.location\.toString\(\)/g,
+                        ':document.location.toString().replace("http://localhost:8099", "https://www.youtube.com")',
+                    );
+                    text = text.replace(
+                        /euri:[^,]+,/g,
+                        'euri:document.location.toString().replace("http://localhost:8099", "https://www.youtube.com"),',
+                    );
+                    text = text.replace(
+                        /https:\/\/s\.youtube\.com/g,
+                        `${proxyPrefix}https://s.youtube.com`,
+                    );
+                    text = text.replace(
+                        /redirector.googlevideo.com/g,
+                        `${proxyPrefix}https://redirector.googlevideo.com`,
+                    );
                     text = text.replace(/this.scheme="https"/, 'this.scheme="http"');
-                    text = text.replace(/https\:\/\/jnn-pa.googleapis.com/g, `${proxyPrefix}https://jnn-pa.googleapis.com`);
-                    text = text.replace(/https:\/\/yt3\.googleusercontent\.com/g, `${proxyPrefix}https://yt3.googleusercontent.com`);
-                    text = text.replace(/"\/\/yt3\.googleusercontent\.com/g, `"${proxyPrefix}https://yt3.googleusercontent.com`);
+                    text = text.replace(
+                        /https\:\/\/jnn-pa.googleapis.com/g,
+                        `${proxyPrefix}https://jnn-pa.googleapis.com`,
+                    );
+                    text = text.replace(
+                        /https:\/\/yt3\.googleusercontent\.com/g,
+                        `${proxyPrefix}https://yt3.googleusercontent.com`,
+                    );
+                    text = text.replace(
+                        /"\/\/yt3\.googleusercontent\.com/g,
+                        `"${proxyPrefix}https://yt3.googleusercontent.com`,
+                    );
 
                     // In order to fix history not working
-                    text = text.replace(/=window\.location\.href;/, '=window.location.href.replace("http://localhost:8099", "https://www.youtube.com");')
-                    text = text.replace(/=document\.location\.href/, '=document.location.href.replace("http://localhost:8099", "https://www.youtube.com")')
+                    text = text.replace(
+                        /=window\.location\.href;/,
+                        '=window.location.href.replace("http://localhost:8099", "https://www.youtube.com");',
+                    );
+                    text = text.replace(
+                        /=document\.location\.href/,
+                        '=document.location.href.replace("http://localhost:8099", "https://www.youtube.com")',
+                    );
 
                     res.send(text);
                 });
@@ -261,14 +338,14 @@ app.all('*', (req: Request, res: Response) => {
         })
         .catch((error) => {
             console.error(`Proxy Error for [${targetUrl}]: ${error}`);
-            console.error(error.stack)
+            console.error(error.stack);
             if (!res.headersSent) {
                 res.status(500).send('Proxy Connection Broken');
             }
         });
 });
 
-app.listen(PORT, "127.0.0.1");
+app.listen(PORT, '127.0.0.1');
 
 // Start the DIAL server
 (global as typeof globalThis & { isTizenTube?: boolean }).isTizenTube = true;

@@ -76,10 +76,13 @@ function updateClock(): void {
 function scheduleTick(): void {
     // Re-armed against the wall clock rather than a fixed 1000ms period, so a
     // busy TV CPU cannot make the displayed minute drift behind the real one.
-    clockTimeout = setTimeout(() => {
-        updateClock();
-        scheduleTick();
-    }, 1000 - (Date.now() % 1000));
+    clockTimeout = setTimeout(
+        () => {
+            updateClock();
+            scheduleTick();
+        },
+        1000 - (Date.now() % 1000),
+    );
 }
 
 function stopClock(): void {

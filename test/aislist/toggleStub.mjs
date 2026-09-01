@@ -4,11 +4,15 @@ export const store = { enableAiSList: false, aisListIncludeWarnlist: false };
 export const configRead = (k) => store[k];
 
 export const calls = [];
-export const refresh = async (force) => { calls.push(force); };
+export const refresh = async (force) => {
+    calls.push(force);
+};
 
 const listeners = [];
 export const configChangeEmitter = {
-    addEventListener: (type, cb) => { if (type === 'configChange') listeners.push(cb); },
+    addEventListener: (type, cb) => {
+        if (type === 'configChange') listeners.push(cb);
+    },
     removeEventListener: () => {},
     dispatchEvent: (event) => listeners.forEach((cb) => cb(event)),
 };

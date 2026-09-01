@@ -2,7 +2,7 @@ import i18n from 'i18next';
 import resources from './i18nResources.js';
 
 function youtubeLanguage(): string | undefined {
-  return window?.yt?.config_?.HL;
+    return window?.yt?.config_?.HL;
 }
 
 // The tag goes through whole. Stripping the region here sent every
@@ -18,28 +18,27 @@ InitI18next(youtubeLanguage() || navigator.language);
 // so adopt YouTube's once it publishes one. Menus are built on demand, long
 // after this resolves.
 if (!youtubeLanguage()) {
-  let tries = 0;
-  const timer = setInterval(() => {
-    const hl = youtubeLanguage();
-    if (!hl) {
-      if (++tries > 120) clearInterval(timer);
-      return;
-    }
-    clearInterval(timer);
-    if (hl !== i18n.language) i18n.changeLanguage(hl);
-  }, 250);
+    let tries = 0;
+    const timer = setInterval(() => {
+        const hl = youtubeLanguage();
+        if (!hl) {
+            if (++tries > 120) clearInterval(timer);
+            return;
+        }
+        clearInterval(timer);
+        if (hl !== i18n.language) i18n.changeLanguage(hl);
+    }, 250);
 }
 
 function InitI18next(lng: string): void {
-  i18n
-    .init({
-      lng,
-      fallbackLng: 'en',
-      resources,
-      debug: false,
-      interpolation: {
-        escapeValue: false,
-      }
+    i18n.init({
+        lng,
+        fallbackLng: 'en',
+        resources,
+        debug: false,
+        interpolation: {
+            escapeValue: false,
+        },
     });
 }
 export default i18n;

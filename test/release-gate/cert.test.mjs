@@ -40,7 +40,10 @@ function run({ key, password }) {
         return { code, out, signed, size: existsSync(certPath) ? statSync(certPath).size : -1 };
     };
     try {
-        const stdout = execFileSync('bash', [SCRIPT], { env, stdio: ['ignore', 'pipe', 'pipe'] }).toString();
+        const stdout = execFileSync('bash', [SCRIPT], {
+            env,
+            stdio: ['ignore', 'pipe', 'pipe'],
+        }).toString();
         return collect(0, stdout);
     } catch (e) {
         return collect(e.status, (e.stdout || '').toString() + (e.stderr || '').toString());
@@ -74,7 +77,7 @@ check('a password with no key fails', r.code, 1);
 check('  ...and names the key', r.out.includes('TIZEN_AUTHOR_KEY is not'), true);
 
 // --- material that decodes but is not a certificate -------------------------
-r = run({ key: 'aGVsbG8=', password: 'pw' });          // "hello"
+r = run({ key: 'aGVsbG8=', password: 'pw' }); // "hello"
 check('a tiny decode is rejected', r.code, 1);
 check('  ...and says how big it actually was', /is 5 bytes/.test(r.out), true);
 check('  ...and does not claim to have signed', r.signed, null);
@@ -89,12 +92,44 @@ check('  ...and says so plainly', r.out.includes('not valid base64'), true);
 const dir = mkdtempSync(join(tmpdir(), 'tt-realcert-'));
 let realKey = null;
 try {
-    execFileSync('openssl', ['req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-keyout',
-        join(dir, 'k.pem'), '-out', join(dir, 'c.pem'), '-days', '1', '-subj', '/CN=tizentube-test'],
-        { stdio: 'ignore' });
-    execFileSync('openssl', ['pkcs12', '-export', '-out', join(dir, 'a.p12'), '-inkey',
-        join(dir, 'k.pem'), '-in', join(dir, 'c.pem'), '-passout', 'pass:testpw'], { stdio: 'ignore' });
-    realKey = execFileSync('base64', ['-w0', join(dir, 'a.p12')]).toString().trim();
+    execFileSync(
+        'openssl',
+        [
+            'req',
+            '-x509',
+            '-newkey',
+            'rsa:2048',
+            '-nodes',
+            '-keyout',
+            join(dir, 'k.pem'),
+            '-out',
+            join(dir, 'c.pem'),
+            '-days',
+            '1',
+            '-subj',
+            '/CN=tizentube-test',
+        ],
+        { stdio: 'ignore' },
+    );
+    execFileSync(
+        'openssl',
+        [
+            'pkcs12',
+            '-export',
+            '-out',
+            join(dir, 'a.p12'),
+            '-inkey',
+            join(dir, 'k.pem'),
+            '-in',
+            join(dir, 'c.pem'),
+            '-passout',
+            'pass:testpw',
+        ],
+        { stdio: 'ignore' },
+    );
+    realKey = execFileSync('base64', ['-w0', join(dir, 'a.p12')])
+        .toString()
+        .trim();
 } catch (e) {
     console.log('  --  openssl unavailable; skipping the valid-certificate cases');
 } finally {
@@ -122,7 +157,11 @@ if (realKey) {
 // certificate at all, which is the original failure with extra steps.
 const workflow = readRepo('.github', 'workflows', 'build-release.yaml');
 const GUARD = "steps.cert.outputs.signed == 'true'";
-for (const step of ['Build TizenTube', 'Upload TizenTube package artifact', 'Release TizenTube Build Results']) {
+for (const step of [
+    'Build TizenTube',
+    'Upload TizenTube package artifact',
+    'Release TizenTube Build Results',
+]) {
     const at = workflow.indexOf(`- name: ${step}\n`);
     const condition = at < 0 ? '' : (workflow.slice(at, at + 400).match(/^\s+if: .*$/m) || [''])[0];
     check(`"${step}" is gated on a certificate`, condition.includes(GUARD), true);
@@ -130,7 +169,10 @@ for (const step of ['Build TizenTube', 'Upload TizenTube package artifact', 'Rel
 // And the step producing it must not gate on its own output, which would make
 // it unreachable and skip every release forever.
 const certAt = workflow.indexOf('id: cert\n');
-check('the certificate step does not gate on its own output',
-      certAt > 0 && !workflow.slice(certAt, certAt + 200).includes(GUARD), true);
+check(
+    'the certificate step does not gate on its own output',
+    certAt > 0 && !workflow.slice(certAt, certAt + 200).includes(GUARD),
+    true,
+);
 
 done();

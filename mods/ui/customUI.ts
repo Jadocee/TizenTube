@@ -1,10 +1,10 @@
 // Custom UI for video player
 
-import { extractAssignedFunctions } from "../utils/ASTParser.js";
-import { configRead } from "../config.js";
-import { ButtonRenderer } from "./ytUI.js";
+import { extractAssignedFunctions } from '../utils/ASTParser.js';
+import { configRead } from '../config.js';
+import { ButtonRenderer } from './ytUI.js';
 import { t } from 'i18next';
-import type { AssignedFunction } from "../utils/ASTParser.js";
+import type { AssignedFunction } from '../utils/ASTParser.js';
 
 // Passes spent waiting for the transport-controls component to register.
 let scanAttempts = 0;
@@ -12,8 +12,11 @@ let scanAttempts = 0;
 function applyPatches() {
     if (!window._yttv) return setTimeout(applyPatches, 250);
     if (!document.querySelector('video')) return setTimeout(applyPatches, 250);
-    const methods = Object.keys(window._yttv).filter(key => {
-        return typeof window._yttv![key] === 'function' && window._yttv![key].toString().includes('TRANSPORT_CONTROLS_BUTTON_TYPE_FEATURED_ACTION');
+    const methods = Object.keys(window._yttv).filter((key) => {
+        return (
+            typeof window._yttv![key] === 'function' &&
+            window._yttv![key].toString().includes('TRANSPORT_CONTROLS_BUTTON_TYPE_FEATURED_ACTION')
+        );
     });
 
     if (methods.length === 0) {
@@ -52,7 +55,9 @@ function applyPatches() {
         return match ? match.left!.split('.')[1] : undefined;
     };
 
-    const settingActionGroup = nameOf((func) => func.rhs.includes('TRANSPORT_CONTROLS_BUTTON_TYPE_PLAYBACK_SETTINGS'));
+    const settingActionGroup = nameOf((func) =>
+        func.rhs.includes('TRANSPORT_CONTROLS_BUTTON_TYPE_PLAYBACK_SETTINGS'),
+    );
 
     const previousButtonName = nameOf((func) => {
         if (!func.rhs.includes('skipNextButton')) return false;
@@ -64,13 +69,17 @@ function applyPatches() {
         return func.rhs.indexOf('skipNextButton') > func.rhs.indexOf('skipPreviousButton');
     });
 
-    const engagementActionButton = nameOf((func) => func.rhs.includes('props.data.engagementActions'));
+    const engagementActionButton = nameOf((func) =>
+        func.rhs.includes('props.data.engagementActions'),
+    );
 
     // Resolving nothing at all means the component's shape changed, not that
     // this particular build has no settings row. Worth a line, because the
     // failure is otherwise completely silent: every patch below simply no-ops.
     if (!settingActionGroup && !engagementActionButton) {
-        console.warn('TizenTube: no player-control members resolved; the transport component shape has changed');
+        console.warn(
+            'TizenTube: no player-control members resolved; the transport component shape has changed',
+        );
     }
 
     function YtlrPlayerActionsContainer(this: any) {
@@ -101,30 +110,39 @@ function applyPatches() {
         // beats a transport row that cannot render.
         try {
             const pipCommand = {
-                "type": "TRANSPORT_CONTROLS_BUTTON_TYPE_PIP",
-                "button": {
-                    "buttonRenderer": ButtonRenderer(
+                type: 'TRANSPORT_CONTROLS_BUTTON_TYPE_PIP',
+                button: {
+                    buttonRenderer: ButtonRenderer(
                         false,
-                        configRead('enableSwapMPWithPIP') ? t('player.pictureInPicture') : t('player.miniPlayer'),
+                        configRead('enableSwapMPWithPIP')
+                            ? t('player.pictureInPicture')
+                            : t('player.miniPlayer'),
                         'CLEAR_COOKIES',
                         {
                             customAction: {
-                                action: configRead('enableSwapMPWithPIP') ? 'ENTER_PIP' : 'ENTER_MP',
-                            }
-                        }
-                    )
-                }
-            }
+                                action: configRead('enableSwapMPWithPIP')
+                                    ? 'ENTER_PIP'
+                                    : 'ENTER_MP',
+                            },
+                        },
+                    ),
+                },
+            };
 
             if (settingActionGroup && configRead('enableMPButton')) {
                 const origSettingActionGroup = inst[settingActionGroup];
                 inst[settingActionGroup] = function (this: any) {
                     const res = origSettingActionGroup.apply(this, arguments);
-                    const idx = res.findIndex((item: any) => item.type === 'TRANSPORT_CONTROLS_BUTTON_TYPE_PLAYBACK_SETTINGS');
+                    const idx = res.findIndex(
+                        (item: any) =>
+                            item.type === 'TRANSPORT_CONTROLS_BUTTON_TYPE_PLAYBACK_SETTINGS',
+                    );
                     // splice() reads a negative start as an offset from the end, so
                     // a missing settings button put the PiP button second-to-last
                     // instead of appending it.
-                    if (!res.some((item: any) => item.type === 'TRANSPORT_CONTROLS_BUTTON_TYPE_PIP')) {
+                    if (
+                        !res.some((item: any) => item.type === 'TRANSPORT_CONTROLS_BUTTON_TYPE_PIP')
+                    ) {
                         res.splice(idx === -1 ? res.length : idx, 0, pipCommand);
                     }
                     return res;
@@ -135,34 +153,38 @@ function applyPatches() {
                 const origEngagementActionButton = inst[engagementActionButton];
                 inst[engagementActionButton] = function (this: any) {
                     const res = origEngagementActionButton.apply(this, arguments);
-                    res.find((item: any) => item.type === 'TRANSPORT_CONTROLS_BUTTON_TYPE_SPEED') || res.push({
-                        type: 'TRANSPORT_CONTROLS_BUTTON_TYPE_SPEED',
-                        button: {
-                            buttonRenderer: ButtonRenderer(
-                                false,
-                                t('player.playbackSpeed.button'),
-                                'SLOW_MOTION_VIDEO',
-                                {
-                                    customAction:
+                    res.find((item: any) => item.type === 'TRANSPORT_CONTROLS_BUTTON_TYPE_SPEED') ||
+                        res.push({
+                            type: 'TRANSPORT_CONTROLS_BUTTON_TYPE_SPEED',
+                            button: {
+                                buttonRenderer: ButtonRenderer(
+                                    false,
+                                    t('player.playbackSpeed.button'),
+                                    'SLOW_MOTION_VIDEO',
                                     {
-                                        action: 'TT_SPEED_SETTINGS_SHOW',
-                                    }
-                                }
-                            )
-                        }
-                    });
+                                        customAction: {
+                                            action: 'TT_SPEED_SETTINGS_SHOW',
+                                        },
+                                    },
+                                ),
+                            },
+                        });
                     return res;
-                }
+                };
             }
 
             if (engagementActionButton && !configRead('enableSuperThanksButton')) {
                 const origEngagementActionButton = inst[engagementActionButton];
                 inst[engagementActionButton] = function (this: any) {
                     const res = origEngagementActionButton.apply(this, arguments);
-                    const superThanksFiltered = res.filter((item: any) => item.type !== 'TRANSPORT_CONTROLS_BUTTON_TYPE_SUPER_THANKS');
-                    const shoppingFiltered = superThanksFiltered.filter((item: any) => item.type !== 'TRANSPORT_CONTROLS_BUTTON_TYPE_SHOPPING');
+                    const superThanksFiltered = res.filter(
+                        (item: any) => item.type !== 'TRANSPORT_CONTROLS_BUTTON_TYPE_SUPER_THANKS',
+                    );
+                    const shoppingFiltered = superThanksFiltered.filter(
+                        (item: any) => item.type !== 'TRANSPORT_CONTROLS_BUTTON_TYPE_SHOPPING',
+                    );
                     return shoppingFiltered;
-                }
+                };
             }
 
             if (engagementActionButton && !configRead('enableAIAskButton')) {
@@ -173,37 +195,29 @@ function applyPatches() {
                     // first, so nothing could match it and it only allocated a
                     // copy. Whatever second button type was meant here was never
                     // named, so it is not guessed at.
-                    return res.filter((item: any) => item.type !== 'TRANSPORT_CONTROLS_BUTTON_TYPE_YOUCHAT_BUTTON');
-                }
+                    return res.filter(
+                        (item: any) =>
+                            item.type !== 'TRANSPORT_CONTROLS_BUTTON_TYPE_YOUCHAT_BUTTON',
+                    );
+                };
             }
 
             if (previousButtonName && nextButtonName && configRead('enablePreviousNextButtons')) {
                 inst[previousButtonName] = function () {
-                    return ButtonRenderer(
-                        false,
-                        t('player.previous'),
-                        'SKIP_PREVIOUS',
-                        {
-                            signalAction: {
-                                signal: 'PLAYER_PLAY_PREVIOUS'
-                            }
-                        }
-                    )
-                }
+                    return ButtonRenderer(false, t('player.previous'), 'SKIP_PREVIOUS', {
+                        signalAction: {
+                            signal: 'PLAYER_PLAY_PREVIOUS',
+                        },
+                    });
+                };
 
                 inst[nextButtonName] = function () {
-                    return ButtonRenderer(
-                        false,
-                        t('player.next'),
-                        'SKIP_NEXT',
-                        {
-                            signalAction: {
-                                signal: 'PLAYER_PLAY_NEXT'
-                            }
-                        }
-                    )
-                }
-
+                    return ButtonRenderer(false, t('player.next'), 'SKIP_NEXT', {
+                        signalAction: {
+                            signal: 'PLAYER_PLAY_NEXT',
+                        },
+                    });
+                };
             }
         } catch (e) {
             console.warn('TizenTube: could not patch the player controls:', e);
@@ -217,7 +231,6 @@ function applyPatches() {
         window._yttv[methods[0]] = YtlrPlayerActionsContainer;
     }
 }
-
 
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
     applyPatches();

@@ -56,7 +56,11 @@ check('the setting off never arms', shouldArm({ ...armable, enabled: false }), f
 // The single most important stand-down: the sidebar must actually have focus.
 // A press anywhere else in the app -- opening a video, a settings row, a search
 // result -- must never be read as a sidebar re-selection.
-check('a press with the sidebar unfocused never arms', shouldArm({ ...armable, guideFocused: false }), false);
+check(
+    'a press with the sidebar unfocused never arms',
+    shouldArm({ ...armable, guideFocused: false }),
+    false,
+);
 check('no identifiable entry never arms', shouldArm({ ...armable, entryKey: null }), false);
 check('an empty entry key never arms', shouldArm({ ...armable, entryKey: '' }), false);
 check('a watch route never arms', shouldArm({ ...armable, hash: '/watch?v=abc' }), false);
@@ -70,18 +74,29 @@ check('nothing happened at all -> refresh', decide(before, { ...before }), 'refr
 // A dispatched command is the strongest evidence the press was a real
 // navigation, and it is checked first because it is true even when the
 // destination happens to share our hash.
-check('a command was dispatched -> stand down',
-      decide(before, { ...before, commands: 8 }), 'none');
-check('  ...even if the hash has not caught up yet',
-      decide(before, { hash: '#/', entryKey: 'home', commands: 9 }), 'none');
-check('the route moved -> stand down',
-      decide(before, { ...before, hash: '#/browse?c=FEmusic' }), 'none');
-check('focus moved to another entry -> stand down',
-      decide(before, { ...before, entryKey: 'subscriptions' }), 'none');
+check('a command was dispatched -> stand down', decide(before, { ...before, commands: 8 }), 'none');
+check(
+    '  ...even if the hash has not caught up yet',
+    decide(before, { hash: '#/', entryKey: 'home', commands: 9 }),
+    'none',
+);
+check(
+    'the route moved -> stand down',
+    decide(before, { ...before, hash: '#/browse?c=FEmusic' }),
+    'none',
+);
+check(
+    'focus moved to another entry -> stand down',
+    decide(before, { ...before, entryKey: 'subscriptions' }),
+    'none',
+);
 // The route can leave and come back within the window without the hash
 // comparison catching it, so the destination is re-checked on its own terms.
-check('landing on a watch route -> stand down',
-      decide({ ...before, hash: '#/watch?v=a' }, { ...before, hash: '#/watch?v=a' }), 'none');
+check(
+    'landing on a watch route -> stand down',
+    decide({ ...before, hash: '#/watch?v=a' }, { ...before, hash: '#/watch?v=a' }),
+    'none',
+);
 
 // --- junk -------------------------------------------------------------------
 let threw = null;
@@ -91,15 +106,27 @@ for (const a of JUNK) {
         try {
             const d = decide(a, b);
             if (d !== 'none' && d !== 'refresh') threw = `decide returned ${JSON.stringify(d)}`;
-        } catch (e) { threw = `decide(${JSON.stringify(a)}, ${JSON.stringify(b)}) threw ${e.message}`; }
+        } catch (e) {
+            threw = `decide(${JSON.stringify(a)}, ${JSON.stringify(b)}) threw ${e.message}`;
+        }
     }
-    try { shouldArm(a); isRefreshableRoute(a); }
-    catch (e) { threw = `${JSON.stringify(a)} threw ${e.message}`; }
+    try {
+        shouldArm(a);
+        isRefreshableRoute(a);
+    } catch (e) {
+        threw = `${JSON.stringify(a)} threw ${e.message}`;
+    }
 }
 check('junk never throws and never yields an unknown decision', threw, null);
 // A NaN counter cannot be compared meaningfully, so it must not be read as "no
 // command was dispatched".
-check('a NaN command count stands down rather than refreshing',
-      decide({ hash: '#/', entryKey: 'home', commands: NaN }, { hash: '#/', entryKey: 'home', commands: NaN }), 'none');
+check(
+    'a NaN command count stands down rather than refreshing',
+    decide(
+        { hash: '#/', entryKey: 'home', commands: NaN },
+        { hash: '#/', entryKey: 'home', commands: NaN },
+    ),
+    'none',
+);
 
 done();

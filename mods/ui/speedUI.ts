@@ -13,7 +13,7 @@ const interval = setInterval(() => {
 
 function execute_once_dom_loaded_speed(): void {
     document.querySelector('video')!.addEventListener('canplay', () => {
-        document.getElementsByTagName('video')[0].playbackRate = configRead('videoSpeed');;
+        document.getElementsByTagName('video')[0].playbackRate = configRead('videoSpeed');
     });
 
     const eventHandler = (evt: KeyboardEvent) => {
@@ -34,8 +34,8 @@ function execute_once_dom_loaded_speed(): void {
                 return false;
             }
             return true;
-        };
-    }
+        }
+    };
 
     // Colour keys. Blue opens the speed menu; Red and Green are handled in ui.js.
     // Yellow is deliberately unbound.
@@ -59,35 +59,31 @@ function speedSettings(): void {
     for (let i = 1; i <= steps; i++) {
         const fixedSpeed = Math.round(i * increment * 100) / 100;
         buttons.push(
-            buttonItem(
-                { title: `${fixedSpeed}x` },
-                null,
-                [
-                    {
-                        signalAction: {
-                            signal: 'POPUP_BACK'
-                        }
+            buttonItem({ title: `${fixedSpeed}x` }, null, [
+                {
+                    signalAction: {
+                        signal: 'POPUP_BACK',
                     },
-                    {
-                        setClientSettingEndpoint: {
-                            settingDatas: [
-                                {
-                                    clientSettingEnum: {
-                                        item: 'videoSpeed'
-                                    },
-                                    intValue: fixedSpeed.toString()
-                                }
-                            ]
-                        }
+                },
+                {
+                    setClientSettingEndpoint: {
+                        settingDatas: [
+                            {
+                                clientSettingEnum: {
+                                    item: 'videoSpeed',
+                                },
+                                intValue: fixedSpeed.toString(),
+                            },
+                        ],
                     },
-                    {
-                        customAction: {
-                            action: 'SET_PLAYER_SPEED',
-                            parameters: fixedSpeed.toString()
-                        }
-                    }
-                ]
-            )
+                },
+                {
+                    customAction: {
+                        action: 'SET_PLAYER_SPEED',
+                        parameters: fixedSpeed.toString(),
+                    },
+                },
+            ]),
         );
         if (currentSpeed === fixedSpeed) {
             selectedIndex = buttons.length - 1;
@@ -95,35 +91,31 @@ function speedSettings(): void {
     }
 
     buttons.push(
-        buttonItem(
-            { title: t('player.playbackSpeed.fixStuttering') },
-            null,
-            [
-                {
-                    signalAction: {
-                        signal: 'POPUP_BACK'
-                    }
+        buttonItem({ title: t('player.playbackSpeed.fixStuttering') }, null, [
+            {
+                signalAction: {
+                    signal: 'POPUP_BACK',
                 },
-                {
-                    setClientSettingEndpoint: {
-                        settingDatas: [
-                            {
-                                clientSettingEnum: {
-                                    item: 'videoSpeed'
-                                },
-                                intValue: '1.0001'
-                            }
-                        ]
-                    }
+            },
+            {
+                setClientSettingEndpoint: {
+                    settingDatas: [
+                        {
+                            clientSettingEnum: {
+                                item: 'videoSpeed',
+                            },
+                            intValue: '1.0001',
+                        },
+                    ],
                 },
-                {
-                    customAction: {
-                        action: 'SET_PLAYER_SPEED',
-                        parameters: '1.0001'
-                    }
-                }
-            ]
-        )
+            },
+            {
+                customAction: {
+                    action: 'SET_PLAYER_SPEED',
+                    parameters: '1.0001',
+                },
+            },
+        ]),
     );
 
     // The stuttering row writes 1.0001, a value the increment loop can never
@@ -131,9 +123,11 @@ function speedSettings(): void {
     // reopened on the first entry after using it.
     if (currentSpeed === 1.0001) selectedIndex = buttons.length - 1;
 
-    showModal(t('player.playbackSpeed.title'), overlayPanelItemListRenderer(buttons, selectedIndex), 'tt-speed');
+    showModal(
+        t('player.playbackSpeed.title'),
+        overlayPanelItemListRenderer(buttons, selectedIndex),
+        'tt-speed',
+    );
 }
 
-export {
-    speedSettings
-}
+export { speedSettings };

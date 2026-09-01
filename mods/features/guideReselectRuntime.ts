@@ -82,12 +82,15 @@ export function armReselect(): void {
     }
 
     const before = snapshot();
-    if (!shouldArm({
-        enabled: configRead('refreshOnReselect'),
-        guideFocused: guideFocused(),
-        hash: before.hash,
-        entryKey: before.entryKey,
-    })) return;
+    if (
+        !shouldArm({
+            enabled: configRead('refreshOnReselect'),
+            guideFocused: guideFocused(),
+            hash: before.hash,
+            entryKey: before.entryKey,
+        })
+    )
+        return;
 
     pending = setTimeout(() => {
         pending = null;

@@ -67,7 +67,11 @@ function getCommandExecutor(): CommandExecutor | undefined {
 
     let commandFunction;
     for (const key in window._yttv) {
-        if (window._yttv[key] && typeof window._yttv[key] === 'function' && window._yttv[key].toString().includes('this.actionName')) {
+        if (
+            window._yttv[key] &&
+            typeof window._yttv[key] === 'function' &&
+            window._yttv[key].toString().includes('this.actionName')
+        ) {
             commandFunction = window._yttv[key];
         }
     }
@@ -80,8 +84,8 @@ function getCommandExecutor(): CommandExecutor | undefined {
 
     return {
         executeFunction: executeFunction.bind(instance),
-        commandFunction
-    }
+        commandFunction,
+    };
 }
 
 export default getCommandExecutor;
