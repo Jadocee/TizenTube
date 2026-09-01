@@ -1,3 +1,10 @@
+// NOT redundant, and Biome's noRedundantUseStrict says otherwise because it
+// reasons about this file rather than the bundle. rolldown emits CJS here, and
+// without this directive the emitted bundle is sloppy-mode -- which
+// test/strict-bundle asserts against, because an implicit global in sloppy mode
+// is a silent typo where in strict mode it is a ReferenceError. Removing it is
+// how a dependency's implicit global once killed debugger injection on every
+// launch.
 'use strict';
 
 // TizenTube Standalone service
@@ -240,7 +247,7 @@ app.all('*', (req: Request, res: Response) => {
                     );
                     text = text.replace(
                         /https:\\\/\\\/([a-zA-Z0-9-.]+)\.googlevideo\.com/g,
-                        `http:\\\/\\\/localhost:${PORT}\\\/cors-bypass\\\/https:\\\/\\\/$1.googlevideo.com`,
+                        `http:\\/\\/localhost:${PORT}\\/cors-bypass\\/https:\\/\\/$1.googlevideo.com`,
                     );
                     text = text.replace(
                         /"\/\/([a-zA-Z0-9-.]+)\.googlevideo\.com/g,
@@ -304,7 +311,7 @@ app.all('*', (req: Request, res: Response) => {
                     );
                     text = text.replace(/this.scheme="https"/, 'this.scheme="http"');
                     text = text.replace(
-                        /https\:\/\/jnn-pa.googleapis.com/g,
+                        /https:\/\/jnn-pa.googleapis.com/g,
                         `${proxyPrefix}https://jnn-pa.googleapis.com`,
                     );
                     text = text.replace(

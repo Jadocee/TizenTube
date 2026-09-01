@@ -16,7 +16,7 @@ globalThis.localStorage = {};
 check('clean start reads nothing', readStartupError(), null);
 
 recordStartupError(new TypeError('commandExecutor.commandFunction is not a constructor'));
-let e = readStartupError();
+const e = readStartupError();
 check(
     'records the message',
     e.message.startsWith('TypeError: commandExecutor.commandFunction'),

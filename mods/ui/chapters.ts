@@ -147,7 +147,7 @@ export default function Chapters(video: any) {
     const videoEl = document.querySelector('video');
     const videoDuration =
         videoEl && Number.isFinite(videoEl.duration) ? videoEl.duration * 1000 : 0;
-    let markers: ReturnType<typeof marker>[] = [];
+    const markers: ReturnType<typeof marker>[] = [];
 
     for (let i = 0; i < chapters.length; i++) {
         const chapter = chapters[i];

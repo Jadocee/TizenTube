@@ -114,11 +114,7 @@ function resolve(
     }
 
     const keys =
-        segment === '*'
-            ? Object.keys(node)
-            : Object.prototype.hasOwnProperty.call(node, segment)
-              ? [segment]
-              : [];
+        segment === '*' ? Object.keys(node) : Object.hasOwn(node, segment) ? [segment] : [];
 
     for (const key of keys) {
         if (budget.n++ > MAX_NODES) return;

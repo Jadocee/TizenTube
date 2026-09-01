@@ -70,7 +70,7 @@ export default function initPatches(): void {
                         return (input as Request)
                             .clone()
                             .arrayBuffer()
-                            .then(function (buffer) {
+                            .then((buffer) => {
                                 modifiedOptions.body = buffer;
 
                                 return originalFetch(targetUrl, modifiedOptions);

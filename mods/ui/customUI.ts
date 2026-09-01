@@ -203,21 +203,19 @@ function applyPatches() {
             }
 
             if (previousButtonName && nextButtonName && configRead('enablePreviousNextButtons')) {
-                inst[previousButtonName] = function () {
-                    return ButtonRenderer(false, t('player.previous'), 'SKIP_PREVIOUS', {
+                inst[previousButtonName] = () =>
+                    ButtonRenderer(false, t('player.previous'), 'SKIP_PREVIOUS', {
                         signalAction: {
                             signal: 'PLAYER_PLAY_PREVIOUS',
                         },
                     });
-                };
 
-                inst[nextButtonName] = function () {
-                    return ButtonRenderer(false, t('player.next'), 'SKIP_NEXT', {
+                inst[nextButtonName] = () =>
+                    ButtonRenderer(false, t('player.next'), 'SKIP_NEXT', {
                         signalAction: {
                             signal: 'PLAYER_PLAY_NEXT',
                         },
                     });
-                };
             }
         } catch (e) {
             console.warn('TizenTube: could not patch the player controls:', e);

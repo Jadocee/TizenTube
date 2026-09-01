@@ -247,10 +247,10 @@
         tizen.application.launchAppControl(
             new tizen.ApplicationControl("http://tizen.org/appcontrol/operation/service"),
             serviceId,
-            function () {
+            () => {
                 useInjectorOrProxy();
             },
-            function (e) {
+            (e) => {
                 // alert() on a TV is a dead end with a D-pad; put it on the page.
                 status("Could not start the TizenTube 9 service: " + (e && e.message));
             }

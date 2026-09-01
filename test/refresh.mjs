@@ -70,7 +70,7 @@ function transpile(source, name) {
 console.log('Refreshing harness snapshots from source:');
 
 // settings.ts, with its imports repointed at the stub module.
-let settings = readRepo('mods', 'ui', 'settings.ts')
+const settings = readRepo('mods', 'ui', 'settings.ts')
     .replace("import qrcode from 'qrcode-npm';", "import { qrcode } from './stubs.mjs';")
     .replace("from '../config.js'", "from './stubs.mjs'")
     .replace("from './ytUI.js'", "from './stubs.mjs'")
@@ -103,7 +103,7 @@ out('settings/startupError.generated.mts', readRepo('mods', 'ui', 'startupError.
 // config listener, and replacing that one instead puts an `export` in a
 // function body -- which is exactly what happened once, silently, because the
 // old runner did not check exit codes.
-let whos = readRepo('mods', 'ui', 'disableWhosWatching.ts')
+const whos = readRepo('mods', 'ui', 'disableWhosWatching.ts')
     .replace("from '../config.js'", "from './stub.mjs'")
     .replace(
         /disableWhosWatching\(configRead\('enableWhoIsWatchingMenu'\)\);\s*$/,

@@ -55,5 +55,3 @@ declare global {
     /** Tizen platform API, present only inside the TV app. */
     const tizen: any;
 }
-
-export {};

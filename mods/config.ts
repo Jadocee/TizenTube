@@ -137,7 +137,7 @@ try {
 /** True when `key` names a real setting. Use before writing anything that came
  *  from outside the mod, such as a command payload. */
 export function isConfigKey(key: string): key is ConfigKey {
-    return Object.prototype.hasOwnProperty.call(defaultConfig, key);
+    return Object.hasOwn(defaultConfig, key);
 }
 
 export function configRead<K extends ConfigKey>(key: K): Config[K] {

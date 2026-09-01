@@ -315,7 +315,7 @@ function customAction(action: string, parameters?: any): void {
         case 'OPTIONS_SHOW':
             optionShow(parameters, parameters.update);
             break;
-        case 'SKIP':
+        case 'SKIP': {
             const kE = document.createEvent('Event') as LegacyKeyEvent;
             kE.initEvent('keydown', true, true);
             kE.keyCode = 27;
@@ -324,6 +324,7 @@ function customAction(action: string, parameters?: any): void {
 
             document.querySelector('video')!.currentTime = parameters.time;
             break;
+        }
         case 'TT_SETTINGS_SHOW':
             modernUI();
             break;
@@ -340,10 +341,11 @@ function customAction(action: string, parameters?: any): void {
                 t('settings.options.updater.downloading.subtitle'),
             );
             break;
-        case 'SET_PLAYER_SPEED':
+        case 'SET_PLAYER_SPEED': {
             const speed = Number(parameters);
             document.querySelector('video')!.playbackRate = speed;
             break;
+        }
         case 'ENTER_MP':
             enablePip();
             break;

@@ -50,7 +50,7 @@ function updateClock(): void {
     const is12HourFormat = configRead('isClock12HourFormat');
     const secondsEnabled = configRead('clockShowSeconds');
 
-    let hours = now.getHours();
+    const hours = now.getHours();
     let hoursText;
     if (is12HourFormat) {
         hoursText = `${hours % 12 || 12}`;

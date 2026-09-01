@@ -7,7 +7,7 @@ const cfg = readRepo('mods', 'config.ts');
 for (const line of cfg.match(/const defaultConfig = \{([\s\S]*?)\n\};/)[1].split('\n')) {
     const m = line.match(/^\s*([A-Za-z0-9_]+):\s*(.*?),\s*$/);
     if (!m) continue;
-    const raw = m[2].replace(/\s+as\s+[A-Za-z\[\]]+$/, '');
+    const raw = m[2].replace(/\s+as\s+[A-Za-z[\]]+$/, '');
     try {
         stubs.store[m[1]] = eval(`(${raw})`);
     } catch {

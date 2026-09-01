@@ -92,6 +92,14 @@ export function extractAssignedFunctions(code: string): AssignedFunction[] {
         // Modern syntax produces node types estraverse has no visitor keys for;
         // without this it throws on the first one it does not recognise.
         fallback: 'iteration',
+        // A function expression, not an arrow, and Biome is told so below.
+        // estraverse invokes a visitor with `this` bound to its Controller --
+        // that is how `this.skip()` and `this.break()` are reached. Nothing here
+        // uses them today, so the conversion is harmless today; it silently
+        // stops being harmless the moment someone adds one, and this walk is
+        // what resolves YouTube's minified modules, whose failure is the
+        // black-screen-on-launch this repository already fixed once.
+        // biome-ignore lint/complexity/useArrowFunction: needs estraverse's `this`
         enter: function (node: AstNode) {
             if (node.type === 'AssignmentExpression') {
                 const rhs = node.right as AstNode;

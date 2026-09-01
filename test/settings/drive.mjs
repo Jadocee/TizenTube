@@ -10,7 +10,7 @@ for (const line of body.split('\n')) {
     const m = line.match(/^\s*([A-Za-z0-9_]+):\s*(.*?),\s*$/);
     if (!m) continue;
     let [, k, v] = m;
-    v = v.replace(/\s+as\s+[A-Za-z\[\]]+$/, '');
+    v = v.replace(/\s+as\s+[A-Za-z[\]]+$/, '');
     try {
         stubs.store[k] = eval(`(${v})`);
     } catch {
