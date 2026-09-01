@@ -114,10 +114,53 @@ copy. This is the one way to get a `.wgt` that is quietly a version behind.
 ## Checking your work
 
 ```sh
+pnpm check                                         # Biome: format + lint
 pnpm -r --workspace-concurrency=1 run typecheck   # all three TypeScript trees
 pnpm test                                          # 32 harnesses
 pnpm test settings                                 # just the ones matching "settings"
 ```
+
+### Formatting and linting
+
+[Biome](https://biomejs.dev) is both the formatter and the linter, configured in
+`biome.json` at the root. It handles the whole repository — all four package
+trees, the harnesses, JSON and CSS — from a single binary, so there is nothing
+per-package to install or configure.
+
+```sh
+pnpm check        # report formatting and lint problems
+pnpm check:fix    # ...and fix the ones that are safely fixable
+pnpm format       # formatting only
+pnpm lint         # linting only
+```
+
+CI runs `biome ci --linter-enabled=false --error-on-warnings`. The
+`--error-on-warnings` flag is the point of a Biome gate: without it Biome exits 0
+with a screen full of warnings, which is the same as not running it.
+
+**The formatter gates CI; the linter does not, yet.** The formatter is clean
+across the whole repository, so it blocks a merge today. The linter's recommended
+set still reports on existing code, and each of those has to be read before it
+can block anything — several are deliberate idioms here (`arguments` forwarded
+verbatim inside the `JSON.parse` patch, `!important` overriding YouTube's own
+stylesheet, `any` at the InnerTube boundary), and switching the gate on before
+deciding each would mean disabling rules wholesale to reach green, which is worse
+than not gating at all. Run `pnpm lint` locally; it is not silent.
+
+Four kinds of file are deliberately outside Biome's reach, listed in
+`biome.json`:
+
+| Excluded | Why |
+| --- | --- |
+| `test/**/*.generated.*` | derived from source by `test/refresh.mjs` on every run; formatting them would fight the generator |
+| `test/tile-menu/fixtures.json`, `test/guide-filter/guide.json` | captured verbatim from real InnerTube responses. Reformatting is semantically harmless and still wrong: these files' value is that nothing has touched them |
+| `mods/spatial-navigation-polyfill.js` | vendored third-party code |
+| `dist/` | build output |
+
+If you are wondering why the repository formatted cleanly in one commit rather
+than gradually: that commit is listed in `.git-blame-ignore-revs`, so
+`git blame` skips it. Run `git config blame.ignoreRevsFile .git-blame-ignore-revs`
+once and blame will read as though the reformat never happened.
 
 `test/run.mjs` re-derives its generated snapshots from the current sources
 before every run, so a failure always means the code changed rather than a copy

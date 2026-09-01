@@ -44,10 +44,10 @@ jobs:
       - name: Use pnpm
         uses: pnpm/action-setup@v4
 
-      # Pinned deliberately. Twelve harnesses run under
+      # Pinned deliberately. Twenty harnesses run under
       # --experimental-strip-types, which needs Node 22.6+, and the workflow
       # previously took whatever the runner image happened to ship: on Node 20
-      # those twelve fail before running a single assertion.
+      # those twenty fail before running a single assertion.
       - name: Use Node 22
         uses: actions/setup-node@v4
         with:
@@ -66,6 +66,25 @@ jobs:
       # could not have worked here at all.
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      # Before the typecheck and the harnesses: a formatting failure costs
+      # seconds to find here and is the cheapest thing in the run.
+      #
+      # --error-on-warnings is what makes a Biome gate mean anything: without it
+      # Biome exits 0 with a screen full of warnings, which is the same as not
+      # running it.
+      #
+      # --linter-enabled=false is deliberate and temporary. The formatter is
+      # clean repository-wide, so it gates today. The linter's recommended set
+      # still reports on existing code and every one of those has to be read
+      # before it can block a merge -- several are deliberate idioms here
+      # (`arguments` forwarded verbatim inside the JSON.parse patch, `!important`
+      # overriding YouTube's own stylesheet, `any` at the InnerTube boundary) and
+      # turning the gate on before deciding each would mean disabling rules
+      # wholesale to get green, which is worse than not gating. `pnpm lint` runs
+      # locally in the meantime.
+      - name: Check formatting
+        run: pnpm exec biome ci --linter-enabled=false --error-on-warnings
 
       - name: Typecheck
         run: pnpm -r --workspace-concurrency=1 run typecheck
@@ -88,10 +107,10 @@ jobs:
 
       - name: Run the harnesses
         env:
-          # A skipped harness is not a passing one. Four of them drive a browser
-          # and two load the real built bundle; if the Chromium install fails or
-          # a bundle is missing, they skip and the run would otherwise go green
-          # reporting coverage that never happened.
+          # A skipped harness is not a passing one. Five harnesses drive a
+          # browser and two load the real built bundle; if the Chromium install
+          # fails or a bundle is missing, they skip and the run would otherwise
+          # go green reporting coverage that never happened.
           TT_STRICT_SKIP: '1'
         run: |
           pnpm exec playwright install --with-deps chromium
