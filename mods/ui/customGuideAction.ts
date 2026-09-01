@@ -4,6 +4,10 @@ import { filterGuide, isGuidePayload } from '../features/guideFilter.js';
 
 const origParse = JSON.parse;
 JSON.parse = function () {
+    // `Function` is exactly right here: this forwards an unknown call verbatim to
+    // the JSON.parse it wrapped, so the cast has to admit any signature. Naming
+    // one would be a claim about a function this module does not own.
+    // biome-ignore lint/complexity/noBannedTypes: forwards an unknown signature
     const r = (origParse as Function).apply(this, arguments);
 
     try {

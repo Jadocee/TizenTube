@@ -2,7 +2,6 @@ import { chromium as findChromium, chromiumExecutable, skip, readRepo } from '..
 
 const chromium = await findChromium();
 if (!chromium) skip('Playwright is not installed; this harness needs a real browser');
-import { readFileSync } from 'fs';
 const bundle = readRepo('dist', 'userScript.js');
 
 const browser = await chromium.launch({ executablePath: chromiumExecutable() });
@@ -56,13 +55,13 @@ const check = (d, got, want) => {
     const ok = got === want;
     if (!ok) fail++;
     console.log(
-        `${ok ? '  ok  ' : 'FAIL  '}${d.padEnd(56)} ${JSON.stringify(got)}${ok ? '' : '  want ' + JSON.stringify(want)}`,
+        `${ok ? '  ok  ' : 'FAIL  '}${d.padEnd(56)} ${JSON.stringify(got)}${ok ? '' : `  want ${JSON.stringify(want)}`}`,
     );
 };
 
 console.log('Bundle loaded as the first script in <head>, before <body> exists:\n');
 check('no uncaught errors during document-start execution', errors.length, 0);
-if (errors.length) errors.slice(0, 6).forEach((e) => console.log('        ' + e));
+if (errors.length) errors.slice(0, 6).forEach((e) => console.log(`        ${e}`));
 check('JSON.parse was replaced', early.jsonPatched, true);
 check('queue global installed', early.hasQueue, true);
 check('PiP global installed', early.pipFlag, 'boolean');

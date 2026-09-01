@@ -177,7 +177,7 @@
 
         const pkgId = tizen.application.getCurrentApplication().appInfo.packageId;
 
-        const serviceId = pkgId + ".StandaloneService";
+        const serviceId = `${pkgId}.StandaloneService`;
 
         // Attempts spent waiting for the service to answer on 8099.
         let attempts = 0;
@@ -252,7 +252,7 @@
             },
             (e) => {
                 // alert() on a TV is a dead end with a D-pad; put it on the page.
-                status("Could not start the TizenTube 9 service: " + (e && e.message));
+                status(`Could not start the TizenTube 9 service: ${e && e.message}`);
             }
         );
     </script>

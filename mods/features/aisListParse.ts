@@ -66,7 +66,7 @@ export function normaliseHandle(handle: unknown): string | null {
     if (value.indexOf('%') !== -1) {
         try {
             value = decodeURIComponent(value);
-        } catch (e) {
+        } catch (_e) {
             // Leave it as-is; an entry that cannot be decoded can still match a
             // tile whose handle is written the same way.
         }
@@ -155,7 +155,7 @@ export function deserialiseIndex(text: unknown): ChannelIndex | null {
         index.lastModified = typeof raw.m === 'string' ? raw.m : null;
         index.count = index.handles.size + index.ids.size;
         return index;
-    } catch (e) {
+    } catch (_e) {
         return null;
     }
 }

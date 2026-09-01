@@ -105,7 +105,7 @@ export function getComprehensiveLanguageList(): Record<string, string> {
             }
         });
         return map;
-    } catch (e) {
+    } catch (_e) {
         const fallback: Record<string, string> = {};
         LANGUAGE_CODES.forEach((c) => (fallback[c] = c));
         return fallback;

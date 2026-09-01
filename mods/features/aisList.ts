@@ -36,8 +36,8 @@ const nativeParse = JSON.parse;
 
 const BASE = 'https://raw.githubusercontent.com/Override92/AiSList/main/AiSList/';
 export const SOURCES = {
-    block: BASE + 'aislist_blocklist.txt',
-    warn: BASE + 'aislist_warnlist.txt',
+    block: `${BASE}aislist_blocklist.txt`,
+    warn: `${BASE}aislist_warnlist.txt`,
 };
 
 /** Its own storage key, NOT config. mods/config.ts keeps the whole config as one
@@ -72,7 +72,7 @@ function readStore(): Cached {
     try {
         const raw = window.localStorage.getItem(STORE);
         return raw ? nativeParse(raw) : {};
-    } catch (e) {
+    } catch (_e) {
         return {};
     }
 }

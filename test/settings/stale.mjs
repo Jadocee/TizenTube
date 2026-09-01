@@ -1,7 +1,6 @@
-import { readFileSync } from 'fs';
 import * as stubs from './stubs.mjs';
 import modernUI, { optionShow } from './settings.generated.mts';
-import { repoPath, readRepo } from '../lib/repo.mjs';
+import { readRepo } from '../lib/repo.mjs';
 
 const cfg = readRepo('mods', 'config.ts');
 for (const line of cfg.match(/const defaultConfig = \{([\s\S]*?)\n\};/)[1].split('\n')) {
@@ -155,7 +154,7 @@ check(
     ),
     items(launchMenu2).findIndex((i) => i.compactLinkRenderer.title.simpleText === 'Home'),
 );
-const r4 = apply(cmds(row(launchMenu2, 'None (open where YouTube normally starts)')));
+const _r4 = apply(cmds(row(launchMenu2, 'None (open where YouTube normally starts)')));
 check('and None clears it again', stubs.store.launchToOnStartup, '');
 
 console.log(fail ? `\n${fail} FAILURES` : '\nALL SCENARIOS PASS');

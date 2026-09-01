@@ -1,7 +1,7 @@
 // Drives standalone/index.html's launch state machine over every combination of
 // the two flags the service reports, with the real source lifted out of the page.
-import { readFileSync } from 'fs';
-import { repoPath, readRepo } from '../lib/repo.mjs';
+import { readFileSync } from 'node:fs';
+import { readRepo } from '../lib/repo.mjs';
 const html = process.env.SPLASH_HTML
     ? readFileSync(process.env.SPLASH_HTML, 'utf8')
     : readRepo('standalone', 'index.html');
@@ -22,11 +22,11 @@ const check = (d, got, want) => {
     const ok = got === want;
     if (!ok) fail++;
     console.log(
-        `${ok ? '  ok  ' : 'FAIL  '}${d.padEnd(52)} ${JSON.stringify(got)}${ok ? '' : '  want ' + JSON.stringify(want)}`,
+        `${ok ? '  ok  ' : 'FAIL  '}${d.padEnd(52)} ${JSON.stringify(got)}${ok ? '' : `  want ${JSON.stringify(want)}`}`,
     );
 };
 
-function run(state, ms = 3000) {
+function run(state, _ms = 3000) {
     return new Promise((resolve) => {
         const outcome = {
             debugger: 0,
@@ -165,13 +165,13 @@ check('does not navigate away', f.navigated, null);
 
 // --- key registration must not be able to stop the launch
 const prologue = html.slice(html.indexOf('const keys = ['), html.indexOf('let statusEl'));
-let launched = false;
+let _launched = false;
 const kb = {
     tizen: {
         tvinputdevice: {
             registerKey: (k) => {
                 if (k === 'ColorF2Yellow') throw new Error('InvalidValuesError');
-                launched = true;
+                _launched = true;
             },
         },
     },
@@ -180,11 +180,11 @@ const kb = {
 let threw = false;
 try {
     new Function(...Object.keys(kb), prologue)(...Object.values(kb));
-} catch (e) {
+} catch (_e) {
     threw = true;
 }
 console.log('\nWhen a model rejects one of the twelve keys:');
 check('registration does not abort the script', threw, false);
 
-console.log(`\n${fail ? fail + ' FAILURES' : 'ALL PASS'}`);
+console.log(`\n${fail ? `${fail} FAILURES` : 'ALL PASS'}`);
 process.exit(fail ? 1 : 0);

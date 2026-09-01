@@ -32,7 +32,7 @@ export const reset = () => {
 const later = (ms, v) => new Promise((r) => setTimeout(() => r(v), ms));
 
 export const nodeFetch = (url) => {
-    trace.push('fetch:' + url);
+    trace.push(`fetch:${url}`);
     // The daemon probe, answered as a developer-mode TV pointed at itself.
     if (String(url).includes('8001/api/v2')) {
         return Promise.resolve({
@@ -56,7 +56,8 @@ function makeClient() {
     const listeners = {};
     return {
         on: (evt, fn) => {
-            (listeners[evt] ||= []).push(fn);
+            listeners[evt] ||= [];
+            listeners[evt].push(fn);
         },
         Runtime: {
             enable: () => {
@@ -109,7 +110,8 @@ export default function CDP(_opts, cb) {
     }, knobs.connectMs);
     return {
         on: (evt, fn) => {
-            (handlers[evt] ||= []).push(fn);
+            handlers[evt] ||= [];
+            handlers[evt].push(fn);
         },
         emit: (evt, a) => (handlers[evt] || []).forEach((f) => f(a)),
     };
@@ -127,24 +129,26 @@ export const adbhost = {
         const client = {
             _stream: {
                 on: (evt, fn) => {
-                    (streamHandlers[evt] ||= []).push(fn);
+                    streamHandlers[evt] ||= [];
+                    streamHandlers[evt].push(fn);
                 },
                 end: () => {
                     trace.push('sdb:end');
                 },
             },
             createStream: (cmd) => {
-                trace.push('sdb:' + cmd);
+                trace.push(`sdb:${cmd}`);
                 const h = {};
                 const shell = {
                     on: (evt, fn) => {
-                        (h[evt] ||= []).push(fn);
+                        h[evt] ||= [];
+                        h[evt].push(fn);
                     },
                 };
                 // sdbd answers a moment later, in two chunks.
                 setTimeout(() => {
                     (h.data || []).forEach((f) => f(Buffer.from('debug_por')));
-                    (h.data || []).forEach((f) => f(Buffer.from('t: ' + knobs.debugPort + '\n')));
+                    (h.data || []).forEach((f) => f(Buffer.from(`t: ${knobs.debugPort}\n`)));
                 }, knobs.sdbReplyMs);
                 return shell;
             },

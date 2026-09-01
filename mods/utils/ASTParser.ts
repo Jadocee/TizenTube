@@ -32,7 +32,7 @@ function parse(code: string): { ast: AstNode; wrapOffset: number } | null {
     // which is a valid statement, hence the parenthesised second attempt.
     for (const [source, wrapOffset] of [
         [code, 0],
-        ['(' + code + ')', 1],
+        [`(${code})`, 1],
     ] as const) {
         for (const sourceType of ['script', 'module'] as const) {
             try {
@@ -43,7 +43,7 @@ function parse(code: string): { ast: AstNode; wrapOffset: number } | null {
                     allowReturnOutsideFunction: true,
                 }) as unknown as AstNode;
                 return { ast, wrapOffset };
-            } catch (e) {
+            } catch (_e) {
                 // Try the next shape.
             }
         }
@@ -128,7 +128,7 @@ export function extractAssignedFunctions(code: string): AssignedFunction[] {
                 const name = (key.name ?? key.value) as string | undefined;
                 const value = node.value as AstNode | undefined;
                 if (name === undefined || !value || !value.range) return;
-                out.push({ left: 'this.' + name, rhs: slice(value)!, returned: innerOf(value) });
+                out.push({ left: `this.${name}`, rhs: slice(value)!, returned: innerOf(value) });
             }
         },
     });

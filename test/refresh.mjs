@@ -9,10 +9,10 @@
 // The `old`/`before` fixtures are NOT derived. They reproduce the bugs that
 // were fixed, and refreshing them would erase the comparison.
 
-import { execFileSync } from 'child_process';
-import { readFileSync, writeFileSync, mkdtempSync, rmSync, existsSync } from 'fs';
-import { tmpdir } from 'os';
-import { join, basename } from 'path';
+import { execFileSync } from 'node:child_process';
+import { readFileSync, writeFileSync, mkdtempSync, rmSync, existsSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { repoPath, readRepo, testRoot } from './lib/repo.mjs';
 
 const TSC = repoPath('mods', 'node_modules', '.bin', 'tsc');
@@ -129,7 +129,7 @@ const region = adblock.match(/^let jsonPatchAttempts[\s\S]*?^patchYttvJson\(\);$
 if (!region) fail('cannot find the patchYttvJson region in adblock.ts; fix test/refresh.mjs');
 out(
     'adblock/block.generated.js',
-    transpile('declare const window: any;\n' + region[0], 'block.ts').replace(/^\n+/, ''),
+    transpile(`declare const window: any;\n${region[0]}`, 'block.ts').replace(/^\n+/, ''),
 );
 
 // injector.ts, with its four imports repointed at the stub and the attach path

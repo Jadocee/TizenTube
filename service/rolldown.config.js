@@ -1,5 +1,5 @@
 import { defineConfig } from 'rolldown';
-import fs from 'fs';
+import fs from 'node:fs';
 
 /**
  * `gate`, a transitive dependency of peer-dial, defines

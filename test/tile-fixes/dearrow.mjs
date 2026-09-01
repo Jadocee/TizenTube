@@ -54,6 +54,10 @@ check('30 tiles over 10 videos make 10 requests', requests.length, 10);
 // once must share one in-flight request rather than starting twenty.
 check(
     'a repeated id returns the identical promise',
+    // Not a redundant comparison: the two calls return DIFFERENT objects unless
+    // the cache is doing its job, which is the entire assertion -- identity, not
+    // equality.
+    // biome-ignore lint/suspicious/noSelfCompare: asserts promise identity
     fetchBranding('vid0') === fetchBranding('vid0'),
     true,
 );

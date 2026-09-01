@@ -12,7 +12,7 @@
 import express from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import nodeFetch from 'node-fetch';
-import * as URL from 'url';
+import * as URL from 'node:url';
 import * as injector from './injector.js';
 import * as userScript from './userScript.js';
 
@@ -25,7 +25,7 @@ const USERSCRIPT_PATH = '/tizentube/userScript.js';
 // app works with no network at all. A newer published release is picked up in
 // the background and takes effect from the next page load.
 if (userScript.isPackaged()) {
-    console.log('[TizenTube] Serving packaged userScript v' + userScript.currentVersion());
+    console.log(`[TizenTube] Serving packaged userScript v${userScript.currentVersion()}`);
     userScript.refresh();
 } else {
     userScript.get();
@@ -124,18 +124,18 @@ app.all('*', (req: Request, res: Response) => {
 
     try {
         const parsedUrl = URL.parse(targetUrl);
-        headers['host'] = parsedUrl.host || 'www.youtube.com';
-    } catch (e) {
+        headers.host = parsedUrl.host || 'www.youtube.com';
+    } catch (_e) {
         // Both arms of the ternary that used to be here were the same literal,
         // so isCorsBypass was never consulted. Collapsed rather than guessed at:
         // on the cors-bypass path the real target is an arbitrary Google host and
         // this default is probably wrong, but deriving it needs a device to test.
-        headers['host'] = 'www.youtube.com';
+        headers.host = 'www.youtube.com';
     }
 
-    headers['origin'] = 'https://www.youtube.com';
-    if (headers['referer']) {
-        headers['referer'] = 'https://www.youtube.com/tv';
+    headers.origin = 'https://www.youtube.com';
+    if (headers.referer) {
+        headers.referer = 'https://www.youtube.com/tv';
     }
 
     headers['accept-encoding'] = 'gzip, deflate';

@@ -130,7 +130,7 @@ try {
     realKey = execFileSync('base64', ['-w0', join(dir, 'a.p12')])
         .toString()
         .trim();
-} catch (e) {
+} catch (_e) {
     console.log('  --  openssl unavailable; skipping the valid-certificate cases');
 } finally {
     rmSync(dir, { recursive: true, force: true });

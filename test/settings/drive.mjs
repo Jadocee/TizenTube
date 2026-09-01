@@ -1,7 +1,6 @@
-import { readFileSync } from 'fs';
 import * as stubs from './stubs.mjs';
 import modernUI, { optionShow } from './settings.generated.mts';
-import { repoPath, readRepo } from '../lib/repo.mjs';
+import { readRepo } from '../lib/repo.mjs';
 
 // Seed the store from the real defaultConfig.
 const cfg = readRepo('mods', 'config.ts');
@@ -147,5 +146,5 @@ console.log(
 console.log(
     `config keys read but absent from defaultConfig: ${[...stubs.missing].join(', ') || 'none'}`,
 );
-console.log(problems.length ? 'PROBLEMS:\n  ' + problems.join('\n  ') : 'NO STRUCTURAL PROBLEMS');
+console.log(problems.length ? `PROBLEMS:\n  ${problems.join('\n  ')}` : 'NO STRUCTURAL PROBLEMS');
 process.exit(problems.length ? 1 : 0);

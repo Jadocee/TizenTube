@@ -605,7 +605,7 @@ window.addEventListener(
         }
 
         const needsReload =
-            videoID && (!window.sponsorblock || window.sponsorblock.videoID != videoID);
+            videoID && (!window.sponsorblock || window.sponsorblock.videoID !== videoID);
 
         console.info(
             'hashchange',

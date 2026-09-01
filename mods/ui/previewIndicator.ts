@@ -91,7 +91,7 @@ function place(): void {
                 const box = focused.getBoundingClientRect();
                 rect = { left: box.left, top: box.top, width: box.width, height: box.height };
             }
-        } catch (e) {
+        } catch (_e) {
             // A detached or cross-document activeElement. The corner fallback
             // below covers it.
         }

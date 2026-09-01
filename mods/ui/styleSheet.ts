@@ -53,7 +53,7 @@ function ensureOwnStyle(): HTMLStyleElement | null {
         style.setAttribute('nonce', nonce);
         try {
             style.nonce = nonce;
-        } catch (e) {}
+        } catch (_e) {}
     }
 
     parent.appendChild(style);

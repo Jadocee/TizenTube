@@ -1,5 +1,4 @@
 import { readRepo } from '../lib/repo.mjs';
-import { readFileSync } from 'fs';
 const en = JSON.parse(readRepo('mods', 'translations', 'resources', 'en.json'));
 export function t(key, opts) {
     let node = en;

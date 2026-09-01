@@ -105,7 +105,7 @@ function isVideoPlaying(): boolean {
     if (!videoPlayer || typeof videoPlayer.getPlayerStateObject !== 'function') return false;
     try {
         return !!videoPlayer.getPlayerStateObject().isPlaying;
-    } catch (e) {
+    } catch (_e) {
         return false;
     }
 }
@@ -176,7 +176,7 @@ function execute_once_dom_loaded(): void {
     // element.style.getPropertyValue, not the cascade, so a stylesheet
     // declaration was never visible to it.
     uiContainer.style.setProperty('--spatial-navigation-contain', 'contain');
-    uiContainer.style['display'] = 'none';
+    uiContainer.style.display = 'none';
     uiContainer.setAttribute('tabindex', '0');
     // What had focus before the panel opened, so it can be handed back on close.
     let previouslyFocused: FocusedElement | null = null;
@@ -225,7 +225,7 @@ function execute_once_dom_loaded(): void {
         if (previouslyFocused && document.body.contains(previouslyFocused)) {
             try {
                 previouslyFocused.focus();
-            } catch (e) {}
+            } catch (_e) {}
         }
         previouslyFocused = null;
 
@@ -249,7 +249,7 @@ function execute_once_dom_loaded(): void {
                 if (!el) continue;
                 try {
                     el.focus();
-                } catch (e) {}
+                } catch (_e) {}
                 if (document.activeElement && document.activeElement !== document.body) break;
             }
         }
@@ -380,7 +380,7 @@ function execute_once_dom_loaded(): void {
 
         bindColorInput('#__barColor', '#__barColorSwatch', 'focusContainerColor');
         bindColorInput('#__routeColor', '#__routeColorSwatch', 'routeColor');
-    } catch (e) {}
+    } catch (_e) {}
 
     var eventHandler = (evt: KeyboardEvent) => {
         // Deliberately not logging every event here: this handler is registered for
@@ -404,7 +404,7 @@ function execute_once_dom_loaded(): void {
             // listener as above; nothing new is registered.
             if (evt.keyCode === 13) armReselect();
         }
-        if (evt.keyCode == 403) {
+        if (evt.keyCode === 403) {
             console.info('Taking over!');
             evt.preventDefault();
             evt.stopPropagation();
@@ -417,10 +417,10 @@ function execute_once_dom_loaded(): void {
                         console.info('Hiding!');
                         hidePanel();
                     }
-                } catch (e) {}
+                } catch (_e) {}
             }
             return false;
-        } else if (evt.keyCode == 404 || evt.keyCode == 172) {
+        } else if (evt.keyCode === 404 || evt.keyCode === 172) {
             // Consumed the same way as RED above, so YouTube does not act on it too.
             evt.preventDefault();
             evt.stopPropagation();
@@ -431,7 +431,7 @@ function execute_once_dom_loaded(): void {
                 modernUI();
             }
             return false;
-        } else if (evt.keyCode == 39) {
+        } else if (evt.keyCode === 39) {
             // Right key, for PiP
             if (evt.type === 'keydown' && uiContainer.style.display === 'none') {
                 // Checked first: this runs on every right press, and the flag is far
@@ -500,6 +500,6 @@ function execute_once_dom_loaded(): void {
                 }
             });
             observer.observe(document.body, { attributes: true, childList: false, subtree: false });
-        } catch (e) {}
+        } catch (_e) {}
     }
 }

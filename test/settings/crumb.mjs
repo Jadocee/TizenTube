@@ -8,7 +8,7 @@ const check = (d, got, want) => {
     const ok = JSON.stringify(got) === JSON.stringify(want);
     if (!ok) fail++;
     console.log(
-        `${ok ? '  ok  ' : 'FAIL  '}${d}  ${JSON.stringify(got)}${ok ? '' : '  want ' + JSON.stringify(want)}`,
+        `${ok ? '  ok  ' : 'FAIL  '}${d}  ${JSON.stringify(got)}${ok ? '' : `  want ${JSON.stringify(want)}`}`,
     );
 };
 
@@ -38,7 +38,7 @@ globalThis.localStorage = {
     get 'tizentube.startupError'() {
         throw new Error('storage blocked');
     },
-    set 'tizentube.startupError'(v) {
+    set 'tizentube.startupError'(_v) {
         throw new Error('storage blocked');
     },
 };
@@ -47,7 +47,7 @@ try {
     recordStartupError(new Error('x'));
     readStartupError();
     clearStartupError();
-} catch (err) {
+} catch (_err) {
     threw = true;
 }
 check('survives storage that throws', threw, false);

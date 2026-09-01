@@ -115,9 +115,9 @@ setInterval(() => {
                 `${tbPackageId}.${global.isTizenTube ? 'TizenTubeStandalone' : 'TizenBrewStandalone'}`,
         );
         if (!app) {
-            apps['YouTube'].state = 'stopped';
-            apps['YouTube'].pid = null;
-            apps['YouTube'].additionalData = {};
+            apps.YouTube.state = 'stopped';
+            apps.YouTube.pid = null;
+            apps.YouTube.additionalData = {};
         }
     });
 }, 5000);

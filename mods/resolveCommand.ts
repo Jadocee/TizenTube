@@ -108,6 +108,10 @@ export function patchResolveCommand(): void {
                             const lang = setting.stringValue;
                             const date = new Date();
                             date.setFullYear(date.getFullYear() + 10);
+                            // This IS the API YouTube reads. The rule prefers CookieStore,
+                            // which is async and which the app's own language switch does not
+                            // use -- writing PREF the same way the page does is the point.
+                            // biome-ignore lint/suspicious/noDocumentCookie: matches the page
                             document.cookie = `PREF=hl=${lang}; expires=${date.toUTCString()};`;
                             resolveCommand({
                                 signalAction: {
@@ -146,9 +150,10 @@ export function patchResolveCommand(): void {
                             .overlayPanelItemListRenderer.items;
                     for (const item of items) {
                         if (item?.compactLinkRenderer?.icon?.iconType === 'SLOW_MOTION_VIDEO') {
-                            item.compactLinkRenderer.subtitle &&
-                                (item.compactLinkRenderer.subtitle.simpleText =
-                                    t('player.withTizenTube'));
+                            if (item.compactLinkRenderer.subtitle) {
+                                item.compactLinkRenderer.subtitle.simpleText =
+                                    t('player.withTizenTube');
+                            }
                             item.compactLinkRenderer.serviceEndpoint = {
                                 clickTrackingParams: 'null',
                                 signalAction: {

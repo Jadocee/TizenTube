@@ -19,7 +19,7 @@ const check = (d, got, want) => {
     const ok = got === want;
     if (!ok) fail++;
     console.log(
-        `${ok ? '  ok  ' : 'FAIL  '}${d.padEnd(58)} ${JSON.stringify(got)}${ok ? '' : '  want ' + JSON.stringify(want)}`,
+        `${ok ? '  ok  ' : 'FAIL  '}${d.padEnd(58)} ${JSON.stringify(got)}${ok ? '' : `  want ${JSON.stringify(want)}`}`,
     );
 };
 

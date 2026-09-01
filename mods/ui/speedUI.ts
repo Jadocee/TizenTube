@@ -17,7 +17,7 @@ function execute_once_dom_loaded_speed(): void {
     });
 
     const eventHandler = (evt: KeyboardEvent) => {
-        if (evt.keyCode == 406 || evt.keyCode == 191) {
+        if (evt.keyCode === 406 || evt.keyCode === 191) {
             evt.preventDefault();
             evt.stopPropagation();
             if (evt.type === 'keydown') {

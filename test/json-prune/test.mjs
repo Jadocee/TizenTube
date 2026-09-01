@@ -10,7 +10,7 @@ import { prune, applyRule, pruneTokens, textCouldMatch } from './mod.generated.m
 import { AD_RULES } from './rules.generated.mts';
 
 const { check, done } = checker();
-const clone = (v) => JSON.parse(JSON.stringify(v));
+const _clone = (v) => JSON.parse(JSON.stringify(v));
 
 // --- the grammar ------------------------------------------------------------
 let o = { a: { b: { c: 1 } } };

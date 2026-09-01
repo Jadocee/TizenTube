@@ -303,7 +303,7 @@ check(
     handleFromSubtitle(
         'Langweilige W\u00e4hrung \u2022 @Langweilige W\u00e4hrung'.replace(
             ' @Langweilige W\u00e4hrung',
-            ' @Langweilige'.replace(' ', '') + 'W\u00e4hrung',
+            `${' @Langweilige'.replace(' ', '')}W\u00e4hrung`,
         ),
     ),
     '@LangweiligeW\u00e4hrung',

@@ -1,4 +1,4 @@
-import { readFileSync } from 'fs';
+import { readFileSync } from 'node:fs';
 const BLOCK = readFileSync(new URL('./block.generated.js', import.meta.url), 'utf8');
 
 const nativeParse = JSON.parse,
@@ -8,7 +8,7 @@ const check = (d, got, want) => {
     const ok = got === want;
     if (!ok) fail++;
     console.log(
-        `${ok ? '  ok  ' : 'FAIL  '}${d.padEnd(58)} ${JSON.stringify(got)}${ok ? '' : '  want ' + JSON.stringify(want)}`,
+        `${ok ? '  ok  ' : 'FAIL  '}${d.padEnd(58)} ${JSON.stringify(got)}${ok ? '' : `  want ${JSON.stringify(want)}`}`,
     );
 };
 
@@ -37,7 +37,11 @@ function run(scenario) {
         installWrappers();
         globalThis.window = {};
         scenario();
-        // eslint-disable-next-line no-eval
+        // `(0, eval)` is INDIRECT eval, which runs in global scope. A direct
+        // `eval(BLOCK)` runs in this function's scope, where the generated block's
+        // top-level `let` bindings would not become globals and the code under test
+        // would not see them.
+        // biome-ignore lint/complexity/noCommaOperator: indirect eval, deliberately
         (0, eval)(BLOCK);
         setTimeout(() => resolve(), 2000);
     });

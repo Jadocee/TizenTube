@@ -12,20 +12,20 @@ function parseTimestamps(input: string): Chapter[] {
     // The hour group is optional but captured. The old pattern took only the
     // first two components, so "1:02:03" parsed as 1m02s -- every chapter in a
     // video over an hour collapsed into its opening minutes.
-    var timestampRegex = /^(?:(\d+):)?(\d{1,2}):(\d{2})\b/;
+    const timestampRegex = /^(?:(\d+):)?(\d{1,2}):(\d{2})\b/;
 
-    for (var i = 0; i < lines.length; i++) {
-        var line = lines[i];
-        var match = line.match(timestampRegex);
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const match = line.match(timestampRegex);
         if (match) {
-            var hours = match[1] ? parseInt(match[1], 10) : 0;
-            var minutes = parseInt(match[2], 10);
-            var seconds = parseInt(match[3], 10);
-            var milliseconds = (hours * 3600 + minutes * 60 + seconds) * 1000;
+            const hours = match[1] ? parseInt(match[1], 10) : 0;
+            const minutes = parseInt(match[2], 10);
+            const seconds = parseInt(match[3], 10);
+            const milliseconds = (hours * 3600 + minutes * 60 + seconds) * 1000;
             // Sliced past the timestamp rather than split on spaces, which
             // dropped only the first token -- so the very common
             // "0:00 - Intro" form kept its leading dash.
-            var name = line
+            const name = line
                 .slice(match[0].length)
                 .replace(/^[\s\-\u2013\u2014|:]+/, '')
                 .trim();

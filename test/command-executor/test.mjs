@@ -9,7 +9,7 @@ const check = (d, got, want) => {
     const ok = JSON.stringify(got) === JSON.stringify(want);
     if (!ok) fail++;
     console.log(
-        `${ok ? '  ok  ' : 'FAIL  '}${d.padEnd(58)} ${JSON.stringify(got)}${ok ? '' : '  want ' + JSON.stringify(want)}`,
+        `${ok ? '  ok  ' : 'FAIL  '}${d.padEnd(58)} ${JSON.stringify(got)}${ok ? '' : `  want ${JSON.stringify(want)}`}`,
     );
 };
 
@@ -22,7 +22,7 @@ function routerModule(tag) {
         // Reads `this` on purpose: a method bound to the wrong instance has to be
         // detectable, and a closure over `tag` would hide exactly that.
         route() {
-            return 'ytlrActionRouter:' + this.tag;
+            return `ytlrActionRouter:${this.tag}`;
         }
         unrelated() {
             return 1;
@@ -150,5 +150,5 @@ console.log('\nAn incomplete registry must yield undefined, not a half-built obj
 console.log('  (ui.ts constructs commandFunction with `new`, so a half-built');
 console.log('   object here threw inside the startup poll and blanked the app.)');
 
-console.log(`\n${fail ? fail + ' FAILURES' : 'ALL PASS'}`);
+console.log(`\n${fail ? `${fail} FAILURES` : 'ALL PASS'}`);
 process.exit(fail ? 1 : 0);

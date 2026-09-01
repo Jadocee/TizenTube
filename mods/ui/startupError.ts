@@ -17,14 +17,14 @@ export function recordStartupError(error: unknown): void {
         let previous: Partial<StartupError> = {};
         try {
             previous = JSON.parse(localStorage[STARTUP_ERROR_KEY]) || {};
-        } catch (e) {}
+        } catch (_e) {}
 
         localStorage[STARTUP_ERROR_KEY] = JSON.stringify({
             message: String((error && (error as { stack?: unknown }).stack) || error).slice(0, 700),
             count: (previous.count || 0) + 1,
             at: new Date().toString(),
         });
-    } catch (e) {
+    } catch (_e) {
         // Never let the reporting path become a second failure.
     }
 }
@@ -32,14 +32,14 @@ export function recordStartupError(error: unknown): void {
 export function clearStartupError(): void {
     try {
         delete localStorage[STARTUP_ERROR_KEY];
-    } catch (e) {}
+    } catch (_e) {}
 }
 
 export function readStartupError(): StartupError | null {
     try {
         const stored: StartupError | null = JSON.parse(localStorage[STARTUP_ERROR_KEY]);
         return stored && stored.message ? stored : null;
-    } catch (e) {
+    } catch (_e) {
         return null;
     }
 }

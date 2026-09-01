@@ -178,7 +178,7 @@ check('a non-guide payload is not treated as one', isGuidePayload({ contents: {}
 // A splice must not make the walk skip the entry that moved into its place --
 // the trap processShelves records. Two adjacent removals prove it.
 payload = fresh();
-const section = payload.items[0].guideSectionRenderer.items;
+const _section = payload.items[0].guideSectionRenderer.items;
 check(
     'adjacent entries are both removed',
     filterGuide(payload, { disabledIcons: ['GAMING', 'NEWS', 'TROPHY'] }),

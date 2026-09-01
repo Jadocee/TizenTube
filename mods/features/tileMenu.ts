@@ -191,7 +191,7 @@ export function handleFromCanonicalUrl(url: unknown): string | null {
     if (tail.indexOf('%') !== -1) {
         try {
             tail = decodeURIComponent(tail);
-        } catch (e) {
+        } catch (_e) {
             // Leave it encoded; it can still match a list entry written the
             // same way.
         }

@@ -134,18 +134,34 @@ pnpm format       # formatting only
 pnpm lint         # linting only
 ```
 
-CI runs `biome ci --linter-enabled=false --error-on-warnings`. The
-`--error-on-warnings` flag is the point of a Biome gate: without it Biome exits 0
-with a screen full of warnings, which is the same as not running it.
+CI runs `biome ci --error-on-warnings`, and the flag is the point: without it
+Biome exits 0 with a screen full of warnings, which is the same as not running
+it. The repository is clean at that setting, so anything the step reports is
+new.
 
-**The formatter gates CI; the linter does not, yet.** The formatter is clean
-across the whole repository, so it blocks a merge today. The linter's recommended
-set still reports on existing code, and each of those has to be read before it
-can block anything — several are deliberate idioms here (`arguments` forwarded
-verbatim inside the `JSON.parse` patch, `!important` overriding YouTube's own
-stylesheet, `any` at the InnerTube boundary), and switching the gate on before
-deciding each would mean disabling rules wholesale to reach green, which is worse
-than not gating at all. Run `pnpm lint` locally; it is not silent.
+### Which rules are off, and why
+
+The recommended set reported 494 problems on existing code. Each rule was read
+against what this code actually is before being switched off, because a rule
+disabled to reach green is worse than no rule. Six are off repository-wide:
+
+| Rule | Why |
+| --- | --- |
+| `noExplicitAny` | InnerTube payloads are dynamic JSON from a server this mod does not control. `any` at that boundary is the honest type |
+| `noNonNullAssertion` | every site is a guard TypeScript's narrower cannot follow across a call, and the rule's own suggested fix changes behaviour at more than half of them |
+| `noArguments` | every use is `.apply(this, arguments)` forwarding a call into a function the mod wrapped but does not own. Naming the parameters would change what gets forwarded |
+| `noImportantStyles` | `!important` is how a userscript overrides its host page. Every use is on one of YouTube's own selectors; the mod's own panel uses it zero times |
+| `noGlobalEval` | three sites, all in harnesses that need a *fresh* evaluation of generated code per scenario, which `import` caches |
+| `noImplicitAnyLet` | the message is wrong for TypeScript: `let x;` gets an *evolving* any, narrowed by control flow. `tsc --strict` reports nothing at any of these |
+
+Two are scoped rather than disabled. `useIterableCallbackReturn` keeps its
+`checkForEach: false` option, which silences 20 inert `forEach` callbacks while
+leaving the half that matters — a `map` or `filter` callback that forgets to
+return, which silently drops every element — at error severity.
+`noPrototypeBuiltins` is off only for the two service trees, which target ES2018.
+
+Everything else was fixed. Where an idiom is genuinely right in one place, there
+is a `biome-ignore` on that line with the reason, not a disabled rule.
 
 Four kinds of file are deliberately outside Biome's reach, listed in
 `biome.json`:

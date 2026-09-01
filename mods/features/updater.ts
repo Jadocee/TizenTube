@@ -5,7 +5,6 @@ import {
     showModal,
     showToast,
     overlayPanelItemListRenderer,
-    scrollPaneRenderer,
     overlayMessageRenderer,
 } from '../ui/ytUI.js';
 import { configRead } from '../config.js';

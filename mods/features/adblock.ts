@@ -21,8 +21,6 @@ import {
     isVideoHidden,
     isChannelHidden,
 } from './tileMenu.js';
-import Chapters from '../ui/chapters.js';
-import resolveCommand from '../resolveCommand.js';
 import {
     timelyAction,
     longPressData,
@@ -325,6 +323,11 @@ function processResponse(r: any, sourceText?: unknown): any {
    
     Chapters are disabled due to the API removing description data which was used to generate chapters
    
+    Re-enabling this needs its two imports back, which the unused-import pass
+    removed once this block became the only thing referencing them:
+        import Chapters from '../ui/chapters.js';
+        import resolveCommand from '../resolveCommand.js';
+   
     if (r?.contents?.singleColumnWatchNextResults?.results?.results?.contents && configRead('enableChapters')) {
       const chapterData = Chapters(r);
       r.frameworkUpdates.entityBatchUpdate.mutations.push(chapterData);
@@ -515,7 +518,7 @@ function patchYttvJson() {
                 module.JSON.stringify = JSON.stringify;
                 applied++;
             }
-        } catch (e) {
+        } catch (_e) {
             // A frozen module is not worth failing the whole pass over.
         }
     }
@@ -894,7 +897,7 @@ try {
         }
         localStorage.setItem(HIDE_WATCHED_MIGRATION_KEY, '1');
     }
-} catch (e) {
+} catch (_e) {
     // Storage disabled or over quota. Skipping the migration only means the
     // feature stays off until the user toggles it; failing here would abort
     // every module imported after this one.

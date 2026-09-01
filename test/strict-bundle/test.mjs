@@ -256,7 +256,7 @@ function walk(node, parent) {
 hoist(ast.body);
 ast.body.forEach((n) => walk(n, ast));
 
-const unique = [...new Map(offenders.map((o) => [o.name + ':' + o.line, o])).values()];
+const unique = [...new Map(offenders.map((o) => [`${o.name}:${o.line}`, o])).values()];
 for (const o of unique.slice(0, 20)) {
     console.log(`      -> ${o.name} assigned but never declared, at dist/index.js:${o.line}`);
 }

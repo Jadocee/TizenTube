@@ -177,6 +177,10 @@ check(
     /biome ci[^\n]*--error-on-warnings/.test(workflow),
     true,
 );
+// The lint half deliberately did not gate for one commit, while every rule the
+// recommended set reported was read. If it is ever switched off again that has
+// to be a decision, not a flag left behind.
+check('  ...and with the linter on', /biome ci[^\n]*--linter-enabled=false/.test(workflow), false);
 for (const script of ['lint', 'format', 'check']) {
     check(`  ...and "pnpm ${script}" exists`, typeof rootPkg.scripts[script], 'string');
 }

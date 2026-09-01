@@ -38,7 +38,7 @@ function currentVideoId(): string | null {
         const hash = location.hash || '';
         const match = hash.match(/[?&]v=([^&]+)/);
         return match ? decodeURIComponent(match[1]) : null;
-    } catch (e) {
+    } catch (_e) {
         return null;
     }
 }

@@ -1,4 +1,4 @@
-import { chromium as findChromium, chromiumExecutable, skip, readRepo } from '../lib/repo.mjs';
+import { chromium as findChromium, chromiumExecutable, skip } from '../lib/repo.mjs';
 
 const chromium = await findChromium();
 if (!chromium) skip('Playwright is not installed; this harness needs a real browser');
@@ -23,7 +23,7 @@ const check = (d, got, want) => {
     const ok = got === want;
     if (!ok) fail++;
     console.log(
-        `${ok ? '  ok  ' : 'FAIL  '}${d.padEnd(52)} ${JSON.stringify(got)}${ok ? '' : '  want ' + JSON.stringify(want)}`,
+        `${ok ? '  ok  ' : 'FAIL  '}${d.padEnd(52)} ${JSON.stringify(got)}${ok ? '' : `  want ${JSON.stringify(want)}`}`,
     );
 };
 

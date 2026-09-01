@@ -59,6 +59,9 @@ for (const junk of [
 check('junk payloads leave the last good channel intact', channelOf('vid2').id, before);
 check(
     'a response with no author falls back to the id',
+    // Record then read, in the order the runtime does it: the assertion is about
+    // what the second call returns after the first has run.
+    // biome-ignore lint/complexity/noCommaOperator: sequenced on purpose
     (recordVideoContext(response('vid3', 'UCccc', undefined)), channelOf('vid3').name),
     'UCccc',
 );
@@ -86,7 +89,7 @@ check('a corrupt setting does not throw', isChannelDisabled(channelOf('vid1')), 
 
 // --- the map is bounded -----------------------------------------------------
 stub.store.sponsorBlockDisabledChannels = [];
-for (let i = 0; i < 200; i++) recordVideoContext(response('v' + i, 'UC' + i, 'Ch ' + i));
+for (let i = 0; i < 200; i++) recordVideoContext(response(`v${i}`, `UC${i}`, `Ch ${i}`));
 check('the newest video is still known', channelOf('v199').name, 'Ch 199');
 check('the oldest was evicted rather than accumulating', channelOf('v0').name, 'Ch 199');
 

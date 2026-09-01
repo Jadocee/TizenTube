@@ -2,8 +2,8 @@
 // Run before rolldown; the output is required by userScript.ts and inlined
 // into dist/index.js by the bundler.
 
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const root = path.join(__dirname, '..', '..');
 const bundlePath = path.join(root, 'dist', 'userScript.js');
@@ -29,8 +29,8 @@ const REQUIRED = [
 const missing = REQUIRED.filter((dep) => !fs.existsSync(dep.path));
 if (missing.length) {
     for (const dep of missing) {
-        console.error('[embed] Missing ' + dep.what + ': ' + dep.path);
-        console.error('[embed] Build it first:  ' + dep.how);
+        console.error(`[embed] Missing ${dep.what}: ${dep.path}`);
+        console.error(`[embed] Build it first:  ${dep.how}`);
     }
     console.error(
         '[embed] Build order is mods -> service -> standalone/service. See docs/BUILDING.md.',
@@ -55,6 +55,4 @@ fs.writeFileSync(
         '};\n',
 );
 
-console.log(
-    '[embed] Packaged userScript v' + version + ' (' + Math.round(source.length / 1024) + ' KB)',
-);
+console.log(`[embed] Packaged userScript v${version} (${Math.round(source.length / 1024)} KB)`);

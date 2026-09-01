@@ -2,7 +2,6 @@ import { chromium as findChromium, chromiumExecutable, skip, readRepo } from '..
 
 const chromium = await findChromium();
 if (!chromium) skip('Playwright is not installed; this harness needs a real browser');
-import { readFileSync } from 'fs';
 const bundle = readRepo('dist', 'userScript.js');
 
 const browser = await chromium.launch({ executablePath: chromiumExecutable() });
@@ -56,13 +55,13 @@ const check = (d, got, want) => {
     const ok = got === want;
     if (!ok) fail++;
     console.log(
-        `${ok ? '  ok  ' : 'FAIL  '}${d.padEnd(56)} ${JSON.stringify(got)}${ok ? '' : '  want ' + JSON.stringify(want)}`,
+        `${ok ? '  ok  ' : 'FAIL  '}${d.padEnd(56)} ${JSON.stringify(got)}${ok ? '' : `  want ${JSON.stringify(want)}`}`,
     );
 };
 
 console.log('Bundle loaded LAST, as TizenBrew still injects it:\n');
 check('no uncaught errors during document-start execution', errors.length, 0);
-if (errors.length) errors.slice(0, 6).forEach((e) => console.log('        ' + e));
+if (errors.length) errors.slice(0, 6).forEach((e) => console.log(`        ${e}`));
 check('JSON.parse was replaced', early.jsonPatched, true);
 check('queue global installed', early.hasQueue, true);
 check('PiP global installed', early.pipFlag, 'boolean');
@@ -318,7 +317,7 @@ const nonJson = await page.evaluate(async () => {
     try {
         await new Response('not json').json();
         return 'resolved';
-    } catch (e) {
+    } catch (_e) {
         return 'rejected';
     }
 });
@@ -371,7 +370,7 @@ const hostile = await page2.evaluate(() => ({
 
 console.log('\nWith a decoy _yttv entry present before the bundle runs:');
 check('no uncaught errors', errors2.length, 0);
-if (errors2.length) errors2.slice(0, 6).forEach((e) => console.log('        ' + e));
+if (errors2.length) errors2.slice(0, 6).forEach((e) => console.log(`        ${e}`));
 check('ad blocking still installed (JSON.parse replaced)', hostile.jsonPatched, true);
 check('SponsorBlock still loaded', hostile.sponsorblock, true);
 check('queue global still installed', hostile.hasQueue, true);
@@ -421,7 +420,7 @@ console.log(
 );
 check('the document really was complete', after.readyState, 'complete');
 check('no uncaught errors', errors3.length, 0);
-if (errors3.length) errors3.slice(0, 6).forEach((e) => console.log('        ' + e));
+if (errors3.length) errors3.slice(0, 6).forEach((e) => console.log(`        ${e}`));
 check('ad blocking survived', after.jsonPatched, true);
 check('SponsorBlock survived', after.sponsorblock, true);
 check('the modules after PiP still ran', after.hasQueue, true);
@@ -556,7 +555,7 @@ const filtered = await seeded.evaluate(async () => {
 
 console.log('\nWith the filters switched on, through the real bundle:');
 check('no uncaught errors on the seeded page', seedErrors.length, 0);
-if (seedErrors.length) seedErrors.slice(0, 4).forEach((e) => console.log('        ' + e));
+if (seedErrors.length) seedErrors.slice(0, 4).forEach((e) => console.log(`        ${e}`));
 check('the members-only tile is dropped', filtered.includes('members'), false);
 check('the hidden channel is dropped', filtered.includes('blocked'), false);
 check('an ordinary tile survives', filtered.includes('keep'), true);

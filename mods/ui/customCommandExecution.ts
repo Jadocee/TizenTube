@@ -38,7 +38,7 @@ function getCommandExecutor(): CommandExecutor | undefined {
         let candidate;
         try {
             candidate = window._yttv[key].getInstance();
-        } catch (e) {
+        } catch (_e) {
             continue;
         }
         if (!candidate) continue;

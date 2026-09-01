@@ -1,9 +1,9 @@
 // Shared helpers for the harnesses. Everything resolves from this file's own
 // location, so the suite runs from any working directory.
 
-import { fileURLToPath } from 'url';
-import { dirname, join, resolve } from 'path';
-import { readFileSync, existsSync } from 'fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join, resolve } from 'node:path';
+import { readFileSync, existsSync } from 'node:fs';
 
 export const testRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 export const repoRoot = dirname(testRoot);
@@ -27,7 +27,7 @@ export async function chromium() {
             const mod = await import(spec);
             const launcher = mod.chromium || (mod.default && mod.default.chromium);
             if (launcher) return launcher;
-        } catch (e) {
+        } catch (_e) {
             // Try the next one.
         }
     }
@@ -63,11 +63,11 @@ export function checker() {
         const ok = JSON.stringify(got) === JSON.stringify(want);
         if (!ok) state.failures++;
         console.log(
-            `${ok ? '  ok  ' : 'FAIL  '}${description.padEnd(56)} ${JSON.stringify(got)}${ok ? '' : '  want ' + JSON.stringify(want)}`,
+            `${ok ? '  ok  ' : 'FAIL  '}${description.padEnd(56)} ${JSON.stringify(got)}${ok ? '' : `  want ${JSON.stringify(want)}`}`,
         );
     };
     const done = (label) => {
-        console.log(`\n${state.failures ? state.failures + ' FAILURES' : label || 'ALL PASS'}`);
+        console.log(`\n${state.failures ? `${state.failures} FAILURES` : label || 'ALL PASS'}`);
         process.exit(state.failures ? 1 : 0);
     };
     return { check, done, state };

@@ -54,7 +54,7 @@ function vetoed(): boolean {
     for (const veto of vetoes) {
         try {
             if (veto()) return true;
-        } catch (e) {
+        } catch (_e) {
             // A broken veto must not be able to suppress playback, so it counts
             // as "no objection".
         }
@@ -66,7 +66,7 @@ function notify(listeners: Listener[]): void {
     for (const listener of listeners) {
         try {
             listener();
-        } catch (e) {
+        } catch (_e) {
             // These run inside YouTube's own call stack. A listener that throws
             // would otherwise take the preview with it.
         }

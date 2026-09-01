@@ -82,7 +82,12 @@ const styles = (sel, props) =>
 // --- the nesting actually parsed -------------------------------------------
 // If the browser rejected the nested block every one of these is unstyled, so
 // this is the canary for the whole file.
-const row = await styles('.ytaf-ui-row', ['display', 'background-color', 'border-radius']);
+const row = await styles('.ytaf-ui-row', [
+    'display',
+    'background-color',
+    'background-image',
+    'border-radius',
+]);
 // The row's fill is set inside the nested block, so a browser that rejected the
 // nesting leaves it transparent and every other check below is meaningless.
 check(
@@ -91,6 +96,30 @@ check(
     true,
 );
 check('label and value sit on one line', row.display, 'flex');
+
+// The row's top-edge gradient, asserted in the browser because that is the only
+// place the question is decided. It shipped dead: the `background` shorthand sat
+// two lines below `background-image` and reset it to none, so every row rendered
+// flat while the source still carried the gradient and a comment explaining it.
+// Nothing looked broken -- a gradient that does not render and a gradient too
+// subtle to notice are the same picture. Reading the source cannot tell them
+// apart either; only the cascade can.
+check('the row gradient survives the cascade', row['background-image'] !== 'none', true);
+check('  ...and it is the top-edge lift', /linear-gradient/.test(row['background-image']), true);
+
+// ...and on focus, where a shorthand would have dropped it again.
+const rowFocus = await page.evaluate(() => {
+    const el = document.querySelector('.ytaf-ui-row input');
+    if (!el) return null;
+    el.focus();
+    const cs = getComputedStyle(document.querySelector('.ytaf-ui-row'));
+    return {
+        image: cs.getPropertyValue('background-image'),
+        color: cs.getPropertyValue('background-color'),
+    };
+});
+check('focus keeps the gradient', rowFocus !== null && rowFocus.image !== 'none', true);
+check('  ...while changing the fill', rowFocus.color !== row['background-color'], true);
 
 // --- the panel as the code actually opens it --------------------------------
 // Whatever mechanism supplies the spacing -- container `gap`, per-row margins --

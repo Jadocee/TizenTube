@@ -26,7 +26,7 @@ function redirectUrl(originalUrl: string | URL): string | URL {
             hostname.endsWith('googleusercontent.com') ||
             hostname.endsWith('.ggpht.com')
         ) {
-            return 'http://localhost:8099/cors-bypass/' + url.toString();
+            return `http://localhost:8099/cors-bypass/${url.toString()}`;
         }
     } catch (e) {
         console.error('Failed to parse URL during interception:', e);

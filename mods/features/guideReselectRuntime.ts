@@ -33,7 +33,7 @@ function guideFocused(): boolean {
             if (guide && guide.contains(active)) return true;
         }
         return false;
-    } catch (e) {
+    } catch (_e) {
         return false;
     }
 }
@@ -60,7 +60,7 @@ function entryKey(): string | null {
             String(Array.prototype.indexOf.call(active.parentElement?.children || [], active)),
         ];
         return parts.join('|');
-    } catch (e) {
+    } catch (_e) {
         return null;
     }
 }

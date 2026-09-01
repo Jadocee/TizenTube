@@ -12,6 +12,7 @@
             "!**/node_modules",
             "!**/*.generated.*",
             "!mods/spatial-navigation-polyfill.js",
+            "!mods/tiny-sha256.js",
             "!test/tile-menu/fixtures.json",
             "!test/guide-filter/guide.json",
             "!test/**/old.html",
@@ -64,7 +65,29 @@
     "linter": {
         "enabled": true,
         "rules": {
-            "preset": "recommended"
+            "preset": "recommended",
+            "suspicious": {
+                "noExplicitAny": "off",
+                "noImplicitAnyLet": "off",
+                "useIterableCallbackReturn": {
+                    "level": "error",
+                    "options": { "checkForEach": false }
+                }
+            },
+            "style": {
+                "noNonNullAssertion": "off"
+            },
+            "complexity": {
+                "noArguments": "off",
+                "noImportantStyles": "off",
+                "useOptionalChain": "off"
+            },
+            "security": {
+                "noGlobalEval": "off"
+            },
+            "a11y": {
+                "useGenericFontNames": "off"
+            }
         }
     },
     "assist": {

@@ -4,10 +4,10 @@
 //   node test/run.mjs            all harnesses
 //   node test/run.mjs settings   only those whose name contains "settings"
 
-import { spawnSync } from 'child_process';
-import { join } from 'path';
+import { spawnSync } from 'node:child_process';
+import { join } from 'node:path';
 import { testRoot, repoPath } from './lib/repo.mjs';
-import { existsSync } from 'fs';
+import { existsSync } from 'node:fs';
 
 const HARNESSES = [
     { name: 'settings tree walk', dir: 'settings', file: 'drive.mjs', types: true },
@@ -63,7 +63,7 @@ const HARNESSES = [
 
 const filter = process.argv[2];
 const selected = filter
-    ? HARNESSES.filter((h) => (h.name + ' ' + h.dir).toLowerCase().includes(filter.toLowerCase()))
+    ? HARNESSES.filter((h) => `${h.name} ${h.dir}`.toLowerCase().includes(filter.toLowerCase()))
     : HARNESSES;
 
 if (!selected.length) {
