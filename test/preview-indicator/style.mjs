@@ -43,9 +43,29 @@ check(
     [],
 );
 // A glyph in the same place on every focused tile, animating forever, is what an
-// OLED holds on to.
-check('nothing animates forever', /\binfinite\b/.test(code), false);
-check('there are no keyframes at all', /@keyframes/.test(code), false);
+// OLED holds on to -- so the one infinite animation this file has is fenced in
+// two directions. It may only be the LOADING glyph, a state previewState.ts
+// retires after LOADING_TIMEOUT_MS, and it must stop under reduced motion.
+const infinites = [...code.matchAll(/([^{}]*)\{[^{}]*\binfinite\b[^{}]*\}/g)].map((m) =>
+    m[1].trim(),
+);
+check('at most one thing animates forever', infinites.length <= 1, true);
+check(
+    '  ...and only in the loading state',
+    infinites.every((sel) => sel.includes('[data-state="loading"]')),
+    true,
+);
+// Asserted in the browser at the end of this file, under emulated reduced
+// motion, rather than by matching the text here. A whole-file regex passes on
+// any file that merely CONTAINS those three fragments in that order -- in
+// unrelated blocks, in a rule the cascade overrides, or with a selector that
+// never matches the element. It is the shape of check that reports a stylesheet
+// as compliant with its own comment while the television spins anyway.
+// The spinner is only honest if something ends it. This is a source check rather
+// than a browser one because the timeout lives in previewState.ts, whose own
+// harness proves it fires -- what is asserted here is that the two agree the
+// state exists at all.
+check('the loading state is a real state', /\[data-state="loading"\]/.test(code), true);
 // Logical properties inherit the app's direction. Physical ones do not.
 check('placement uses no logical insets', /inset-inline|inset-block/.test(code), false);
 check('the triangle uses no logical borders', /border-inline|border-block/.test(code), false);
@@ -59,8 +79,39 @@ await page.setContent(`<!doctype html><html><head><meta charset="utf-8">
   .fixture{width:300px;height:170px;display:inline-block;margin:8px}</style>
 <style id="tt">${css}</style></head><body>
   <div class="fixture" id="f1"></div><div class="fixture" id="f2"></div>
-  <div id="tizentube-preview-indicator" class="tt-dimmable"><span></span></div>
+  <div id="tizentube-preview-indicator" class="tt-dimmable"><span class="tt-pi-glyph"></span><span class="tt-pi-sound"></span></div>
 </body></html>`);
+
+// The markup above is a COPY of what previewIndicator.ts builds, and a copy is
+// only safe while something notices it going stale.
+//
+// WHAT THIS GUARD IS AND IS NOT. It is a substring tripwire: it catches a hook
+// disappearing from the source entirely, and nothing subtler. Renaming
+// `setAttribute('data-state', ...)` while `removeAttribute('data-state')`
+// survives still passes here -- measured, not assumed. The real coverage for
+// that is preview-indicator/runtime.mjs, which executes this module and reads
+// the attributes back; the entries below are listed because the fixture depends
+// on them, not because this loop proves they work. It went stale once already:
+// the source grew a second glyph and gained class names, and this fixture kept
+// its lone bare <span> -- so every check below went on passing against a DOM the
+// mod no longer produces. Nothing is derived here because the builder sits
+// behind four imports, so the guard is the next best thing: every hook the
+// fixture and the CSS rely on has to be present in the real source.
+const source = readRepo('mods', 'ui', 'previewIndicator.ts');
+for (const hook of [
+    'tizentube-preview-indicator',
+    'tt-pi-glyph',
+    'tt-pi-sound',
+    'data-state',
+    'data-sound',
+]) {
+    if (!source.includes(hook)) {
+        console.log(
+            `FAIL  previewIndicator.ts no longer produces "${hook}"; this fixture is stale`,
+        );
+        process.exit(1);
+    }
+}
 
 const px = (v) => parseFloat(v) || 0;
 const styles = (sel, props) =>
@@ -171,11 +222,113 @@ check(
     px(playing.width) >= 48 && playing.width === playing.height,
     true,
 );
-const glyph = await page.evaluate(() => {
-    const r = document.querySelector('#tizentube-preview-indicator > span').getBoundingClientRect();
-    return { width: r.width, height: r.height };
+const boxOf = async (selector) =>
+    await page.evaluate((sel) => {
+        const el = document.querySelector(sel);
+        if (!el) return null;
+        const r = el.getBoundingClientRect();
+        return { width: r.width, height: r.height, display: getComputedStyle(el).display };
+    }, selector);
+
+await setState('playing');
+const triangle = await boxOf('#tizentube-preview-indicator > .tt-pi-glyph');
+check('the triangle is actually drawn', triangle.width > 0 && triangle.height > 0, true);
+
+// --- loading ----------------------------------------------------------------
+// The state that did not exist before. A preview takes a real moment to arrive
+// on a television, and without this the mark claimed playback from the instant
+// the app was ASKED to play -- so a focused tile looked identical whether the
+// preview was coming or had silently failed.
+await setState('loading');
+const loading = await styles('#tizentube-preview-indicator', ['visibility', 'opacity']);
+check('loading is visible', loading.visibility, 'visible');
+check('  ...at full opacity', px(loading.opacity), 1);
+
+const spinner = await page.evaluate(() => {
+    const el = document.querySelector('#tizentube-preview-indicator > .tt-pi-glyph');
+    const cs = getComputedStyle(el);
+    const r = el.getBoundingClientRect();
+    return {
+        width: r.width,
+        height: r.height,
+        radius: cs.borderTopLeftRadius,
+        // A ring is only a ring if the four border colours are not all equal --
+        // that is what makes the rotation legible rather than a spinning circle
+        // that looks static.
+        colours: new Set([
+            cs.borderTopColor,
+            cs.borderRightColor,
+            cs.borderBottomColor,
+            cs.borderLeftColor,
+        ]).size,
+        animations: el.getAnimations().length,
+    };
 });
-check('the triangle is actually drawn', glyph.width > 0 && glyph.height > 0, true);
+check('the spinner is drawn', spinner.width > 0 && spinner.height > 0, true);
+check('  ...as a ring', spinner.radius !== '0px', true);
+check('  ...with a visible leading edge', spinner.colours > 1, true);
+check('  ...and it is actually rotating', spinner.animations > 0, true);
+
+// The triangle and the spinner are the same element in different states, so a
+// rule that matched both would draw a rotating triangle.
+check('the triangle is not also a spinner', spinner.width !== triangle.width, true);
+
+// --- sound ------------------------------------------------------------------
+// Only ever drawn when previewState.soundState() returned 'audible'. A speaker
+// on a silent video sends someone hunting for audio that was never there.
+await setState('playing');
+const silentSpeaker = await boxOf('#tizentube-preview-indicator > .tt-pi-sound');
+check('no speaker without the attribute', silentSpeaker.display, 'none');
+
+const withSound = await page.evaluate(async () => {
+    const node = document.getElementById('tizentube-preview-indicator');
+    node.setAttribute('data-sound', 'on');
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    node.getAnimations().forEach((a) => a.finish());
+    const speaker = document.querySelector('#tizentube-preview-indicator > .tt-pi-sound');
+    const sr = speaker.getBoundingClientRect();
+    const nr = node.getBoundingClientRect();
+    const cone = getComputedStyle(speaker, '::before');
+    const wave = getComputedStyle(speaker, '::after');
+    return {
+        speaker: { width: sr.width, height: sr.height, display: getComputedStyle(speaker).display },
+        pill: { width: nr.width, height: nr.height },
+        coneBorder: cone.borderRightWidth,
+        waveRadius: wave.borderTopLeftRadius,
+        waveClip: wave.clipPath,
+    };
+});
+check('the speaker appears', withSound.speaker.display !== 'none', true);
+check(
+    '  ...and is actually drawn',
+    withSound.speaker.width > 0 && withSound.speaker.height > 0,
+    true,
+);
+check('  ...with a cone', px(withSound.coneBorder) > 0, true);
+check('  ...and a wave arc', withSound.waveRadius !== '0px', true);
+check('  ...clipped to one side', withSound.waveClip !== 'none', true);
+
+// The shape change is itself part of the signal: it reads at three metres before
+// either glyph resolves.
+check('sound widens the disc into a pill', withSound.pill.width > withSound.pill.height, true);
+
+// ...which is exactly why the mark has to be re-placed when the speaker appears.
+// The placement clamp keeps it inside the viewport, and it last ran while this
+// was still a disc -- so a pill positioned with the disc's width hangs past the
+// edge it was clamped to. Asserted here as the SIZE CHANGE that makes the
+// re-place necessary; that previewIndicator.ts actually re-places is asserted by
+// the source check below, since the runtime is not loaded in this page.
+// px(): `playing` comes from getComputedStyle and is the string "64px", while
+// pill.width is a number off getBoundingClientRect. Subtracting them raw yields
+// NaN, and NaN >= 24 is false -- an assertion that fails for the wrong reason is
+// only marginally better than one that passes for the wrong reason.
+check('  ...by enough to matter', withSound.pill.width - px(playing.width) >= 24, true);
+check(
+    'the runtime re-places the mark when the speaker appears',
+    /sound = next;[\s\S]{0,600}?place\(\);/.test(source),
+    true,
+);
+check('  ...and the disc was square without it', playing.width === playing.height, true);
 
 // --- readable over arbitrary video ------------------------------------------
 const luminance = (rgb) => {
@@ -239,6 +392,33 @@ check(
     JSON.stringify(rtl.rtl.chip),
     JSON.stringify(rtl.ltr.chip),
 );
+
+// The sound pill has TWO children, and a flex row follows `direction` -- so
+// under rtl they swap and the speaker leads the triangle. This is the same trap
+// as the one above, one level in, and it only became reachable when the second
+// glyph was added.
+const rtlSound = await page.evaluate(async () => {
+    const node = document.getElementById('tizentube-preview-indicator');
+    node.setAttribute('data-state', 'playing');
+    node.setAttribute('data-sound', 'on');
+    await new Promise((r) => requestAnimationFrame(r));
+    const order = () => {
+        const g = document.querySelector('#tizentube-preview-indicator > .tt-pi-glyph');
+        const p = document.querySelector('#tizentube-preview-indicator > .tt-pi-sound');
+        return g.getBoundingClientRect().left < p.getBoundingClientRect().left
+            ? 'glyph-first'
+            : 'sound-first';
+    };
+    document.documentElement.dir = 'ltr';
+    const ltr = order();
+    document.documentElement.dir = 'rtl';
+    const right = order();
+    document.documentElement.dir = 'ltr';
+    node.removeAttribute('data-sound');
+    return { ltr, rtl: right };
+});
+check('the triangle leads the speaker', rtlSound.ltr, 'glyph-first');
+check('  ...under rtl too', rtlSound.rtl, rtlSound.ltr);
 check(
     '  ...and the triangle still points the same way',
     JSON.stringify(rtl.rtl.glyph),
@@ -279,6 +459,42 @@ check(
     ruleCount.joined,
     ruleCount.parts.reduce((a, b) => a + b, 0),
 );
+
+// --- reduced motion, emulated for real ---------------------------------------
+// The spinner is the one thing in this file that animates forever, and an OLED
+// holds on to whatever sits in the same screen position. Someone who has asked
+// their television to stop animating things has to actually get that -- and the
+// only way to know is to ask the engine, with the media feature switched on,
+// whether the element has a running animation.
+const reduced = await browser.newPage({
+    viewport: { width: 1920, height: 1080 },
+    reducedMotion: 'reduce',
+});
+await reduced.setContent(`<!doctype html><html><head><meta charset="utf-8">
+<style>html,body{margin:0;height:100%;background:#0b0b0b}html{font-size:16px}</style>
+<style id="tt">${css}</style></head><body>
+  <div id="tizentube-preview-indicator" class="tt-dimmable" data-state="loading"><span class="tt-pi-glyph"></span><span class="tt-pi-sound"></span></div>
+</body></html>`);
+const motion = await reduced.evaluate(async () => {
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    const el = document.querySelector('#tizentube-preview-indicator > .tt-pi-glyph');
+    const cs = getComputedStyle(el);
+    return {
+        matches: matchMedia('(prefers-reduced-motion: reduce)').matches,
+        running: el.getAnimations().length,
+        name: cs.animationName,
+        // The ring itself must survive: the SHAPE is what distinguishes loading
+        // from a solid triangle, and the motion only draws the eye. Stopping the
+        // rotation must not leave the state indistinguishable.
+        radius: cs.borderTopLeftRadius,
+        width: el.getBoundingClientRect().width,
+    };
+});
+check('reduced motion is actually emulated', motion.matches, true);
+check('  ...and the spinner does not rotate', motion.running, 0);
+check('  ...with no animation applied at all', motion.name, 'none');
+check('  ...but the ring is still drawn', motion.width > 0 && motion.radius !== '0px', true);
+await reduced.close();
 
 await browser.close();
 done();

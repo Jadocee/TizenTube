@@ -1,16 +1,37 @@
 /* The "this thumbnail is playing" mark.
-   One dark disc, one triangle. Deliberately nothing else: no progress meter
-   (the duration is what we ASK the app for, not what it does), no equaliser
-   bars, no countdown, no mute glyph, no looping animation. A tile grid is
-   already dense, and a second mark on it costs more than it explains.
+
+   THREE STATES, and the two beyond "playing" were added because the first
+   version could not tell them apart. A dark disc carries a spinner while the
+   preview is being fetched, a triangle once frames are actually arriving, and
+   -- when the preview is making a noise -- a speaker beside the triangle.
+
+   An earlier revision of this file argued against both of those, on the grounds
+   that a tile grid is dense and a second mark costs more than it explains. That
+   was the wrong call twice over. A preview takes a real moment to arrive on a
+   television, and without the spinner a focused tile looked identical whether
+   playback was coming or had silently failed -- the mark said "playing" from the
+   instant the app was ASKED to play. And the file's own note about unmuted
+   previews asked "where is that audio coming from?" while declining to draw the
+   one glyph that answers it.
+
+   Still deliberately absent: a progress meter (the duration is what we ASK the
+   app for, not what it does), equaliser bars, and a countdown.
+
+   THE SPINNER IS BOUNDED. previewState.ts retires the mark after
+   LOADING_TIMEOUT_MS if no frame ever arrives, so the rotation cannot outlive
+   the thing it describes. A spinner that spins forever says "any moment now"
+   forever, which is worse than showing nothing.
 
    Two conventions in here are load-bearing rather than stylistic.
 
    DECLARATIONS BEFORE NESTED RULES, in every block. CSSNestedDeclarations only
    shipped in Chrome 130; on M120 -- which is what Tizen 9.0 runs -- a bare
-   declaration placed AFTER a nested rule is dropped on the floor. The harness
-   Chromium is far newer and cannot reproduce that, so the ordering has to be a
-   rule we keep rather than something a test catches.
+   declaration placed AFTER a nested rule is HOISTED above it rather than
+   keeping its source position. Measured against real Chrome 120: the
+   declaration still applies, so a property nothing nested touches is fine, but
+   one a nested rule also sets loses on the television and wins everywhere else.
+   The harness Chromium resolves it the other way and cannot reproduce that,
+   which is why test/css-nesting/test.mjs checks the ordering textually.
 
    PHYSICAL PROPERTIES, not logical ones. This element is appended to
    document.body and inherits the app's direction, which is rtl for an Arabic
@@ -40,6 +61,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    /* The mark's INTERNAL direction is pinned, for the same reason the whole
+     file uses physical properties: this element is appended to document.body and
+     inherits the app's direction, which is rtl for an Arabic account. A flex row
+     follows `direction`, so without this the sound pill's two glyphs swap sides
+     and the speaker ends up leading the triangle. Caught by the rtl check in
+     preview-indicator/style.mjs, which has been asserting exactly this since
+     before there was a second glyph to mirror. */
+    direction: ltr;
 
     border-radius: 50%;
     /* Dark rather than bright: this sits over arbitrary video, and a light fill
@@ -62,23 +91,37 @@
     opacity: 0;
     transition: opacity 160ms linear;
 
+    &[data-state="loading"],
     &[data-state="playing"],
     &[data-state="stalled"] {
         visibility: visible;
         opacity: 1;
     }
 
-    /* Buffering. Dimmed rather than swapped for a spinner: the state is worth
-     distinguishing, but not worth a second shape or a rotation that never
-     stops. */
+    /* Buffering after playback began. Dimmed rather than returned to the
+     spinner: frames have already been seen, so this is a stutter rather than a
+     wait, and swapping the shape back and forth on a flaky connection would
+     flicker. */
     &[data-state="stalled"] {
         opacity: 0.55;
     }
+
+    /* With sound, the disc becomes a pill wide enough for both marks. The shape
+     change is itself part of the signal -- it is legible at three metres before
+     either glyph resolves. */
+    &[data-sound="on"] {
+        inline-size: calc(var(--tt-pi-size) * 1.75);
+        border-radius: calc(var(--tt-pi-size) / 2);
+        gap: 0.35rem;
+    }
 }
+
+/* --- the state glyph ------------------------------------------------------ */
 
 /* The triangle, as borders, so there is no glyph font to miss and no SVG to
    inline. Physical borders on purpose, per the note above. */
-#tizentube-preview-indicator > span {
+#tizentube-preview-indicator[data-state="playing"] > .tt-pi-glyph,
+#tizentube-preview-indicator[data-state="stalled"] > .tt-pi-glyph {
     display: block;
     inline-size: 0;
     block-size: 0;
@@ -90,8 +133,93 @@
     border-left: 1.15rem solid currentColor;
 }
 
+/* A pill has room for the triangle to sit properly, so the optical nudge that
+   centres it inside a disc becomes wrong. */
+#tizentube-preview-indicator[data-sound="on"] > .tt-pi-glyph {
+    margin-left: 0;
+}
+
+/* The spinner: a ring with one quadrant left transparent, rotating. No SVG, no
+   font, and no second element. */
+#tizentube-preview-indicator[data-state="loading"] > .tt-pi-glyph {
+    display: block;
+    box-sizing: border-box;
+    inline-size: 1.6rem;
+    block-size: 1.6rem;
+    border: 0.22rem solid rgb(255 255 255 / 30%);
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: tt-pi-spin 900ms linear infinite;
+}
+
+@keyframes tt-pi-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* --- the sound mark ------------------------------------------------------- */
+
+/* Drawn only when previewState.soundState() returned 'audible'. A speaker on a
+   silent video sends someone hunting for audio that was never there, so
+   'unknown' draws nothing at all. */
+#tizentube-preview-indicator > .tt-pi-sound {
+    display: none;
+}
+
+#tizentube-preview-indicator[data-sound="on"] > .tt-pi-sound {
+    /* The speaker body: a small block, with the cone and one wave as
+     pseudo-elements. Built from boxes and borders for the same reason as the
+     triangle -- nothing to load, nothing to miss. */
+    display: block;
+    position: relative;
+    box-sizing: border-box;
+    inline-size: 0.45rem;
+    block-size: 0.75rem;
+    margin-left: 0.15rem;
+    background-color: currentColor;
+
+    &::before {
+        /* The cone. */
+        content: "";
+        position: absolute;
+        left: 0.4rem;
+        top: 50%;
+        margin-top: -0.7rem;
+        inline-size: 0;
+        block-size: 0;
+        border-top: 0.7rem solid transparent;
+        border-bottom: 0.7rem solid transparent;
+        border-right: 0.7rem solid currentColor;
+    }
+
+    &::after {
+        /* One wave: a ring with everything but its right half clipped away.
+         One rather than the usual three -- at three metres the extra arcs
+         merge into a smudge. */
+        content: "";
+        position: absolute;
+        left: 1.35rem;
+        top: 50%;
+        margin-top: -0.5rem;
+        box-sizing: border-box;
+        inline-size: 1rem;
+        block-size: 1rem;
+        border: 0.16rem solid currentColor;
+        border-radius: 50%;
+        clip-path: inset(0 0 0 55%);
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     #tizentube-preview-indicator {
         transition: none;
+    }
+
+    /* The spinner stops rotating and becomes a plain ring. It still reads as
+     "not yet playing", because the state it is distinguished from is a solid
+     triangle -- the shape carries the meaning, the motion only draws the eye. */
+    #tizentube-preview-indicator[data-state="loading"] > .tt-pi-glyph {
+        animation: none;
     }
 }

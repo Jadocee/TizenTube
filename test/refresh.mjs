@@ -340,6 +340,55 @@ if (!aisList.includes('export async function refresh'))
     fail('aisList.ts no longer exports refresh; fix test/refresh.mjs');
 out('aislist/mod.generated.mts', aisList);
 
+// playbackPreview.ts runs as-is: it has no imports, only browser globals the
+// harness provides. It is lifted rather than stubbed because the bug it carried
+// was in the wrapping itself -- it wrapped `service.stop`, which the shipped
+// service does not have -- and a stub of it cannot express that.
+const hook = readRepo('mods', 'features', 'playbackPreview.ts');
+if (/^\s*import\s/m.test(hook)) {
+    fail('playbackPreview.ts has grown an import; the harness copy is no longer the real thing');
+}
+out('preview-indicator/hook.generated.mts', hook);
+
+// previewIndicator.ts, the DOM shell around previewState. Lifted because the
+// review that found its bugs found them all in HERE, not in the pure functions:
+// the reducer was right and the dispatcher around it reset the wrong things and
+// re-armed the wrong timer. Six imports repointed, the CSS import dropped (the
+// stylesheet has its own browser harness), previewState kept real.
+const previewRuntime = readRepo('mods', 'ui', 'previewIndicator.ts')
+    .replace("from '../config.js'", "from './stub.mjs'")
+    .replace("from '../utils/domReady.js'", "from './stub.mjs'")
+    .replace("from './styleSheet.js'", "from './stub.mjs'")
+    .replace("from '../features/playbackPreview.js'", "from './stub.mjs'")
+    .replace("from '../features/tileFixes.js'", "from './stub.mjs'")
+    .replace("from '../features/previewState.js'", "from './previewState.generated.mts'")
+    .replace(/^import css from '\.\/previewIndicator\.css';\n/m, "const css = '';\n");
+for (const gone of [
+    '../config.js',
+    '../utils/domReady.js',
+    './styleSheet.js',
+    '../features/playbackPreview.js',
+    '../features/tileFixes.js',
+    '../features/previewState.js',
+    './previewIndicator.css',
+]) {
+    if (previewRuntime.includes(`'${gone}'`)) {
+        fail(`previewIndicator.ts import of ${gone} no longer matches; fix test/refresh.mjs`);
+    }
+}
+// The harness drives these; if they stop being exported it must say so rather
+// than importing undefined and asserting nothing.
+for (const landmark of [
+    'export function notePreviewMove',
+    'function dispatch(',
+    'function disable(',
+]) {
+    if (!previewRuntime.includes(landmark)) {
+        fail(`previewIndicator.ts no longer contains "${landmark}"; fix test/refresh.mjs`);
+    }
+}
+out('preview-indicator/runtime.generated.mts', previewRuntime);
+
 // captionRuntime.ts and the videoContext it reads. Both are lifted so the
 // harness drives the SHIPPING wiring: the predicates in captionPrefs.ts already
 // have a harness, and it passed the whole time the runtime was resolving them

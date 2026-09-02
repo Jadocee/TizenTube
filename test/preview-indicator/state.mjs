@@ -18,6 +18,9 @@ import {
     anchorUsable,
     chipOrigin,
     shouldAnchor,
+    soundState,
+    LOADING_TIMEOUT_MS,
+    AUDIO_SETTLE_MS,
     MOVE_GRACE_MS,
     WATCHDOG_SLACK_MS,
     ANCHOR_SETTLE_MS,
@@ -28,14 +31,62 @@ const { check, done } = checker();
 
 const T0 = 1_000_000;
 const started = reduce(IDLE, { type: 'start', now: T0, durationMs: 40000, anchored: true });
+/** The same preview, once frames are actually arriving. */
+const playing = reduce(started, { type: 'resume', now: T0 + 900 });
 
 // --- the ordinary lifecycle ------------------------------------------------
-check('start shows the mark', started.phase, 'playing');
+// start() is the app being ASKED to play, not playback. On a television the gap
+// between the two is a real wait, and treating them as the same moment is what
+// made a focused tile look identical whether the preview was coming or had
+// silently failed.
+check('start shows the mark as loading', started.phase, 'loading');
 check('  ...and records when it began', started.startedAt, T0);
+check('  ...with nothing played yet', started.playingAt, 0);
 check(
     '  ...and a deadline past the requested duration',
     started.endsAt,
-    T0 + 40000 + WATCHDOG_SLACK_MS,
+    T0 + LOADING_TIMEOUT_MS + 40000 + WATCHDOG_SLACK_MS,
+);
+
+// --- loading resolves -------------------------------------------------------
+check('the first frame starts playback', playing.phase, 'playing');
+check('  ...and is recorded', playing.playingAt, T0 + 900);
+// The deadline is RE-BASED on the first frame, dropping the load budget that has
+// now demonstrably not been needed. Keeping it meant a preview that loaded
+// instantly held its deadline 12 seconds past the end of its own playback --
+// twelve seconds of a mark claiming a still thumbnail is playing.
+check(
+    '  ...and re-bases the deadline on that frame',
+    playing.endsAt,
+    T0 + 900 + 40000 + WATCHDOG_SLACK_MS,
+);
+check('  ...which is sooner than the provisional one', playing.endsAt < started.endsAt, true);
+check('  ...by the whole load budget', started.endsAt - playing.endsAt, LOADING_TIMEOUT_MS - 900);
+check(
+    'a second frame does not re-record the start',
+    reduce(playing, { type: 'resume', now: T0 + 5000 }).playingAt,
+    T0 + 900,
+);
+
+// A preview asked for and never delivered. Without this the spinner outlives the
+// thing it describes, which is the one outcome worse than showing nothing: it
+// says "any moment now" forever.
+check(
+    'a load that never arrives is retired',
+    reduce(started, { type: 'tick', now: T0 + LOADING_TIMEOUT_MS }).phase,
+    'idle',
+);
+check(
+    '  ...but not a millisecond early',
+    reduce(started, { type: 'tick', now: T0 + LOADING_TIMEOUT_MS - 1 }).phase,
+    'loading',
+);
+// ...and once it IS playing, the load timeout must not apply -- a preview longer
+// than LOADING_TIMEOUT_MS would otherwise lose its mark mid-playback.
+check(
+    'the load timeout does not retire a playing preview',
+    reduce(playing, { type: 'tick', now: T0 + LOADING_TIMEOUT_MS + 1 }).phase,
+    'playing',
 );
 check('stop hides it', reduce(started, { type: 'stop' }).phase, 'idle');
 check('a route change hides it', reduce(started, { type: 'route' }).phase, 'idle');
@@ -55,7 +106,7 @@ check(
 check(
     "the app's own focus move does not cancel the mark",
     reduce(started, { type: 'move', now: T0 + MOVE_GRACE_MS - 1 }).phase,
-    'playing',
+    'loading',
 );
 check(
     'a real D-pad move does cancel it',
@@ -78,7 +129,7 @@ check(
 );
 check(
     '  ...and does not retire it a millisecond early',
-    reduce(started, { type: 'tick', now: started.endsAt - 1 }).phase,
+    reduce(playing, { type: 'tick', now: playing.endsAt - 1 }).phase,
     'playing',
 );
 check(
@@ -104,19 +155,103 @@ for (const [label, duration] of [
 }
 
 // --- buffering --------------------------------------------------------------
-check('stall only from playing', reduce(started, { type: 'stall' }).phase, 'stalled');
+check('stall only from playing', reduce(playing, { type: 'stall' }).phase, 'stalled');
 check(
     'resume only from stalled',
-    reduce(reduce(started, { type: 'stall' }), { type: 'resume' }).phase,
+    reduce(reduce(playing, { type: 'stall' }), { type: 'resume', now: T0 + 2000 }).phase,
     'playing',
 );
-check('resume from playing is a no-op', reduce(started, { type: 'resume' }).phase, 'playing');
+check(
+    'resume from playing is a no-op',
+    reduce(playing, { type: 'resume', now: T0 + 2000 }).phase,
+    'playing',
+);
 check('stall on idle stays idle', reduce(IDLE, { type: 'stall' }).phase, 'idle');
+// A stall before the first frame is not new information -- nothing has played,
+// so the spinner is already the right answer and swapping would flicker.
+check('stall while loading stays loading', reduce(started, { type: 'stall' }).phase, 'loading');
 check(
     'stalling does not move the deadline',
-    reduce(started, { type: 'stall' }).endsAt,
-    started.endsAt,
+    reduce(playing, { type: 'stall' }).endsAt,
+    playing.endsAt,
 );
+// Recovering from a stall must not re-stamp playingAt, or the audio settle
+// window restarts every time the connection hiccups and the speaker never
+// resolves.
+check(
+    'recovering from a stall keeps the original start',
+    reduce(reduce(playing, { type: 'stall' }), { type: 'resume', now: T0 + 9000 }).playingAt,
+    T0 + 900,
+);
+
+// --- a preview that starts on top of another ---------------------------------
+// The app's teardown is `end`, not `stop`, and playbackPreview wrapped a method
+// the service does not have -- so for the whole life of this feature NO stop
+// ever arrived and every consecutive preview landed as start-on-top-of-start.
+// The reducer has to make that transition visible to the dispatcher, or the
+// watchdog stays keyed to a deadline that has already been replaced.
+const restarted = reduce(playing, {
+    type: 'start',
+    now: T0 + 20000,
+    durationMs: 40000,
+    anchored: false,
+});
+check('a start over a live preview restarts it', restarted.phase, 'loading');
+check('  ...with a new start time', restarted.startedAt, T0 + 20000);
+check('  ...and no frame played yet', restarted.playingAt, 0);
+// This is what the dispatcher keys its reset off: without a changed startedAt it
+// cannot tell a restart from an ordinary phase change, which is how the previous
+// preview's speaker ended up drawn over the new one's spinner.
+check('  ...so the dispatcher can see it is new', restarted.startedAt !== playing.startedAt, true);
+check('  ...and the deadline moved with it', restarted.endsAt !== playing.endsAt, true);
+
+// --- does it make a noise? --------------------------------------------------
+// Three answers, and the third is the point: a speaker drawn on a silent video
+// sends someone hunting for audio that was never there, so anything short of
+// evidence draws nothing.
+check('a muted element is silent', soundState({ muted: true }), 'silent');
+check('zero volume is silent', soundState({ muted: false, volume: 0 }), 'silent');
+check('an unreadable element is unknown', soundState(null), 'unknown');
+check('an element with no muted flag is unknown', soundState({ volume: 1 }), 'unknown');
+
+// No byte counter (another engine, or a build that does not expose it): the mod
+// asked for sound and nothing is suppressing it, which is the best claim
+// available and right for the overwhelming majority of videos.
+check('unmuted with no counter is audible', soundState({ muted: false, volume: 1 }), 'audible');
+check(
+    'decoded audio is audible',
+    soundState({ muted: false, volume: 1, audioBytes: 4096, playingForMs: 10 }),
+    'audible',
+);
+// The trap: Chromium reports zero decoded bytes for the first frames of a video
+// that DOES have sound. Concluding "silent" there would mark almost everything
+// silent.
+check(
+    'zero bytes too early is unknown, not silent',
+    soundState({ muted: false, volume: 1, audioBytes: 0, playingForMs: AUDIO_SETTLE_MS - 1 }),
+    'unknown',
+);
+check(
+    '  ...and silent once it has had time',
+    soundState({ muted: false, volume: 1, audioBytes: 0, playingForMs: AUDIO_SETTLE_MS }),
+    'silent',
+);
+// Muting wins over a counter that has already moved: the video has sound, but it
+// is not making any.
+check(
+    'muted beats a non-zero counter',
+    soundState({ muted: true, volume: 1, audioBytes: 4096, playingForMs: 9999 }),
+    'silent',
+);
+let soundThrew = null;
+for (const junk of [null, undefined, 0, '', 'x', [], {}, NaN, true]) {
+    try {
+        soundState(junk);
+    } catch (e) {
+        soundThrew = `soundState(${JSON.stringify(junk)}) threw ${e.message}`;
+    }
+}
+check('soundState never throws', soundThrew, null);
 
 // --- junk -------------------------------------------------------------------
 // This runs off YouTube's own callbacks. A throw here would take the preview

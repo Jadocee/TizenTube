@@ -36,18 +36,44 @@ export const SAFE_FRACTION = 0.05;
  *  progress bar -- live along the bottom edge. */
 export const ANCHOR_INSET_PX = 12;
 
-export type Phase = 'idle' | 'playing' | 'stalled';
+/** How long to wait for a requested preview to actually start producing frames
+ *  before giving up on it. The app asks for playback and the network answers, or
+ *  does not; a spinner that never resolves is worse than no spinner, because it
+ *  says "any moment now" forever. */
+export const LOADING_TIMEOUT_MS = 12000;
+
+/** How long after playback starts to keep believing a video is silent.
+ *  Chromium reports decoded audio bytes only once it has decoded some, so the
+ *  counter is legitimately 0 for the first frames of a video that does have
+ *  sound. Below this the answer is "not yet known", not "silent". */
+export const AUDIO_SETTLE_MS = 1200;
+
+export type Phase = 'idle' | 'loading' | 'playing' | 'stalled';
 
 export interface PreviewState {
     phase: Phase;
-    /** When the current preview started, in ms. */
+    /** When the current preview was REQUESTED, in ms. Not when it began playing
+     *  -- those are different moments, and the gap between them is the whole
+     *  reason the loading phase exists. */
     startedAt: number;
+    /** When the first frame actually played, or 0 while still loading. */
+    playingAt: number;
+    /** What the app was asked to play for. Kept so the deadline can be recomputed
+     *  from the moment playback actually began. */
+    durationMs: number;
     /** When the watchdog gives up on ever seeing stop(). */
     endsAt: number;
     anchored: boolean;
 }
 
-export const IDLE: PreviewState = { phase: 'idle', startedAt: 0, endsAt: 0, anchored: false };
+export const IDLE: PreviewState = {
+    phase: 'idle',
+    startedAt: 0,
+    playingAt: 0,
+    durationMs: 0,
+    endsAt: 0,
+    anchored: false,
+};
 
 export type PreviewEvent =
     | { type: 'start'; now: number; durationMs: number; anchored: boolean }
@@ -55,7 +81,7 @@ export type PreviewEvent =
     | { type: 'route' }
     | { type: 'move'; now: number }
     | { type: 'stall' }
-    | { type: 'resume' }
+    | { type: 'resume'; now: number }
     | { type: 'tick'; now: number };
 
 /**
@@ -76,9 +102,22 @@ export function reduce(state: PreviewState, event: PreviewEvent | null | undefin
             const duration =
                 Number.isFinite(event.durationMs) && event.durationMs > 0 ? event.durationMs : 0;
             return {
-                phase: 'playing',
+                // LOADING, not playing. start() is the app being ASKED to play;
+                // frames arrive later, and on a television that gap is a real
+                // wait rather than a formality. Claiming playback here is what
+                // made a focused tile look identical whether the preview was
+                // coming or had silently failed.
+                phase: 'loading',
                 startedAt: now,
-                endsAt: now + duration + WATCHDOG_SLACK_MS,
+                playingAt: 0,
+                durationMs: duration,
+                // Provisional, and covers the worst case: a load that takes the
+                // full budget and then plays in full. It is REPLACED the moment
+                // the first frame arrives -- see 'resume' -- because the app
+                // counts its duration from the frames it gets, so leaving the
+                // load budget in a deadline that starts at playback would let a
+                // stranded mark outlive its preview by the whole 12 seconds.
+                endsAt: now + LOADING_TIMEOUT_MS + duration + WATCHDOG_SLACK_MS,
                 anchored: !!event.anchored,
             };
         }
@@ -101,19 +140,100 @@ export function reduce(state: PreviewState, event: PreviewEvent | null | undefin
             return IDLE;
 
         case 'stall':
+            // Only from playing. A stall while still loading is not new
+            // information -- nothing has played yet, so the spinner is already
+            // the right answer and swapping to a different one would flicker.
             return state.phase === 'playing' ? { ...state, phase: 'stalled' } : state;
 
-        case 'resume':
-            return state.phase === 'stalled' ? { ...state, phase: 'playing' } : state;
+        case 'resume': {
+            if (state.phase === 'idle') return state;
+            if (state.phase === 'playing') return state;
+            const now = Number.isFinite(event.now) ? event.now : state.startedAt;
+            // The first frame. This is the only transition out of loading, which
+            // is what makes the spinner mean "waiting for video" rather than
+            // "some time has passed".
+            const playingAt = state.playingAt || now;
+            return {
+                ...state,
+                phase: 'playing',
+                playingAt,
+                // Re-based on the first frame, dropping the load budget that has
+                // now demonstrably not been needed. A preview that loaded
+                // instantly kept a deadline 12s past the end of its own playback,
+                // which is 12s of a mark claiming a still thumbnail is playing.
+                endsAt: playingAt + state.durationMs + WATCHDOG_SLACK_MS,
+            };
+        }
 
-        case 'tick':
-            return state.phase !== 'idle' && Number.isFinite(event.now) && event.now >= state.endsAt
-                ? IDLE
-                : state;
+        case 'tick': {
+            if (state.phase === 'idle' || !Number.isFinite(event.now)) return state;
+            // A preview that was asked for and never produced a frame. Without
+            // this the spinner outlives the thing it describes, which is the one
+            // outcome worse than showing nothing.
+            if (state.phase === 'loading' && event.now - state.startedAt >= LOADING_TIMEOUT_MS) {
+                return IDLE;
+            }
+            return event.now >= state.endsAt ? IDLE : state;
+        }
 
         default:
             return state;
     }
+}
+
+/** What the mark should say about audio. */
+export type SoundState = 'silent' | 'audible' | 'unknown';
+
+export interface SoundInput {
+    /** The media element's own muted flag. */
+    muted?: boolean;
+    /** ...and its volume, 0..1. */
+    volume?: number;
+    /** Chromium's decoded-audio byte counter, when the element exposes it.
+     *  There is no standard "does this have an audio track", and this is the
+     *  only honest signal M120 offers. */
+    audioBytes?: number;
+    /** ms since the first frame played. */
+    playingForMs?: number;
+}
+
+/**
+ * Whether a running preview is actually making a noise.
+ *
+ * Three answers, not two, and the third is the point. A speaker drawn on a
+ * silent video is a worse error than no speaker at all -- it sends someone
+ * hunting for audio that was never there -- so anything short of evidence
+ * returns 'unknown' and the caller draws nothing.
+ *
+ * Muting is decided locally and is therefore certain: mutePreviews writes
+ * `muted` into the app's own startInlinePlaybackCommand, and a muted or
+ * zero-volume element is silent no matter what the file contains.
+ *
+ * The presence of an audio TRACK is not certain. Chromium counts decoded audio
+ * bytes, but only once it has decoded some, so a zero counter in the first
+ * moments of playback means "not yet" rather than "never" -- hence AUDIO_SETTLE_MS.
+ * On a build that does not expose the counter at all, an unmuted element is
+ * reported audible: the mod asked for sound and the element is not suppressing
+ * it, which is the best claim available and the one that is right for the
+ * overwhelming majority of videos.
+ */
+export function soundState(input: SoundInput | null | undefined): SoundState {
+    if (!input) return 'unknown';
+    if (input.muted === true) return 'silent';
+    if (Number.isFinite(input.volume as number) && (input.volume as number) <= 0) return 'silent';
+    // Not yet known to be unmuted either -- an element we could not read.
+    if (input.muted !== false) return 'unknown';
+
+    const bytes = input.audioBytes;
+    if (!Number.isFinite(bytes as number)) return 'audible';
+    if ((bytes as number) > 0) return 'audible';
+
+    const playedFor = input.playingForMs;
+    // Zero bytes, but too early to conclude anything from that.
+    if (!Number.isFinite(playedFor as number) || (playedFor as number) < AUDIO_SETTLE_MS) {
+        return 'unknown';
+    }
+    return 'silent';
 }
 
 export interface Rect {

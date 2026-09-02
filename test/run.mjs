@@ -47,6 +47,13 @@ const HARNESSES = [
         file: 'style.mjs',
         browser: true,
     },
+    {
+        name: 'preview indicator runtime',
+        dir: 'preview-indicator',
+        file: 'runtime.mjs',
+        types: true,
+    },
+    { name: 'preview service hook', dir: 'preview-indicator', file: 'hook.mjs', types: true },
     { name: 'home tile fixes', dir: 'tile-fixes', file: 'test.mjs', types: true },
     { name: 'dearrow request cache', dir: 'tile-fixes', file: 'dearrow.mjs', types: true },
     { name: 'focus motion switches', dir: 'focus-motion', file: 'test.mjs', types: true },
@@ -58,6 +65,7 @@ const HARNESSES = [
     { name: 'aislist parsing', dir: 'aislist', file: 'test.mjs', types: true },
     { name: 'aislist refresh', dir: 'aislist', file: 'refresh.mjs', types: true },
     { name: 'aislist fetch gate', dir: 'aislist', file: 'toggle.mjs', types: true },
+    { name: 'css nesting on M120', dir: 'css-nesting', file: 'test.mjs' },
     { name: 'docs match the suite', dir: 'docs', file: 'test.mjs' },
 ];
 
