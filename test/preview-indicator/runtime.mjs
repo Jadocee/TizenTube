@@ -13,7 +13,7 @@
 // onPreviewStop never fired, every consecutive preview arrived as
 // start-on-top-of-start, and that path reset nothing and re-armed nothing.
 import { checker } from '../lib/repo.mjs';
-import { store, startListeners, stopListeners, configWrite } from './stub.mjs';
+import { configWrite, startListeners, stopListeners } from './stub.mjs';
 
 // --- a fake clock, installed before the module is imported ------------------
 let clock = 0;

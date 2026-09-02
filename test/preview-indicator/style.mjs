@@ -55,11 +55,12 @@ check(
     infinites.every((sel) => sel.includes('[data-state="loading"]')),
     true,
 );
-check(
-    '  ...and reduced motion turns it off',
-    /prefers-reduced-motion[\s\S]*\[data-state="loading"\][\s\S]*animation:\s*none/.test(code),
-    true,
-);
+// Asserted in the browser at the end of this file, under emulated reduced
+// motion, rather than by matching the text here. A whole-file regex passes on
+// any file that merely CONTAINS those three fragments in that order -- in
+// unrelated blocks, in a rule the cascade overrides, or with a selector that
+// never matches the element. It is the shape of check that reports a stylesheet
+// as compliant with its own comment while the television spins anyway.
 // The spinner is only honest if something ends it. This is a source check rather
 // than a browser one because the timeout lives in previewState.ts, whose own
 // harness proves it fires -- what is asserted here is that the two agree the
@@ -82,14 +83,28 @@ await page.setContent(`<!doctype html><html><head><meta charset="utf-8">
 </body></html>`);
 
 // The markup above is a COPY of what previewIndicator.ts builds, and a copy is
-// only safe while something notices it going stale. It went stale once already:
+// only safe while something notices it going stale.
+//
+// WHAT THIS GUARD IS AND IS NOT. It is a substring tripwire: it catches a hook
+// disappearing from the source entirely, and nothing subtler. Renaming
+// `setAttribute('data-state', ...)` while `removeAttribute('data-state')`
+// survives still passes here -- measured, not assumed. The real coverage for
+// that is preview-indicator/runtime.mjs, which executes this module and reads
+// the attributes back; the entries below are listed because the fixture depends
+// on them, not because this loop proves they work. It went stale once already:
 // the source grew a second glyph and gained class names, and this fixture kept
 // its lone bare <span> -- so every check below went on passing against a DOM the
 // mod no longer produces. Nothing is derived here because the builder sits
 // behind four imports, so the guard is the next best thing: every hook the
 // fixture and the CSS rely on has to be present in the real source.
 const source = readRepo('mods', 'ui', 'previewIndicator.ts');
-for (const hook of ['tizentube-preview-indicator', 'tt-pi-glyph', 'tt-pi-sound', 'data-sound']) {
+for (const hook of [
+    'tizentube-preview-indicator',
+    'tt-pi-glyph',
+    'tt-pi-sound',
+    'data-state',
+    'data-sound',
+]) {
     if (!source.includes(hook)) {
         console.log(
             `FAIL  previewIndicator.ts no longer produces "${hook}"; this fixture is stale`,
@@ -444,6 +459,42 @@ check(
     ruleCount.joined,
     ruleCount.parts.reduce((a, b) => a + b, 0),
 );
+
+// --- reduced motion, emulated for real ---------------------------------------
+// The spinner is the one thing in this file that animates forever, and an OLED
+// holds on to whatever sits in the same screen position. Someone who has asked
+// their television to stop animating things has to actually get that -- and the
+// only way to know is to ask the engine, with the media feature switched on,
+// whether the element has a running animation.
+const reduced = await browser.newPage({
+    viewport: { width: 1920, height: 1080 },
+    reducedMotion: 'reduce',
+});
+await reduced.setContent(`<!doctype html><html><head><meta charset="utf-8">
+<style>html,body{margin:0;height:100%;background:#0b0b0b}html{font-size:16px}</style>
+<style id="tt">${css}</style></head><body>
+  <div id="tizentube-preview-indicator" class="tt-dimmable" data-state="loading"><span class="tt-pi-glyph"></span><span class="tt-pi-sound"></span></div>
+</body></html>`);
+const motion = await reduced.evaluate(async () => {
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    const el = document.querySelector('#tizentube-preview-indicator > .tt-pi-glyph');
+    const cs = getComputedStyle(el);
+    return {
+        matches: matchMedia('(prefers-reduced-motion: reduce)').matches,
+        running: el.getAnimations().length,
+        name: cs.animationName,
+        // The ring itself must survive: the SHAPE is what distinguishes loading
+        // from a solid triangle, and the motion only draws the eye. Stopping the
+        // rotation must not leave the state indistinguishable.
+        radius: cs.borderTopLeftRadius,
+        width: el.getBoundingClientRect().width,
+    };
+});
+check('reduced motion is actually emulated', motion.matches, true);
+check('  ...and the spinner does not rotate', motion.running, 0);
+check('  ...with no animation applied at all', motion.name, 'none');
+check('  ...but the ring is still drawn', motion.width > 0 && motion.radius !== '0px', true);
+await reduced.close();
 
 await browser.close();
 done();
