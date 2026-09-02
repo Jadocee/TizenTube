@@ -26,9 +26,12 @@
 
    DECLARATIONS BEFORE NESTED RULES, in every block. CSSNestedDeclarations only
    shipped in Chrome 130; on M120 -- which is what Tizen 9.0 runs -- a bare
-   declaration placed AFTER a nested rule is dropped on the floor. The harness
-   Chromium is far newer and cannot reproduce that, so the ordering has to be a
-   rule we keep rather than something a test catches.
+   declaration placed AFTER a nested rule is HOISTED above it rather than
+   keeping its source position. Measured against real Chrome 120: the
+   declaration still applies, so a property nothing nested touches is fine, but
+   one a nested rule also sets loses on the television and wins everywhere else.
+   The harness Chromium resolves it the other way and cannot reproduce that,
+   which is why test/css-nesting/test.mjs checks the ordering textually.
 
    PHYSICAL PROPERTIES, not logical ones. This element is appended to
    document.body and inherits the app's direction, which is rtl for an Arabic

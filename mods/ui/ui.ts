@@ -38,13 +38,20 @@ type FocusedElement = HTMLElement & Partial<HTMLInputElement>;
  * empty while the real key is one level down. Neither name is part of the DOM,
  * and both are minified, so both are optional and read defensively.
  *
- * MEASURED against the shipped bundle: the field is currently `ge`. Two
- * independent sites assign it -- a synthesised swipe event and a synthesised
- * MouseEvent both do `clone.ge = original`. `Uc`, which this interface used to
- * name on its own, is not an event field at all in this build: all 14 of its
- * occurrences are html5 player experiment values. It is kept only because it
- * cost nothing and may have been the name in an earlier bundle; the primary
- * `evt.key` check is what actually carries this today.
+ * MEASURED against the shipped bundle: the field is `ge`. THREE sites assign
+ * it -- a synthesised swipe, a synthesised MouseEvent, and `_.bo`, which is the
+ * app's own KEY-event synthesiser and therefore the one that matters here; all
+ * three do `clone.ge = original`.
+ *
+ * `Uc`, which this interface used to name on its own, is not an event field in
+ * this build. (An earlier version of this comment said all 14 of its textual
+ * occurrences were html5 player experiment values; that was wrong twice over --
+ * six are substrings of `_.Ucb`, `.Uca` and a CSS class, and the eight real
+ * accesses are player-internal data of several kinds: two experiment values,
+ * two caption ids on videoData, two buffer thresholds, a default width and a
+ * thumbnail prop.) None sits on an event object, so the old fallback could
+ * never fire. It is kept only because it costs nothing and may have been the
+ * name in an earlier bundle; the primary `evt.key` check is what carries this.
  */
 interface TvKeyboardEvent extends KeyboardEvent {
     ge?: { key?: string };
