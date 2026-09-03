@@ -52,11 +52,23 @@ jobs:
       # --experimental-strip-types, which needs Node 22.6+, and the workflow
       # previously took whatever the runner image happened to ship: on Node 20
       # those twenty-five fail before running a single assertion.
+      #
+      # registry-url is load-bearing and easy to mistake for decoration. It is
+      # what makes setup-node write an .npmrc containing
+      # `//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}`. npm has no
+      # knowledge of NODE_AUTH_TOKEN itself -- the name is purely that file's
+      # placeholder -- so without this input the publish step below sets an
+      # environment variable nothing reads and runs `npm publish`
+      # unauthenticated, which fails with ENEEDAUTH however correct the secret
+      # is. Verified both ways: with no .npmrc, `NODE_AUTH_TOKEN=x npm whoami`
+      # reports ENEEDAUTH; with the file setup-node writes, the same command
+      # reaches the registry and reports 401 for a bad token.
       - name: Use Node 22
         uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: pnpm
+          registry-url: 'https://registry.npmjs.org'
 
       # --frozen-lockfile is the point of the exercise: the install fails rather
       # than silently resolving something new if the lockfile and any manifest
@@ -122,8 +134,14 @@ jobs:
       # new on the registry to show for it.
       #
       # The routes read different trees. The npm package is dist/userScript.js
-      # and dist/service.js, built from mods/ and service/. The .wgt is those
-      # plus standalone/, the Tizen app wrapped around them.
+      # and dist/service.js, built from mods/ and service/ -- plus package.json
+      # itself, which is not only metadata here: TizenBrew reads main,
+      # serviceFile, websiteURL and keys straight out of it, so changing one of
+      # those changes what runs on a television as surely as editing the
+      # userscript does. LICENSE and README.md ride along in the tarball too but
+      # change nothing that runs, so they are left out rather than warning on
+      # every documentation pull request. The .wgt is mods/, service/ and
+      # standalone/, the Tizen app wrapped around them.
       - name: Warn if shipped code changed without a version bump
         if: github.event_name == 'pull_request'
         env:
@@ -139,7 +157,7 @@ jobs:
           # The TizenBrew module. node rather than a regex, for the same reason
           # .github/scripts/npm-gate.sh uses it: package.json is JSON.
           npm_version() { node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(String(JSON.parse(s).version??""))}catch(e){}})'; }
-          NPM_CHANGED=$(changed mods service)
+          NPM_CHANGED=$(changed mods service package.json)
           NPM_BEFORE=$(git show "${BASE_SHA}:package.json" 2>/dev/null | npm_version || true)
           NPM_AFTER=$(npm_version < package.json)
           echo "npm: files changed ${NPM_CHANGED}; package version ${NPM_BEFORE:-<absent>} -> ${NPM_AFTER}"

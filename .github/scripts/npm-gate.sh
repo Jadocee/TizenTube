@@ -14,14 +14,16 @@
 # be reused once taken and cannot meaningfully be unpublished after 72 hours.
 #
 # It used to be "publishes when the version changed in this push", which is a
-# proxy for the same thing and wrong in both directions. It cannot make a FIRST
-# publish at all -- the commit that adds publishing does not itself change the
-# version, so the package never reaches the registry and the next bump is the
-# earliest it could -- and it cannot recover from a publish that failed after
-# the gate opened, since the version has by then stopped changing. In the other
-# direction it opens the gate for a version already taken, where the only
-# possible outcome is a 403 and a red main. Asking the registry answers the
-# question the diff was approximating.
+# proxy for the same thing and wrong in both directions. On a push to main it
+# cannot make a FIRST publish -- the commit that adds publishing does not itself
+# change the version, so the package never reaches the registry and the next bump
+# is the earliest it could -- and it cannot recover from a publish that failed
+# after the gate opened, since the version has by then stopped changing. (A tag
+# push was the one way out: the old script published on any tag unconditionally,
+# without consulting the version at all.) In the other direction the diff opens
+# the gate for a version already taken, where the only possible outcome is a 403
+# and a red main. Asking the registry answers the question the diff was
+# approximating.
 #
 # The diff rule survives as the fallback for when the registry cannot be
 # reached, so a network failure degrades to the old behaviour rather than
@@ -77,35 +79,55 @@ if [ "${GITHUB_REF_TYPE:-}" = "tag" ] && [ "${GITHUB_REF_NAME:-}" != "v$VERSION"
     echo "::warning::tag ${GITHUB_REF_NAME:-<unset>} does not match the package version $VERSION in $MANIFEST"
 fi
 
-# Three answers, not two. `npm view <pkg>@<version> version` prints the version
-# and exits 0 when it is there; exits non-zero with code E404 when either the
-# version or the whole package is unknown, which is the same answer for our
-# purposes -- there is nothing at that coordinate. Any other failure (a network
-# drop, a proxy 502, npm missing from PATH) is NOT an answer, and treating it as
-# one would publish blind or silently skip a release.
+# Four answers, not two. One `npm view <package> --json` answers both questions
+# this gate has -- is this exact version taken, and would publishing it move the
+# registry's `latest` backwards -- and .github/scripts/registry-state.mjs reads
+# the packument, because both are semver questions and semver is not string
+# comparison. The registry stores 1.2.3+ci as 1.2.3, and 1.9.0 sorts after
+# 1.10.0 as text; a shell string match gets both wrong in the direction that
+# publishes.
 #
-# Sets two globals rather than echoing its answer, because $(...) would run it
-# in a subshell and the error text would not survive to be logged.
+# npm exits non-zero with code E404 when the package is unknown, which is a real
+# answer: nothing is published, so this would be the first. Any other failure (a
+# network drop, a proxy 502, npm missing from PATH) is NOT an answer, and
+# treating it as one would publish blind or silently skip a release.
+#
+# Sets globals rather than echoing its answer, because $(...) would run it in a
+# subshell and the error text would not survive to be logged.
 #
 # Here-strings, not pipes: `grep -q` exits the moment it matches, and under
 # `set -o pipefail` the SIGPIPE that gives the writer would make a successful
 # match read as a failed pipeline.
+HERE="$(cd "$(dirname "$0")" && pwd)"
 REGISTRY_STATE=''
+REGISTRY_LATEST=''
 REGISTRY_ERROR=''
 probe_registry() {
-    local out status err_file
+    local out status err_file verdict
     err_file="$(mktemp)"
-    out="$(npm view "${NAME}@${VERSION}" version 2>"$err_file")" && status=0 || status=$?
+    out="$(npm view "$NAME" --json 2>"$err_file")" && status=0 || status=$?
     REGISTRY_ERROR="$(cat "$err_file")"
     rm -f "$err_file"
 
-    if [ "$status" -eq 0 ] && grep -qxF "$VERSION" <<<"$out"; then
-        REGISTRY_STATE=present
-    elif grep -q 'code E404' <<<"$REGISTRY_ERROR"; then
-        REGISTRY_STATE=absent
-    else
-        REGISTRY_STATE=unknown
+    if [ "$status" -ne 0 ]; then
+        if grep -q 'code E404' <<<"$REGISTRY_ERROR"; then
+            REGISTRY_STATE=absent
+        else
+            REGISTRY_STATE=unknown
+        fi
+        return
     fi
+
+    verdict="$(node "$HERE/registry-state.mjs" "$VERSION" <<<"$out")" || verdict=unknown
+    case "$verdict" in
+        present) REGISTRY_STATE=present ;;
+        absent) REGISTRY_STATE=absent ;;
+        older\ *)
+            REGISTRY_STATE=older
+            REGISTRY_LATEST="${verdict#older }"
+            ;;
+        *) REGISTRY_STATE=unknown ;;
+    esac
 }
 
 probe_registry
@@ -116,10 +138,20 @@ case "$REGISTRY_STATE" in
     absent)
         publish "${NAME}@${VERSION} is not on the registry yet: publishing"
         ;;
+    older)
+        # Publishing this would move the `latest` dist-tag backwards, and
+        # TizenBrew resolves the module through that tag with no version pin --
+        # so every television would install the older build on its next check.
+        # The likeliest way to get here is re-running an old workflow run from a
+        # commit whose version has since been superseded.
+        echo "::warning::${NAME}@${VERSION} is behind the published latest (${REGISTRY_LATEST}), so publishing it would move the npm latest tag backwards. Not publishing. Publish a back-version by hand with an explicit --tag if that is really what you want."
+        no_publish "behind ${REGISTRY_LATEST}; build and verify only"
+        ;;
     *)
         # Deliberately not fatal. A registry that cannot be reached is a reason
         # to fall back to what we can work out locally, not a reason to fail a
-        # run whose build and tests have already passed.
+        # run whose build and tests have already passed. Note the fallback is
+        # the old rule in full, tag branch included -- see docs/BUILDING.md.
         echo "::warning::could not ask the registry whether ${NAME}@${VERSION} exists; falling back to the version-changed rule"
         head -n 5 <<<"$REGISTRY_ERROR"
         ;;

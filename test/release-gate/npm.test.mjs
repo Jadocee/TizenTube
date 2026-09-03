@@ -1,5 +1,6 @@
-// .github/scripts/npm-gate.sh, driven through every case that decides whether
-// CI publishes the npm package TizenBrew installs.
+// .github/scripts/npm-gate.sh and .github/scripts/registry-state.mjs, driven
+// through every case that decides whether CI publishes the npm package TizenBrew
+// installs.
 //
 // An npm version cannot be reused once taken and cannot meaningfully be
 // unpublished after 72 hours, so a gate that publishes when it should not is
@@ -7,18 +8,24 @@
 // can simply be deleted. That asymmetry is why every branch here is exercised
 // against a real git repo rather than a stub of one.
 //
-// THE REGISTRY IS STUBBED, NOT REACHED. The gate asks npm whether the version
-// already exists, and a suite that made that call for real would be slow, would
-// fail on a developer's train, and would change its answer the day the package
-// is published. So each case installs a fake `npm` on PATH that answers a fixed
-// way, and the fake records its argv so the gate cannot quietly ask about the
-// wrong coordinate and still be believed.
+// THE REGISTRY IS STUBBED, NOT REACHED. The gate asks npm what a package looks
+// like, and a suite that made that call for real would be slow, would fail on a
+// developer's train, and would change its answer the day the package is
+// published. So each case installs a fake `npm` on PATH answering with a fixed
+// packument, and the fake records its argv so the gate cannot quietly ask about
+// the wrong package and still be believed.
 //
-// The two gates are deliberately separate and read different versions: this one
-// reads package.json, release-gate.sh reads standalone/config.xml. The last case
-// below asserts that independence directly.
+// The workflow that consumes this gate is asserted next door, in workflow.test.mjs.
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync, mkdirSync, readFileSync, existsSync } from 'node:fs';
+import {
+    mkdtempSync,
+    rmSync,
+    writeFileSync,
+    mkdirSync,
+    readFileSync,
+    existsSync,
+    symlinkSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { checker, repoPath } from '../lib/repo.mjs';
@@ -27,7 +34,7 @@ const { check, done } = checker();
 const SCRIPT = repoPath('.github', 'scripts', 'npm-gate.sh');
 
 const manifest = (version, extra = {}) =>
-    JSON.stringify(
+    `${JSON.stringify(
         {
             name: '@jadocee/tizentube',
             version,
@@ -37,38 +44,49 @@ const manifest = (version, extra = {}) =>
         },
         null,
         2,
-    ) + '\n';
+    )}\n`;
 
-// Every stub logs its arguments first, so "which coordinate did the gate ask
-// about" is answerable, then behaves like one of the four things npm really
-// does. The bodies are copied from real npm output -- see the header comment in
-// npm-gate.sh for the observed exit codes.
-const NPM_STUBS = {
-    // The version is on the registry. Echoes back whatever was asked for rather
-    // than a baked-in string, so the argv assertion is the thing pinning the
-    // coordinate, not a coincidence of both sides hard-coding the same number.
-    present: `spec="$2"
-echo "\${spec##*@}"
-exit 0`,
-    // Nothing at that coordinate: either the version or the whole package is
-    // unknown. npm does not distinguish, and neither do we.
-    absent: `echo "npm error code E404" >&2
+// Binaries the gate genuinely uses, for the one case that has to run without
+// npm on PATH at all. `node` comes from process.execPath rather than
+// `command -v node`, because under asdf, nodenv, mise or volta that returns a
+// SHIM -- and a shim cannot find its interpreter once PATH is narrowed to this
+// directory, which would fail the whole harness on a contributor's machine for
+// reasons having nothing to do with the gate.
+const REAL_BINS = ['bash', 'git', 'mktemp', 'cat', 'rm', 'grep', 'head'];
+
+/** Builds the stub `npm` body for a given registry answer. */
+function npmStub(registry, argvLog) {
+    const log = `printf '%s\\n' "$*" >> ${argvLog}\n`;
+    if (registry === 'unreachable') {
+        // Not an answer. The body deliberately CONTAINS "404" without npm's
+        // "code E404", so relaxing the gate's match to a bare '404' -- which a
+        // proxy error page would satisfy -- turns this case into "absent" and
+        // fails the suite.
+        return `${log}echo "npm error code E502" >&2
+echo "npm error 502 Bad Gateway - GET https://registry.npmjs.org/@jadocee%2ftizentube (upstream said 404)" >&2
+exit 1`;
+    }
+    if (registry === 'absent') {
+        return `${log}echo "npm error code E404" >&2
 echo "npm error 404 Not Found - GET https://registry.npmjs.org/@jadocee%2ftizentube" >&2
-exit 1`,
-    // A failure that is not an answer. E502 is what this repository's proxy
-    // returns for an unreachable registry.
-    unreachable: `echo "npm error code E502" >&2
-echo "npm error 502 Bad Gateway - GET https://registry.npmjs.org/@jadocee%2ftizentube" >&2
-exit 1`,
-    // Exits 0 but does not name the version asked for. Not an answer either.
-    odd: `echo "0.0.1-something-else"
-exit 0`,
-};
-
-// Binaries the gate genuinely uses. PATH is narrowed to symlinks of exactly
-// these, which is how the "npm is not installed" case removes npm for real
-// rather than faking a 127.
-const REAL_BINS = ['bash', 'node', 'git', 'mktemp', 'cat', 'rm', 'grep', 'head'];
+exit 1`;
+    }
+    if (registry === 'garbage') {
+        // Exits 0 but says nothing a packument reader can use.
+        return `${log}echo "not json at all"
+exit 0`;
+    }
+    // A packument: { versions, latest }.
+    const doc = JSON.stringify({
+        'dist-tags': { latest: registry.latest },
+        versions: registry.versions,
+        version: registry.latest,
+    });
+    return `${log}cat <<'PACKUMENT'
+${doc}
+PACKUMENT
+exit 0`;
+}
 
 /**
  * Builds a repo whose history moves package.json through `versions`, then runs
@@ -81,7 +99,8 @@ function run({
     refType = 'branch',
     refName = 'main',
     before = 'HEAD~1',
-    // How the stubbed registry answers. `null` installs no npm at all.
+    // How the stubbed registry answers: 'absent', 'unreachable', 'garbage', a
+    // {versions, latest} packument, or null to install no npm at all.
     registry = 'absent',
     // The build output the manifest points at. Absent or empty means the gate
     // should refuse rather than publish a manifest referring to nothing.
@@ -118,21 +137,20 @@ function run({
             }
         }
 
-        // A PATH with nothing on it but the binaries the gate needs, so the one
-        // case that omits the npm stub is genuinely running without npm.
         const bin = join(dir, 'bin');
         mkdirSync(bin, { recursive: true });
+        symlinkSync(process.execPath, join(bin, 'node'));
         for (const name of REAL_BINS) {
             const found = execFileSync('sh', ['-c', `command -v ${name}`])
                 .toString()
                 .trim();
-            execFileSync('ln', ['-s', found, join(bin, name)]);
+            symlinkSync(found, join(bin, name));
         }
         const argvLog = join(dir, 'npm-argv');
-        if (registry) {
-            const stub = `#!/bin/sh\nprintf '%s\\n' "$*" >> ${argvLog}\n${NPM_STUBS[registry]}\n`;
-            writeFileSync(join(bin, 'npm'), stub, { mode: 0o755 });
-        }
+        if (registry)
+            writeFileSync(join(bin, 'npm'), `#!/bin/sh\n${npmStub(registry, argvLog)}\n`, {
+                mode: 0o755,
+            });
 
         let beforeSha = before;
         if (before === 'HEAD~1') beforeSha = shas.length > 1 ? shas[shas.length - 2] : '';
@@ -147,8 +165,11 @@ function run({
             stdout = execFileSync('bash', [SCRIPT], {
                 cwd: dir,
                 env: {
-                    HOME: dir,
-                    PATH: bin,
+                    ...process.env,
+                    // Narrowed only when the point of the case is that npm is
+                    // missing; every other case keeps the real PATH behind the
+                    // stub so a version-managed toolchain still resolves.
+                    PATH: registry === null ? bin : `${bin}:${process.env.PATH}`,
                     GITHUB_EVENT_NAME: event,
                     GITHUB_REF_TYPE: refType,
                     GITHUB_REF_NAME: refName,
@@ -173,6 +194,8 @@ function run({
     }
 }
 
+const PUBLISHED = (latest, ...others) => ({ latest, versions: [...others, latest] });
+
 // --- the rule: a push publishes what the registry does not have --------------
 // The first of these is the regression test for the bug that made this rule
 // necessary. The commit that added publishing did not change the version -- it
@@ -181,26 +204,58 @@ function run({
 // registry at all. An unchanged version whose release was never made is exactly
 // the case that has to publish.
 const firstPublish = run({ versions: ['1.0.0', '1.0.0'], registry: 'absent' });
-check('an unpublished version publishes even unchanged', firstPublish.out.publish, 'true');
+check('an unpublished package publishes even unchanged', firstPublish.out.publish, 'true');
 check('  ...at that version', firstPublish.out.version, '1.0.0');
 check('  ...under the package name', firstPublish.out.name, '@jadocee/tizentube');
-check('  ...having asked the registry about that exact coordinate', firstPublish.argv, [
-    'view @jadocee/tizentube@1.0.0 version',
+check('  ...having asked the registry about that package', firstPublish.argv, [
+    'view @jadocee/tizentube --json',
 ]);
 
-const bumped = run({ versions: ['1.0.0', '1.1.0'], registry: 'absent' });
-check('a version bump on main publishes', bumped.out.publish, 'true');
-check('  ...at the new version', bumped.out.version, '1.1.0');
-check('  ...and asks about the new one, not the old', bumped.argv, [
-    'view @jadocee/tizentube@1.1.0 version',
-]);
+const newVersion = run({ versions: ['1.0.0', '1.1.0'], registry: PUBLISHED('1.0.0') });
+check('a version the registry lacks publishes', newVersion.out.publish, 'true');
+check('  ...at the new version', newVersion.out.version, '1.1.0');
 
 // The other direction, and the reason asking beats diffing: a version already
 // taken cannot be published over. The old rule opened the gate here on the
 // strength of the diff alone and the only possible outcome was a 403 on main.
-const taken = run({ versions: ['1.0.0', '1.1.0'], registry: 'present' });
+const taken = run({ versions: ['1.0.0', '1.1.0'], registry: PUBLISHED('1.1.0', '1.0.0') });
 check('a version already on the registry does not publish', taken.out.publish, 'false');
 check('  ...and says why', /already on the registry/.test(taken.stdout), true);
+
+// --- semver, not string comparison ------------------------------------------
+// Build metadata is not part of a release's identity: npm stores 1.1.0+ci.7 as
+// 1.1.0. Matching the manifest string against the registry's would miss that and
+// publish over a version that is already there.
+const metadata = run({
+    versions: ['1.0.0', '1.1.0+ci.7'],
+    registry: PUBLISHED('1.1.0', '1.0.0'),
+});
+check('build metadata does not hide a taken version', metadata.out.publish, 'false');
+// And the ordering has to be numeric per field, or 1.9.0 sorts after 1.10.0.
+const ordered = run({
+    versions: ['1.9.0', '1.10.0'],
+    registry: PUBLISHED('1.10.0', '1.9.0'),
+});
+check('1.10.0 is recognised as published, not sorted before 1.9.0', ordered.out.publish, 'false');
+// A prerelease is a different version from the release of the same triple.
+const prerelease = run({ versions: ['1.0.0', '2.0.0-rc.1'], registry: PUBLISHED('1.0.0') });
+check('a prerelease ahead of latest publishes', prerelease.out.publish, 'true');
+
+// --- publishing must never move `latest` backwards ---------------------------
+// TizenBrew resolves the module through the latest tag with no version pin, so a
+// publish that moves it back installs an older build on every television. The
+// way to get here is re-running an old workflow run from a superseded commit.
+const stale = run({ versions: ['1.5.0', '1.5.0'], registry: PUBLISHED('1.9.0', '1.0.0') });
+check('a version behind latest does not publish', stale.out.publish, 'false');
+check(
+    '  ...and names the latest it is behind',
+    /behind the published latest \(1\.9\.0\)/.test(stale.stdout),
+    true,
+);
+check('  ...as a warning, not a failure', stale.status, 0);
+// A prerelease of the current latest is behind it, and must not take the tag.
+const behindPre = run({ versions: ['1.9.0-rc.1', '1.9.0-rc.1'], registry: PUBLISHED('1.9.0') });
+check('a prerelease behind latest does not publish', behindPre.out.publish, 'false');
 
 // --- everything that must NOT publish ---------------------------------------
 // The one that matters most: a version cannot be un-taken, and a pull request is
@@ -232,19 +287,21 @@ const offlineBump = run({ versions: ['1.0.0', '1.1.0'], registry: 'unreachable' 
 check('an unreachable registry falls back to the diff', offlineBump.out.publish, 'true');
 check('  ...saying it could not ask', /could not ask the registry/.test(offlineBump.stdout), true);
 check('  ...and quoting what npm said', /npm error code E502/.test(offlineBump.stdout), true);
+// The unreachable stub's text contains "404" but not npm's "code E404". If the
+// gate's match were relaxed to a bare '404' -- which a proxy error page would
+// satisfy -- this case would read as absent and publish an unchanged version.
 check(
     'and under that fallback an unchanged version does not publish',
     run({ versions: ['1.0.0', '1.0.0'], registry: 'unreachable' }).out.publish,
     'false',
 );
-// npm exiting 0 without naming the version asked for is not a "yes" either. If
-// this check were loosened to "npm succeeded", a reply about some other version
-// would read as present and silently cancel a release.
-const oddReply = run({ versions: ['1.0.0', '1.0.0'], registry: 'odd' });
-check('a reply that names another version is not an answer', oddReply.out.publish, 'false');
+// npm exiting 0 with something no packument reader can use is not an answer
+// either; it falls back rather than guessing.
+const garbage = run({ versions: ['1.0.0', '1.0.0'], registry: 'garbage' });
+check('an unreadable reply is not an answer', garbage.out.publish, 'false');
 check(
     '  ...it falls back rather than trusting it',
-    /could not ask the registry/.test(oddReply.stdout),
+    /could not ask the registry/.test(garbage.stdout),
     true,
 );
 // npm missing from PATH entirely -- PATH here holds only the binaries the gate
@@ -293,7 +350,7 @@ const mismatchedTaken = run({
     versions: ['1.0.0'],
     refType: 'tag',
     refName: 'v9.9.9',
-    registry: 'present',
+    registry: PUBLISHED('1.0.0'),
 });
 check(
     'a mismatched tag warns even when nothing is published',
@@ -303,10 +360,14 @@ check(
 check('  ...and publishes nothing', mismatchedTaken.out.publish, 'false');
 check(
     'a tag whose version is taken does not republish it',
-    run({ versions: ['1.0.0'], refType: 'tag', refName: 'v1.0.0', registry: 'present' }).out
-        .publish,
+    run({ versions: ['1.0.0'], refType: 'tag', refName: 'v1.0.0', registry: PUBLISHED('1.0.0') })
+        .out.publish,
     'false',
 );
+// Documented in docs/BUILDING.md as the one hole the fallback keeps: with no
+// registry to ask, a tag push publishes on the strength of the tag alone. It is
+// the old behaviour, preserved deliberately, and it is asserted so that it stays
+// a decision rather than becoming a surprise.
 check(
     'a tag push with no registry falls back to always publishing',
     run({ versions: ['1.0.0'], refType: 'tag', refName: 'v1.0.0', registry: 'unreachable' }).out
@@ -348,10 +409,10 @@ check('a manifest with no version fails', noVersion.status !== 0, true);
 // the other's version source to say why it is not read -- so matching the raw
 // text finds each script describing its counterpart and reports them as
 // entangled. What is asserted is what the code reads, not what it talks about.
-const decomment = (text) =>
+const decomment = (text, marker = '#') =>
     text
         .split('\n')
-        .filter((line) => !/^\s*#/.test(line))
+        .filter((line) => !new RegExp(`^\\s*${marker}`).test(line))
         .join('\n');
 const npmGate = decomment(readFileSync(SCRIPT, 'utf8'));
 const wgtGate = decomment(readFileSync(repoPath('.github', 'scripts', 'release-gate.sh'), 'utf8'));
@@ -359,68 +420,6 @@ check('the npm gate reads package.json', /package\.json/.test(npmGate), true);
 check('  ...and not the widget config', /config\.xml/.test(npmGate), false);
 check('the wgt gate reads config.xml', /config\.xml/.test(wgtGate), true);
 check('  ...and not the package manifest', /NPM_MANIFEST|package\.json/.test(wgtGate), false);
-
-// --- the workflow has to act on the gate's answer ---------------------------
-// The gate is worthless unless the steps below it read its output. Without these
-// conditions a pull request reaches `npm publish`, and a version cannot be
-// un-taken. Asserted the same way cert.test.mjs asserts the certificate guard,
-// and for the same reason: the guard lives in YAML, where nothing else checks it.
-const workflow = readFileSync(repoPath('.github', 'workflows', 'build-release.yaml'), 'utf8');
-const conditionOf = (step) => {
-    const at = workflow.indexOf(`- name: ${step}\n`);
-    return at < 0 ? '' : (workflow.slice(at, at + 400).match(/^\s+if: .*$/m) || [''])[0];
-};
-const PUBLISH_GUARD = "steps.npm.outputs.publish == 'true'";
-const TOKEN_GUARD = "steps.npm-auth.outputs.configured == 'true'";
-check(
-    'the token check is gated on the gate',
-    conditionOf('Check the npm token').includes(PUBLISH_GUARD),
-    true,
-);
-for (const step of ['Verify the package contents', 'Publish to npm']) {
-    const condition = conditionOf(step);
-    check(`"${step}" is gated on the gate`, condition.includes(PUBLISH_GUARD), true);
-    check('  ...and on a configured token', condition.includes(TOKEN_GUARD), true);
-}
-// And the step producing the answer must not gate on its own output, which would
-// make it unreachable and skip every publish forever.
-const gateAt = workflow.indexOf('id: npm\n');
-check(
-    'the gate step does not gate on its own output',
-    gateAt > 0 && !workflow.slice(gateAt, gateAt + 300).includes(PUBLISH_GUARD),
-    true,
-);
-
-// Order is load-bearing, not cosmetic: an npm version cannot be reused, so a
-// tarball that reached the registry before the suite ran could never be taken
-// back. The publish step has to sit after the harnesses.
-check(
-    'nothing is published before the harnesses run',
-    workflow.indexOf('- name: Run the harnesses\n') < workflow.indexOf('- name: Publish to npm\n'),
-    true,
-);
-
-// Provenance needs the id-token permission; asking for --provenance without it
-// fails the publish outright.
-check('the publish claims provenance', /npm publish[^\n]*--provenance/.test(workflow), true);
-check('  ...and the job may mint the token', /id-token: write/.test(workflow), true);
-
-// The pull-request nudge covers both routes. The .wgt half predates the npm
-// package and the npm half is the one that goes quiet unnoticed, so it is the
-// one pinned here -- by the file it reads, not by the prose around it.
-const warnAt = workflow.indexOf('- name: Warn if shipped code changed without a version bump\n');
-const warnStep =
-    warnAt < 0 ? '' : workflow.slice(warnAt, workflow.indexOf('\n      - name:', warnAt + 1));
-check(
-    'the PR nudge diffs the package version',
-    /\$\{BASE_SHA\}:package\.json/.test(warnStep),
-    true,
-);
-check(
-    '  ...as well as the widget version',
-    /\$\{BASE_SHA\}:standalone\/config\.xml/.test(warnStep),
-    true,
-);
 
 // --- the DIAL service has to name this package ------------------------------
 // TizenBrew's app-control path does not install from the name it is handed; it
@@ -430,10 +429,15 @@ check(
 // this package publishes under, or casting to a TV running this fork launches
 // nothing. Pinned here because the two live in different files and a rename
 // would otherwise break only on a television.
-const dialService = readFileSync(repoPath('service', 'service.ts'), 'utf8');
+//
+// Comments stripped before matching, for the same reason as the two gates above:
+// the block explaining this fix quotes the OLD name, and a first-match regex over
+// raw source would happily read a comment and report the wrong literal as shipped.
+const dialService = decomment(readFileSync(repoPath('service', 'service.ts'), 'utf8'), '(//|\\*)');
 const pkgName = JSON.parse(readFileSync(repoPath('package.json'), 'utf8')).name;
 const sent = (dialService.match(/moduleName:\s*'([^']+)'/) || [])[1];
 check('the DIAL service names a module', typeof sent, 'string');
 check('  ...and it is this package', sent, pkgName);
+check('  ...read from code, not from a comment', /@foxreis/.test(dialService), false);
 
 done();
