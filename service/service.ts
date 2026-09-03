@@ -34,7 +34,22 @@ const apps: Record<string, DialApp> = {
                     [
                         new tizen.ApplicationControlData('module', [
                             JSON.stringify({
-                                moduleName: '@foxreis/tizentube',
+                                // THIS package, not upstream's. TizenBrew does not
+                                // install anything from this name -- it looks the
+                                // module up among the ones already installed:
+                                // service-nextgen resolves the app-control payload
+                                // with `modulesCache.find(m => m.name === name)`
+                                // and answers "App Control module not found" when
+                                // nothing matches. It read '@foxreis/tizentube',
+                                // which is upstream's package, so casting to a TV
+                                // running THIS fork found no module and the launch
+                                // did nothing.
+                                //
+                                // Kept in step with package.json by
+                                // test/release-gate/npm.test.mjs, since the two have
+                                // to name the same package and nothing else here
+                                // would notice them drifting apart.
+                                moduleName: '@jadocee/tizentube',
                                 moduleType: 'npm',
                                 args: launchData,
                             }),

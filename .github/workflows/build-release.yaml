@@ -111,28 +111,50 @@ jobs:
           pnpm exec playwright install --with-deps chromium
           pnpm test
 
-      # A nudge, not a gate. Merging a PR that changes what ships without
-      # bumping the widget version publishes nothing, and the .wgt it would
-      # eventually produce does not read as an upgrade on a television. Plenty
-      # of PRs legitimately ship nothing -- docs, tests, CI -- so this warns
-      # rather than fails.
+      # A nudge, not a gate. There are two delivery routes with two independent
+      # versions, and a PR that changes what one of them ships without moving its
+      # version merges to main and publishes nothing. Plenty of PRs legitimately
+      # ship nothing -- docs, tests, CI -- so this warns rather than fails.
+      #
+      # Both halves are checked because warning about one alone leaves the other
+      # silent, and until now only the .wgt half existed: a PR could change what
+      # TizenBrew installs, leave package.json untouched, and merge with nothing
+      # new on the registry to show for it.
+      #
+      # The routes read different trees. The npm package is dist/userScript.js
+      # and dist/service.js, built from mods/ and service/. The .wgt is those
+      # plus standalone/, the Tizen app wrapped around them.
       - name: Warn if shipped code changed without a version bump
         if: github.event_name == 'pull_request'
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
           set -euo pipefail
-          widget_version() { sed -n 's/.*<widget[^>]*version="\([^"]*\)".*/\1/p' | head -n1; }
           if ! git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
             echo "base ${BASE_SHA} is not in this checkout; skipping the check"
             exit 0
           fi
-          CHANGED=$(git diff --name-only "${BASE_SHA}...HEAD" -- mods service standalone | wc -l)
-          BEFORE=$(git show "${BASE_SHA}:standalone/config.xml" 2>/dev/null | widget_version || true)
-          AFTER=$(widget_version < standalone/config.xml)
-          echo "shipped files changed: ${CHANGED}; widget version ${BEFORE:-<absent>} -> ${AFTER}"
-          if [ "${CHANGED}" -gt 0 ] && [ "${BEFORE}" = "${AFTER}" ]; then
-            echo "::warning::This PR changes shipped code but leaves the widget version at ${AFTER}, so merging it publishes nothing. Bump version= on the <widget> element in standalone/config.xml if this should cut a release."
+          changed() { git diff --name-only "${BASE_SHA}...HEAD" -- "$@" | wc -l; }
+
+          # The TizenBrew module. node rather than a regex, for the same reason
+          # .github/scripts/npm-gate.sh uses it: package.json is JSON.
+          npm_version() { node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(String(JSON.parse(s).version??""))}catch(e){}})'; }
+          NPM_CHANGED=$(changed mods service)
+          NPM_BEFORE=$(git show "${BASE_SHA}:package.json" 2>/dev/null | npm_version || true)
+          NPM_AFTER=$(npm_version < package.json)
+          echo "npm: files changed ${NPM_CHANGED}; package version ${NPM_BEFORE:-<absent>} -> ${NPM_AFTER}"
+          if [ "${NPM_CHANGED}" -gt 0 ] && [ "${NPM_BEFORE}" = "${NPM_AFTER}" ]; then
+            echo "::warning::This PR changes code that ships in the npm package but leaves its version at ${NPM_AFTER}. If ${NPM_AFTER} is already on the registry, merging publishes nothing -- bump version in package.json to cut a TizenBrew release."
+          fi
+
+          # The signed .wgt.
+          widget_version() { sed -n 's/.*<widget[^>]*version="\([^"]*\)".*/\1/p' | head -n1; }
+          WGT_CHANGED=$(changed mods service standalone)
+          WGT_BEFORE=$(git show "${BASE_SHA}:standalone/config.xml" 2>/dev/null | widget_version || true)
+          WGT_AFTER=$(widget_version < standalone/config.xml)
+          echo "wgt: files changed ${WGT_CHANGED}; widget version ${WGT_BEFORE:-<absent>} -> ${WGT_AFTER}"
+          if [ "${WGT_CHANGED}" -gt 0 ] && [ "${WGT_BEFORE}" = "${WGT_AFTER}" ]; then
+            echo "::warning::This PR changes shipped code but leaves the widget version at ${WGT_AFTER}, so merging it publishes nothing. Bump version= on the <widget> element in standalone/config.xml if this should cut a release."
           fi
 
       # ---- the TizenBrew module ---------------------------------------------

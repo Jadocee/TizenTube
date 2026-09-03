@@ -9,10 +9,23 @@
 # the npm version out of package.json and release-gate.sh reads the widget
 # version out of standalone/config.xml, and each publishes on its own terms.
 #
-# A tag push always publishes. A push to main publishes only when the version in
-# package.json changed in that push. Everything else builds and verifies only --
-# a pull request must never publish, because an npm version cannot be reused
-# once taken.
+# THE RULE: a push publishes when the version named in package.json is not yet
+# on the registry. A pull request never publishes, because an npm version cannot
+# be reused once taken and cannot meaningfully be unpublished after 72 hours.
+#
+# It used to be "publishes when the version changed in this push", which is a
+# proxy for the same thing and wrong in both directions. It cannot make a FIRST
+# publish at all -- the commit that adds publishing does not itself change the
+# version, so the package never reaches the registry and the next bump is the
+# earliest it could -- and it cannot recover from a publish that failed after
+# the gate opened, since the version has by then stopped changing. In the other
+# direction it opens the gate for a version already taken, where the only
+# possible outcome is a 403 and a red main. Asking the registry answers the
+# question the diff was approximating.
+#
+# The diff rule survives as the fallback for when the registry cannot be
+# reached, so a network failure degrades to the old behaviour rather than
+# either skipping a release or publishing blind.
 #
 # Reads:  GITHUB_EVENT_NAME, GITHUB_REF_TYPE, GITHUB_REF_NAME, EVENT_BEFORE
 # Writes: publish=true|false, version=<version> and name=<package> to $GITHUB_OUTPUT
@@ -23,6 +36,7 @@ OUT="${GITHUB_OUTPUT:-/dev/stdout}"
 
 emit() { echo "$1" >> "$OUT"; }
 no_publish() { echo "$1"; emit 'publish=false'; exit 0; }
+publish() { echo "$1"; emit 'publish=true'; exit 0; }
 
 # node, not sed: package.json is JSON and a regex over it is how you end up
 # reading the version of something else. node is guaranteed present here -- the
@@ -56,14 +70,65 @@ if [ "${GITHUB_EVENT_NAME:-}" != "push" ]; then
     no_publish "not a push (${GITHUB_EVENT_NAME:-unknown}); build and verify only"
 fi
 
-if [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
-    TAG="${GITHUB_REF_NAME:-}"
-    if [ "$TAG" != "v$VERSION" ]; then
-        echo "::warning::tag $TAG does not match the package version $VERSION in $MANIFEST"
+# A tag that disagrees with the manifest is worth saying out loud wherever the
+# decision lands: the tag is what a human reads off the releases page, and the
+# manifest is what actually gets published.
+if [ "${GITHUB_REF_TYPE:-}" = "tag" ] && [ "${GITHUB_REF_NAME:-}" != "v$VERSION" ]; then
+    echo "::warning::tag ${GITHUB_REF_NAME:-<unset>} does not match the package version $VERSION in $MANIFEST"
+fi
+
+# Three answers, not two. `npm view <pkg>@<version> version` prints the version
+# and exits 0 when it is there; exits non-zero with code E404 when either the
+# version or the whole package is unknown, which is the same answer for our
+# purposes -- there is nothing at that coordinate. Any other failure (a network
+# drop, a proxy 502, npm missing from PATH) is NOT an answer, and treating it as
+# one would publish blind or silently skip a release.
+#
+# Sets two globals rather than echoing its answer, because $(...) would run it
+# in a subshell and the error text would not survive to be logged.
+#
+# Here-strings, not pipes: `grep -q` exits the moment it matches, and under
+# `set -o pipefail` the SIGPIPE that gives the writer would make a successful
+# match read as a failed pipeline.
+REGISTRY_STATE=''
+REGISTRY_ERROR=''
+probe_registry() {
+    local out status err_file
+    err_file="$(mktemp)"
+    out="$(npm view "${NAME}@${VERSION}" version 2>"$err_file")" && status=0 || status=$?
+    REGISTRY_ERROR="$(cat "$err_file")"
+    rm -f "$err_file"
+
+    if [ "$status" -eq 0 ] && grep -qxF "$VERSION" <<<"$out"; then
+        REGISTRY_STATE=present
+    elif grep -q 'code E404' <<<"$REGISTRY_ERROR"; then
+        REGISTRY_STATE=absent
+    else
+        REGISTRY_STATE=unknown
     fi
-    echo "tag push: publishing ${NAME}@${VERSION}"
-    emit 'publish=true'
-    exit 0
+}
+
+probe_registry
+case "$REGISTRY_STATE" in
+    present)
+        no_publish "${NAME}@${VERSION} is already on the registry; build and verify only"
+        ;;
+    absent)
+        publish "${NAME}@${VERSION} is not on the registry yet: publishing"
+        ;;
+    *)
+        # Deliberately not fatal. A registry that cannot be reached is a reason
+        # to fall back to what we can work out locally, not a reason to fail a
+        # run whose build and tests have already passed.
+        echo "::warning::could not ask the registry whether ${NAME}@${VERSION} exists; falling back to the version-changed rule"
+        head -n 5 <<<"$REGISTRY_ERROR"
+        ;;
+esac
+
+# ---- fallback: did the version change in this push? -------------------------
+
+if [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
+    publish "tag push: publishing ${NAME}@${VERSION}"
 fi
 
 BEFORE="${EVENT_BEFORE:-}"
@@ -81,5 +146,4 @@ if [ "$PREVIOUS" = "$VERSION" ]; then
     no_publish "unchanged; build and verify only"
 fi
 
-echo "package version changed: publishing ${NAME}@${VERSION}"
-emit 'publish=true'
+publish "package version changed: publishing ${NAME}@${VERSION}"

@@ -203,8 +203,26 @@ the `.wgt`.
 **Two versions, two gates, deliberately.** `package.json`'s `version` drives the
 npm package; `standalone/config.xml`'s widget version drives the `.wgt`. Keying
 them together would mean a userscript fix either cutting a `.wgt` nobody needed,
-or not reaching TizenBrew at all. Each route publishes when *its* version moves
-on a push to `main` (or on a matching tag push).
+or not reaching TizenBrew at all.
+
+**The npm gate asks the registry.** A push to `main` (or a tag push) publishes
+when the version named in `package.json` is *not already on npm*. Bumping the
+version is therefore how you cut a release, but the gate is not testing the bump
+— it is testing the outcome. That distinction matters twice:
+
+- it can make a **first** publish. The rule used to be "the version changed in
+  this push", which cannot be satisfied by the commit that adds publishing, so
+  the machinery landed on `main` and the package never reached the registry.
+- it will not attempt a version already taken, where the only possible outcome
+  is a 403 and a red `main`.
+
+If the registry cannot be reached, it falls back to the version-changed rule and
+says so, so an npm outage neither fails a run whose tests have passed nor
+publishes blind. The `.wgt` route still keys off its own version moving in the
+push; it has no registry to ask.
+
+A pull request never publishes, and CI warns on one that changes shipped code
+without moving the relevant version.
 
 ```sh
 npm pack --dry-run        # what would ship
@@ -238,7 +256,11 @@ and commit built the tarball, which is worth having for something people install
 onto a television.
 
 > The package name is `@jadocee/tizentube`. It was `@foxreis/tizentube` —
-> upstream's scope — which this fork cannot publish to.
+> upstream's scope — which this fork cannot publish to. The DIAL service in
+> `service/service.ts` sends that same name when something casts to the TV:
+> TizenBrew looks it up among the *installed* modules rather than fetching it, so
+> a mismatch makes the launch fail with "App Control module not found".
+> `test/release-gate/npm.test.mjs` keeps the two in step.
 
 ## Packaging the `.wgt`
 
