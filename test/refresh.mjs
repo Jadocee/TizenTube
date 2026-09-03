@@ -340,6 +340,13 @@ if (!aisList.includes('export async function refresh'))
     fail('aisList.ts no longer exports refresh; fix test/refresh.mjs');
 out('aislist/mod.generated.mts', aisList);
 
+// skipFilter.ts has no imports, so it runs as-is.
+const skipFilter = readRepo('mods', 'features', 'skipFilter.ts');
+if (/^\s*import\s/m.test(skipFilter)) {
+    fail('skipFilter.ts has grown an import; the harness copy is no longer the real thing');
+}
+out('skip-filter/mod.generated.mts', skipFilter);
+
 // speedUI.ts, lifted so the BLUE key handler itself is driven. The registry
 // below has its own tests, but a harness that only proves the registry works
 // still passes with speedUI back to inlining the close and skipping the focus

@@ -54,6 +54,7 @@ const HARNESSES = [
         types: true,
     },
     { name: 'preview service hook', dir: 'preview-indicator', file: 'hook.mjs', types: true },
+    { name: 'sponsorblock skip filter', dir: 'skip-filter', file: 'test.mjs', types: true },
     { name: 'transport slots', dir: 'transport-slots', file: 'test.mjs', types: true },
     { name: 'blue key panel close', dir: 'transport-slots', file: 'blue.mjs', types: true },
     { name: 'home tile fixes', dir: 'tile-fixes', file: 'test.mjs', types: true },
