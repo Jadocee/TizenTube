@@ -20,6 +20,7 @@ import { setStyleBlock } from './styleSheet.js';
 import { startFocusMotion } from '../features/focusMotion.js';
 import { notePreviewMove } from './previewIndicator.js';
 import { armReselect } from '../features/guideReselectRuntime.js';
+import { registerThemePanelCloser } from './themePanelHost.js';
 import { t } from 'i18next';
 
 /**
@@ -243,6 +244,10 @@ function execute_once_dom_loaded(): void {
         if (control) control.focus();
     }
 
+    // speedUI has to close this panel too, and cannot import this file: the graph
+    // already runs ui -> resolveCommand -> speedUI, so that import would close a
+    // cycle. It registers instead, and gets the real hidePanel rather than a
+    // copy of its first two lines.
     function hidePanel() {
         uiContainer.style.display = 'none';
         uiContainer.blur();
@@ -280,6 +285,11 @@ function execute_once_dom_loaded(): void {
             }
         }
     }
+
+    // Registered here rather than exported: speedUI's BLUE handler needs the real
+    // close, focus hand-back and all, and cannot import this module without
+    // closing the ui -> resolveCommand -> speedUI cycle.
+    registerThemePanelCloser(hidePanel);
 
     uiContainer.addEventListener(
         'keydown',

@@ -388,6 +388,35 @@ function processResponse(r: any, sourceText?: unknown): any {
             }
         }
 
+        // WHY THIS ONLY EVER WORKS AT PARSE TIME, and why the obvious fix for the
+        // race below is not available.
+        //
+        // Both this block and the manual-skip block above read
+        // window.sponsorblock.segments, which SponsorBlock fills asynchronously.
+        // When the watchNext payload is parsed before that request lands, no
+        // button is injected -- and there is no second chance, because these
+        // arrays cannot be usefully mutated afterwards.
+        //
+        // Settled against the shipped bundle rather than left as a device
+        // question. Every read of promotedActions goes through
+        //
+        //     _.hq(function(d){...})(b.props.data.promotedActions)
+        //
+        // and _.hq is memoize-one:
+        //
+        //     _.hq = function(a,b){ ... if (f && c===this && b(g,d)) return e; ... }
+        //     DHa  = function(a,b){ ...; for (...) if (a[c] !== b[c]) return !1; return !0 }
+        //
+        // The memo key is the ARRAY REFERENCE, compared with !==. Pushing onto
+        // the same array after the component has rendered leaves that reference
+        // identical, the comparator reports a hit, and the cached result comes
+        // back -- so a late button is computed and never drawn. The same holds
+        // for timelyActionRenderers, read the same way.
+        //
+        // So: injecting during JSON.parse, as this does, is the only point at
+        // which it can work. Making it reliable would mean having the segments
+        // before the payload is parsed, or forcing a re-render with a NEW array,
+        // neither of which is a small change. Recorded rather than attempted.
         if (
             r?.transportControls?.transportControlsRenderer?.promotedActions &&
             configRead('enableSponsorBlockHighlight')

@@ -1,4 +1,5 @@
 import sha256 from '../tiny-sha256.js';
+import { nextSegments as pickNextSegments, seekTargetFor } from './skipFilter.js';
 import { configRead } from '../config.js';
 import { channelOf, isChannelDisabled } from './videoContext.js';
 import { showToast } from '../ui/ytUI.js';
@@ -418,12 +419,12 @@ class SponsorBlockHandler {
         // Sometimes timeupdate event (that calls scheduleSkip) gets fired right before
         // already scheduled skip routine below. Let's just look back a little bit
         // and, in worst case, perform a skip at negative interval (immediately)...
-        const nextSegments = this.segments!.filter(
-            (seg) =>
-                seg.segment[0] > this.video!.currentTime - 0.3 &&
-                seg.segment[1] > this.video!.currentTime - 0.3,
-        );
-        nextSegments.sort((s1, s2) => s1.segment[0] - s2.segment[0]);
+        // The choice lives in features/skipFilter.ts, which a Node harness runs
+        // directly -- including the two things a review once split over: that
+        // the second conjunct is redundant only for WELL-FORMED segments and so
+        // stays, and that a short segment at the very end of a video ping-pongs
+        // once before the repeat guard below stops it.
+        const nextSegments = pickNextSegments(this.segments, this.video!.currentTime);
 
         if (!nextSegments.length) {
             if (DEBUG_SKIP_SCHEDULING) console.info(this.videoID, 'No more segments');
@@ -517,9 +518,7 @@ class SponsorBlockHandler {
                             true,
                         );
                     }
-                    if (this.video!.duration - end < 1) {
-                        this.video!.currentTime = end - 1;
-                    } else this.video!.currentTime = end;
+                    this.video!.currentTime = seekTargetFor(end, this.video!.duration);
                     this.scheduleSkip();
                 }
             },
