@@ -1,6 +1,6 @@
 # Harnesses
 
-Thirty-six regression harnesses. They exist because the things that break TizenTube
+Thirty-seven regression harnesses. They exist because the things that break TizenTube
 mostly cannot be caught by a typechecker or by reading a diff: a renderer shape
 that only appears at runtime, a focus trap you only find with a D-pad, a
 stylesheet that works until CSP is enforced, a script that behaves differently
@@ -42,6 +42,7 @@ here (no browser, no built bundle) report as *skipped*, not passed.
 | `preview-indicator/runtime.mjs` | The DOM shell around the state machine, on a fake clock and a fake DOM. It exists because of *where* the bugs were: the reducer had a harness from day one and was correct, while every defect a review found was in the dispatcher around it — what gets reset on a restart, which timer is re-armed, what `disable()` tears down. None of that is visible from a pure function's return value. |
 | `preview-indicator/hook.mjs` | The wrapper around YouTube's `PlaybackPreviewService`, against a fake service with the *real* prototype's methods — `start` and `end`, and no `stop`. The wrapper hooked `stop` for its whole life, which merely created a property nothing called, so it reported itself hooked and `onPreviewStop` never fired once. A fixture invented to suit the code would have had a `stop` and passed. |
 | `transport-slots/test.mjs` | Which transport-control slot gets *previous* and which gets *next*. The app's two skip-button accessors are fixed **slots** whose meaning swaps with layout direction — `isRtl ? skipNextButton : skipPreviousButton` — while `customUI` finds them by matching source text, which carries the whole ternary and reads identically either way. So the mod assigned previous to the first slot always, and on a right-to-left account its two buttons sat the wrong way round. |
+| `transport-slots/blue.mjs` | The BLUE key closing the theme panel, driven through the real handler. Separate from the registry's own tests next door because those pass with `speedUI` back to inlining the close and skipping the focus hand-back — which *is* the bug. Proven, not assumed: reverting `speedUI` leaves the registry harness green and fails this one. |
 | `tile-fixes/test.mjs` | The per-tile and per-shelf decisions the home page depends on: picking a thumbnail that actually exists instead of synthesising a 4:3 URL and declaring it fact, deciding a tile is previewable, reading the members-only badge out of the real `lineItemRenderer` path, and recognising an emptied shelf. |
 | `tile-fixes/dearrow.mjs` | How many DeArrow requests actually leave the machine, driven with a counting fake `fetch`. Uncached, a first home screen was on the order of a hundred and fifty outbound requests fired at once at a television SoC, again on every continuation. |
 | `focus-motion/test.mjs` | That one failing write to `tectonicConfig` costs only its own switch. All six lived in a single bare `try`/`catch` whose first statement dereferenced an object the app may not have published yet, so the two most-felt animation switches were lost silently. |

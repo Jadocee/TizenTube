@@ -340,6 +340,34 @@ if (!aisList.includes('export async function refresh'))
     fail('aisList.ts no longer exports refresh; fix test/refresh.mjs');
 out('aislist/mod.generated.mts', aisList);
 
+// speedUI.ts, lifted so the BLUE key handler itself is driven. The registry
+// below has its own tests, but a harness that only proves the registry works
+// still passes with speedUI back to inlining the close and skipping the focus
+// hand-back -- which is exactly the bug.
+const speedUI = readRepo('mods', 'ui', 'speedUI.ts')
+    .replace("from '../config.js'", "from './speedStub.mjs'")
+    .replace("from './ytUI.js'", "from './speedStub.mjs'")
+    .replace("from 'i18next'", "from './speedStub.mjs'")
+    .replace("from './themePanelHost.js'", "from './panelHost.generated.mts'")
+    .replace(/^import type .*?;\n/gm, '');
+for (const gone of ['../config.js', './ytUI.js', 'i18next', './themePanelHost.js']) {
+    if (speedUI.includes(`'${gone}'`))
+        fail(`speedUI.ts import of ${gone} no longer matches; fix test/refresh.mjs`);
+}
+if (!speedUI.includes('keyCode === 406'))
+    fail('speedUI.ts no longer binds the BLUE key; fix test/refresh.mjs');
+out('transport-slots/speedUI.generated.mts', speedUI);
+
+// themePanelHost.ts has no imports either -- being import-free IS its purpose,
+// since that is what lets ui.ts and speedUI.ts share one function without
+// closing the ui -> resolveCommand -> speedUI cycle. The guard below is
+// therefore load-bearing rather than a convention.
+const panelHost = readRepo('mods', 'ui', 'themePanelHost.ts');
+if (/^\s*import\s/m.test(panelHost)) {
+    fail('themePanelHost.ts has grown an import; that reintroduces the cycle it exists to avoid');
+}
+out('transport-slots/panelHost.generated.mts', panelHost);
+
 // transportSlots.ts has no imports, so it runs as-is.
 const slots = readRepo('mods', 'features', 'transportSlots.ts');
 if (/^\s*import\s/m.test(slots)) {

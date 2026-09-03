@@ -89,4 +89,60 @@ try {
 }
 check('a throwing document does not escape', threw, null);
 
+// --- the theme-panel closer registry ----------------------------------------
+// Lives here rather than in its own directory because it is the same shape of
+// problem: a decision that had to be extracted into an import-free module so
+// two files could share it. speedUI's BLUE key has to close the theme panel,
+// ui.ts owns the real close, and ui -> resolveCommand -> speedUI means speedUI
+// cannot import it.
+const host = await import('./panelHost.generated.mts');
+
+host.resetThemePanelCloser();
+check('nothing registered means nothing was closed', host.closeThemePanel(), false);
+
+let closed = 0;
+host.registerThemePanelCloser(() => closed++);
+check('a registered closer runs', host.closeThemePanel(), true);
+check('  ...exactly once', closed, 1);
+
+// The return value is what speedUI branches on: false has to mean "there was
+// nothing to close", so it can fall back to hiding the panel itself.
+host.resetThemePanelCloser();
+host.registerThemePanelCloser(() => {
+    throw new Error('hidePanel blew up');
+});
+let escaped = null;
+let result = null;
+try {
+    result = host.closeThemePanel();
+} catch (e) {
+    escaped = e.message;
+}
+// This runs from a capture-phase key handler on the document; an escape there
+// would take the key press with it.
+check('a throwing closer does not escape', escaped, null);
+check('  ...and reports that it did not close', result, false);
+
+// Asserted against a GOOD closer already in place, because that is the only way
+// the guard is observable: registering junk over nothing leaves nothing either
+// way, so the first version of this check passed with the guard deleted.
+host.resetThemePanelCloser();
+let good = 0;
+host.registerThemePanelCloser(() => good++);
+for (const junk of [null, undefined, 0, '', 'x', {}, []]) {
+    host.registerThemePanelCloser(junk);
+}
+check('junk does not replace a working closer', host.closeThemePanel(), true);
+check('  ...and the real one still ran', good, 1);
+
+// Re-registering replaces rather than accumulating: ui.ts's init can run more
+// than once, and two closers would hand focus back twice.
+host.resetThemePanelCloser();
+let a = 0;
+let b = 0;
+host.registerThemePanelCloser(() => a++);
+host.registerThemePanelCloser(() => b++);
+host.closeThemePanel();
+check('re-registering replaces the closer', `${a}${b}`, '01');
+
 done();

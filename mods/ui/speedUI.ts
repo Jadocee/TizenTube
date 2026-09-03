@@ -1,5 +1,6 @@
 import { configRead } from '../config.js';
 import { showModal, buttonItem, overlayPanelItemListRenderer } from './ytUI.js';
+import { closeThemePanel } from './themePanelHost.js';
 import { t } from 'i18next';
 import type { CompactLinkRenderer } from '../types/youtube';
 
@@ -27,8 +28,22 @@ function execute_once_dom_loaded_speed(): void {
                 // would desync the moment the panel closed by any other route.
                 const themePanel = document.querySelector<HTMLElement>('.ytaf-ui-container');
                 if (themePanel && themePanel.style.display !== 'none') {
-                    themePanel.style.display = 'none';
-                    themePanel.blur();
+                    // ui.ts's own hidePanel, through the registry -- this used to
+                    // inline its first two lines and skip the third, which is the
+                    // one that hands focus back to the app. Closing the panel
+                    // without it left nothing focused, and a television with
+                    // nothing focused looks like a dead remote.
+                    //
+                    // The DOM check above stays: it decides WHETHER the panel is
+                    // open, and hidePanel is not a no-op when it is already
+                    // closed -- it would hand focus somewhere the user did not
+                    // ask for.
+                    if (!closeThemePanel()) {
+                        // ui.ts has not initialised. Then there is no focus to
+                        // hand back either, so hiding it is the whole job.
+                        themePanel.style.display = 'none';
+                        themePanel.blur();
+                    }
                 }
                 speedSettings();
                 return false;
