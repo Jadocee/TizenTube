@@ -3,6 +3,7 @@
 import { extractAssignedFunctions } from '../utils/ASTParser.js';
 import { configRead } from '../config.js';
 import { ButtonRenderer } from './ytUI.js';
+import { transportSlots, documentIsRtl } from '../features/transportSlots.js';
 import { t } from 'i18next';
 import type { AssignedFunction } from '../utils/ASTParser.js';
 
@@ -202,15 +203,30 @@ function applyPatches() {
                 };
             }
 
-            if (previousButtonName && nextButtonName && configRead('enablePreviousNextButtons')) {
-                inst[previousButtonName] = () =>
+            // The two names are SLOTS, not meanings. The app puts the next
+            // button in the first slot under a right-to-left layout, because the
+            // row reads right to left there -- and these names are matched on
+            // source text, which carries the whole ternary and so is identical
+            // either way. Assigning previous to the first slot unconditionally
+            // put the pair the wrong way round on every rtl account.
+            //
+            // Returning bare ButtonRenderer bodies is correct and stays: the
+            // originals are `_.B(d.skipPreviousButton, _.hA)` where
+            // `_.B = (a,b) => a[b.name]` and `_.hA = new _.S("buttonRenderer")`,
+            // so YouTube's own accessors return the unwrapped body too.
+            const slots = transportSlots(
+                { first: previousButtonName, second: nextButtonName },
+                documentIsRtl(document),
+            );
+            if (slots.previous && slots.next && configRead('enablePreviousNextButtons')) {
+                inst[slots.previous] = () =>
                     ButtonRenderer(false, t('player.previous'), 'SKIP_PREVIOUS', {
                         signalAction: {
                             signal: 'PLAYER_PLAY_PREVIOUS',
                         },
                     });
 
-                inst[nextButtonName] = () =>
+                inst[slots.next] = () =>
                     ButtonRenderer(false, t('player.next'), 'SKIP_NEXT', {
                         signalAction: {
                             signal: 'PLAYER_PLAY_NEXT',

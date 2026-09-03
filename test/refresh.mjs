@@ -340,6 +340,13 @@ if (!aisList.includes('export async function refresh'))
     fail('aisList.ts no longer exports refresh; fix test/refresh.mjs');
 out('aislist/mod.generated.mts', aisList);
 
+// transportSlots.ts has no imports, so it runs as-is.
+const slots = readRepo('mods', 'features', 'transportSlots.ts');
+if (/^\s*import\s/m.test(slots)) {
+    fail('transportSlots.ts has grown an import; the harness copy is no longer the real thing');
+}
+out('transport-slots/mod.generated.mts', slots);
+
 // playbackPreview.ts runs as-is: it has no imports, only browser globals the
 // harness provides. It is lifted rather than stubbed because the bug it carried
 // was in the wrapping itself -- it wrapped `service.stop`, which the shipped
