@@ -67,18 +67,25 @@ on those TVs — it supports Tizen 3.0 and newer.
 TizenTube 9 can run two ways. The TizenBrew module is the simpler one; the
 standalone app is a normal Tizen app with no TizenBrew dependency.
 
-> ⚠️ **This fork does not publish builds yet.** The npm package and the release
-> `.wgt` linked below are the *upstream* project's, so following either section
-> as written installs upstream TizenTube, not TizenTube 9. Until this fork
-> publishes its own, build from source — see
-> [Building it yourself](#building-it-yourself) — and read the two sections
-> below for the install mechanics, which are the same either way.
+> ⚠️ **The standalone `.wgt` is not released yet.** The release linked in that
+> section is the *upstream* project's, so installing it gives you upstream
+> TizenTube rather than TizenTube 9 — build your own instead, see
+> [Building it yourself](#building-it-yourself). The TizenBrew module below is
+> this fork's own package and is installed normally.
 
 ### As a TizenBrew module
 
 1. Install TizenBrew from [here](https://github.com/reisxd/TizenBrew) and follow the instructions.
 
-2. Add `@foxreis/tizentube` as an NPM module in the TizenBrew module manager. Note that this is upstream's package — TizenBrew has no published module for this fork, and `@foxreis/tizentube` is kept as the module name only because the running code sends it to TizenBrew and the update check fetches it.
+2. Add `@jadocee/tizentube` as an NPM module in the TizenBrew module manager.
+   CI publishes that package from `main`.
+
+> Earlier revisions of this page named `@foxreis/tizentube` here, which is
+> **upstream's** package — a different project, targeting an older platform floor
+> and without any of this fork's fixes. If you have it installed it keeps
+> working; swap it for this one when you want the fork. If the module manager
+> cannot find `@jadocee/tizentube`, no release has landed yet — check the
+> repository's Actions tab.
 
 ### As a standalone app
 
@@ -145,7 +152,7 @@ pnpm install                              # all four trees, one lockfile
 (cd service && pnpm run build)            # 2. the DIAL service
 (cd standalone/service && pnpm run build) # 3. the app's service
 
-pnpm test                                 # 39 harnesses
+pnpm test                                 # 40 harnesses
 ```
 
 Under ten seconds on a warm checkout, and step 1 is the entire build if you only
@@ -163,12 +170,23 @@ certificate — a widget cannot be unsigned. See
 
 #### Cutting a release
 
-Releases come from the widget version. Bump `version=` on the `<widget>` element
-in [standalone/config.xml](standalone/config.xml) in your PR, and merging it
-builds, signs and publishes a `.wgt` under that version — if signing is
-configured; see below. A merge that leaves the version alone builds and verifies
-only — CI warns on a PR that changes shipped
-code without bumping it.
+There are two routes and they release independently, off two versions.
+
+**The TizenBrew module** comes from `version` in
+[package.json](package.json). CI publishes to npm whenever `main` names a
+version the registry does not already have, so bumping it in your PR and merging
+is what cuts a release; merging without a bump republishes nothing. It will not
+publish a version behind the current `latest`, because TizenBrew follows that
+tag with no version pin and moving it back would downgrade every television.
+
+**The standalone `.wgt`** comes from the widget version. Bump `version=` on the
+`<widget>` element in [standalone/config.xml](standalone/config.xml) in your PR,
+and merging it builds, signs and publishes a `.wgt` under that version — if
+signing is configured; see below. A merge that leaves the version alone builds
+and verifies only.
+
+CI warns on a pull request that changes what either route ships without moving
+that route's version.
 
 That version is the one a television uses for install and upgrade semantics, so
 two packages carrying the same one cannot be cleanly installed over each other.

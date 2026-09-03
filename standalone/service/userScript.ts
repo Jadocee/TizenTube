@@ -28,9 +28,14 @@ import fetch from 'node-fetch';
  * self-updater pointed at somebody else's package is a supply chain, not a
  * feature.
  *
- * TizenTube 9 publishes no userscript of its own yet, so there is nothing
- * legitimate to point this at, and the .wgt is self-contained anyway: the script
- * is embedded at build time and updating means installing a new package.
+ * TizenTube 9 now publishes @jadocee/tizentube, so a legitimate source finally
+ * exists -- but this stays null, deliberately. That package is the TizenBrew
+ * module, a separate delivery route with its own version line; wiring the .wgt's
+ * updater to it would mean a TV silently swapping in a build it was not shipped
+ * with, on a version comparison alone. The .wgt is self-contained: the script is
+ * embedded at build time and updating means installing a new package. Turning
+ * this on is a decision to take on its own merits, not a consequence of the
+ * package existing.
  *
  * To turn updates back on, set this to a source THIS fork controls -- its own
  * npm package, or its own GitHub release assets -- and nothing else. The shape

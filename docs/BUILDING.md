@@ -55,7 +55,7 @@ pnpm install                              # all four trees, one lockfile
 (cd service && pnpm run build)            # 2. the DIAL service
 (cd standalone/service && pnpm run build) # 3. the app's service
 
-pnpm test                                 # 39 harnesses
+pnpm test                                 # 40 harnesses
 ```
 
 Under ten seconds in total on a warm checkout. If you only want the TizenBrew
@@ -116,7 +116,7 @@ copy. This is the one way to get a `.wgt` that is quietly a version behind.
 ```sh
 pnpm check                                         # Biome: format + lint
 pnpm -r --workspace-concurrency=1 run typecheck   # all three TypeScript trees
-pnpm test                                          # 39 harnesses
+pnpm test                                          # 40 harnesses
 pnpm test settings                                 # just the ones matching "settings"
 ```
 
@@ -203,8 +203,52 @@ the `.wgt`.
 **Two versions, two gates, deliberately.** `package.json`'s `version` drives the
 npm package; `standalone/config.xml`'s widget version drives the `.wgt`. Keying
 them together would mean a userscript fix either cutting a `.wgt` nobody needed,
-or not reaching TizenBrew at all. Each route publishes when *its* version moves
-on a push to `main` (or on a matching tag push).
+or not reaching TizenBrew at all.
+
+**The npm gate asks the registry.** A push to `main` (or a tag push) publishes
+when the version named in `package.json` is *not already on npm*. Bumping the
+version is therefore how you cut a release, but the gate is not testing the bump
+— it is testing the outcome. That distinction matters twice:
+
+- it can make a **first** publish. The rule used to be "the version changed in
+  this push", which cannot be satisfied by the commit that adds publishing, so
+  the machinery landed on `main` and the package never reached the registry.
+- it will not attempt a version already taken, where the only possible outcome
+  is a 403 and a red `main`.
+
+It also refuses a version *behind* the published `latest`. `npm publish` carries
+no `--tag`, so it moves `latest` to whatever it just uploaded regardless of
+ordering — and TizenBrew resolves the module through `latest` with no version
+pin, so publishing an older build downgrades every television on its next check.
+The way to reach that state is re-running an old workflow run from a commit whose
+version has since been superseded. To publish a back-version deliberately, do it
+by hand with an explicit `--tag`.
+
+Both questions are answered from one `npm view <package> --json`, read by
+[`.github/scripts/registry-state.mjs`](../.github/scripts/registry-state.mjs).
+It is a separate file because both are *semver* questions and semver is not
+string comparison: the registry stores `1.2.3+ci` as `1.2.3`, and `1.9.0` sorts
+after `1.10.0` as text.
+
+**If the registry cannot be reached** it falls back to the version-changed rule
+and says so, so an npm outage neither fails a run whose tests have passed nor
+publishes blind. That fallback is the old rule *in full*, including its tag
+branch: with no registry to ask, a tag push publishes on the strength of the tag
+alone, without consulting the version or whether it is already taken. That is the
+one hole the fallback keeps, it is deliberate, and it is asserted in
+`test/release-gate/npm.test.mjs` so it stays a decision rather than becoming a
+surprise.
+
+The `.wgt` route keys off its own version moving in the push; it has no registry
+to ask.
+
+A pull request never publishes, and CI warns on one that changes shipped code
+without moving the relevant version.
+
+Publishing authenticates through the `.npmrc` that `actions/setup-node` writes
+when it is given `registry-url`. `NODE_AUTH_TOKEN` is that file's placeholder,
+not something npm reads on its own — without `registry-url` the publish runs
+unauthenticated and fails with `ENEEDAUTH` no matter how good the secret is.
 
 ```sh
 npm pack --dry-run        # what would ship
@@ -238,7 +282,11 @@ and commit built the tarball, which is worth having for something people install
 onto a television.
 
 > The package name is `@jadocee/tizentube`. It was `@foxreis/tizentube` —
-> upstream's scope — which this fork cannot publish to.
+> upstream's scope — which this fork cannot publish to. The DIAL service in
+> `service/service.ts` sends that same name when something casts to the TV:
+> TizenBrew looks it up among the *installed* modules rather than fetching it, so
+> a mismatch makes the launch fail with "App Control module not found".
+> `test/release-gate/npm.test.mjs` keeps the two in step.
 
 ## Packaging the `.wgt`
 
