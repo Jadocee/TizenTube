@@ -32,6 +32,10 @@ jobs:
     permissions:
       # Used only by the release step, which cannot run outside a tag.
       contents: write
+      # npm provenance. It makes the published package carry a signed statement
+      # of which workflow, commit and repository built it, which is worth having
+      # for something people install onto a television. Read-only elsewhere.
+      id-token: write
     steps:
       - name: Clone repo with full history and tags
         uses: actions/checkout@v4
@@ -131,7 +135,80 @@ jobs:
             echo "::warning::This PR changes shipped code but leaves the widget version at ${AFTER}, so merging it publishes nothing. Bump version= on the <widget> element in standalone/config.xml if this should cut a release."
           fi
 
-      # ---- publishing --------------------------------------------------------
+      # ---- the TizenBrew module ---------------------------------------------
+
+      # This is the route most people install through: TizenBrew fetches the
+      # package from npm and reads main, serviceFile, websiteURL and keys
+      # straight out of its package.json. It needs no certificate, which is why
+      # it has its own gate rather than riding on the .wgt one -- see
+      # .github/scripts/npm-gate.sh for why the two versions are separate.
+      #
+      # Placed after the harnesses deliberately: an npm version cannot be reused
+      # once taken, so nothing reaches the registry that has not passed the
+      # suite.
+      - name: Decide whether this run publishes to npm
+        id: npm
+        env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_REF_TYPE: ${{ github.ref_type }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          EVENT_BEFORE: ${{ github.event.before }}
+        run: bash .github/scripts/npm-gate.sh
+
+      # Same shape as the certificate step below, for the same reason: a
+      # repository that has not configured publishing should get a green run
+      # rather than a red main every time the version moves. An absent token is
+      # a skip; a token that is set but rejected fails loudly at the publish
+      # step itself.
+      - name: Check the npm token
+        id: npm-auth
+        if: steps.npm.outputs.publish == 'true'
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${NPM_TOKEN:-}" ]; then
+              echo "::warning::NPM_TOKEN is not set, so ${{ steps.npm.outputs.name }}@${{ steps.npm.outputs.version }} was not published. Add it in Settings > Secrets to publish the TizenBrew module."
+              echo 'configured=false' >> "$GITHUB_OUTPUT"
+          else
+              echo 'configured=true' >> "$GITHUB_OUTPUT"
+          fi
+
+      # --dry-run first, so the tarball is inspected before anything is sent.
+      # The check is not decoration: main and serviceFile point into dist/, and
+      # a package that reached the registry without them would install as a
+      # TizenBrew module that loads nothing.
+      - name: Verify the package contents
+        if: steps.npm.outputs.publish == 'true' && steps.npm-auth.outputs.configured == 'true'
+        run: |
+          set -euo pipefail
+          npm pack --dry-run --json > /tmp/pack.json
+          node -e '
+            const [p] = require("/tmp/pack.json");
+            const files = p.files.map((f) => f.path);
+            const pkg = require("./package.json");
+            const required = [pkg.main, pkg.serviceFile, "package.json", "LICENSE"];
+            const missing = required.filter((f) => !files.includes(f));
+            console.log(`${p.name}@${p.version}: ${p.entryCount} files, ${Math.round(p.size / 1024)} KB packed`);
+            for (const f of files) console.log("  " + f);
+            if (missing.length) {
+              console.error("::error::the tarball is missing " + missing.join(", "));
+              process.exit(1);
+            }
+          '
+
+      - name: Publish to npm
+        if: steps.npm.outputs.publish == 'true' && steps.npm-auth.outputs.configured == 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          # --access public because the package is scoped, and a scoped package
+          # defaults to private -- which would publish something nobody can
+          # install. --provenance ties the tarball to this workflow run.
+          npm publish --provenance --access public
+
+      # ---- the standalone .wgt ------------------------------------------------
 
       # The logic lives in a script rather than inline here so it can be tested:
       # test/release-gate drives it through a bump, an unchanged version, an

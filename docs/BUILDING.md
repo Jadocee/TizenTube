@@ -55,7 +55,7 @@ pnpm install                              # all four trees, one lockfile
 (cd service && pnpm run build)            # 2. the DIAL service
 (cd standalone/service && pnpm run build) # 3. the app's service
 
-pnpm test                                 # 38 harnesses
+pnpm test                                 # 39 harnesses
 ```
 
 Under ten seconds in total on a warm checkout. If you only want the TizenBrew
@@ -116,7 +116,7 @@ copy. This is the one way to get a `.wgt` that is quietly a version behind.
 ```sh
 pnpm check                                         # Biome: format + lint
 pnpm -r --workspace-concurrency=1 run typecheck   # all three TypeScript trees
-pnpm test                                          # 38 harnesses
+pnpm test                                          # 39 harnesses
 pnpm test settings                                 # just the ones matching "settings"
 ```
 
@@ -191,6 +191,54 @@ skipped harness is coverage that silently did not run:
 ```sh
 TT_STRICT_SKIP=1 pnpm test    # what CI runs
 ```
+
+## Publishing the TizenBrew module
+
+This is the route most people install through: TizenBrew fetches the package
+from npm and reads its manifest fields — `main`, `serviceFile`, `websiteURL`,
+`keys`, `packageType` — straight out of `package.json`. It needs no signing
+certificate, which is why it publishes on its own terms rather than alongside
+the `.wgt`.
+
+**Two versions, two gates, deliberately.** `package.json`'s `version` drives the
+npm package; `standalone/config.xml`'s widget version drives the `.wgt`. Keying
+them together would mean a userscript fix either cutting a `.wgt` nobody needed,
+or not reaching TizenBrew at all. Each route publishes when *its* version moves
+on a push to `main` (or on a matching tag push).
+
+```sh
+npm pack --dry-run        # what would ship
+```
+
+The tarball is an **allowlist**, not a denylist: `files` in `package.json` names
+the two bundles plus `LICENSE` and `README.md`, and nothing else. That replaced
+an `.npmignore` which shipped `test/`, `docs/` and `.github/` — 102 files and
+2.7 MB — because a denylist only excludes what somebody remembered to name.
+
+`dist/` is gitignored, so the package is the *build*: `.github/scripts/npm-gate.sh`
+fails the run if `main` or `serviceFile` is missing or empty rather than
+publishing a manifest that names files the tarball does not contain. CI also
+runs `npm pack --dry-run` and inspects the file list before anything is sent.
+
+### What you need set
+
+| Secret | For | If absent |
+| --- | --- | --- |
+| `NPM_TOKEN` | publishing to npm | the run **warns and stays green**; nothing is published |
+| `TIZEN_AUTHOR_KEY` / `_PW` | signing the `.wgt` | the packaging steps skip; the run stays green |
+
+Both follow the same rule: *not configured* is a skip, *configured but broken*
+is a loud failure. A repository that only ships the TizenBrew module should not
+get a red `main` every time a version moves.
+
+Publishing uses `npm publish --provenance --access public`. `--access public`
+because a scoped package is private by default, which would publish something
+nobody can install; `--provenance` attaches a signed statement of which workflow
+and commit built the tarball, which is worth having for something people install
+onto a television.
+
+> The package name is `@jadocee/tizentube`. It was `@foxreis/tizentube` —
+> upstream's scope — which this fork cannot publish to.
 
 ## Packaging the `.wgt`
 

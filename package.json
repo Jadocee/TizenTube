@@ -1,5 +1,5 @@
 {
-  "name": "@foxreis/tizentube",
+  "name": "@jadocee/tizentube",
   "appName": "TizenTube 9",
   "version": "1.14.8",
   "description": "An ad-free and sponsor-free YouTube for Samsung TVs running Tizen 9.",
@@ -25,6 +25,15 @@
     "url": "https://github.com/Jadocee/TizenTube"
   },
   "license": "GPL-3.0-only",
+  "files": [
+    "dist/userScript.js",
+    "dist/service.js",
+    "LICENSE",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "test": "node test/run.mjs",
     "lint": "biome lint",
