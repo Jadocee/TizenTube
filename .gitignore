@@ -9,3 +9,14 @@ userScript.generated.js
 # Harness snapshots, re-derived from source by test/refresh.mjs on every run.
 test/**/*.generated.*
 test/stylesheet/page.html
+
+# Signing material and the compose environment that carries its password. The
+# documented workflow puts an author .p12 at the repository root and reads the
+# password from a .env compose loads automatically, so both are one `git add -A`
+# away from being published. A leaked author certificate signs packages as this
+# project.
+*.p12
+*.pfx
+.env
+.env.*
+!.env.example

@@ -77,17 +77,38 @@ RUN curl -fsSL -o /tmp/${TIZEN_SDK_BIN} "${TIZEN_SDK_URL}" \
     && rm -f /tmp/${TIZEN_SDK_BIN} \
     && rm -rf /home/tizen/.package-manager/run \
     && test -x ${TIZEN_STUDIO}/tools/ide/bin/tizen \
-    && test -d ${TIZEN_STUDIO}/platforms/tizen-9.0 \
-    && ${TIZEN_STUDIO}/tools/ide/bin/tizen version
+    && test -d ${TIZEN_STUDIO}/platforms/tizen-9.0
 
 ENV PATH=${TIZEN_STUDIO}/tools/ide/bin:${TIZEN_STUDIO}/tools:${PATH}
 
-# The data directory holds the CLI's config, its log and the security profiles.
-# World-writable because compose may run this image as the host user's uid so
-# the .wgt lands owned by them rather than by root, and that uid is not known
-# when the image is built.
 USER root
+
+# The container may run as any uid, because the .wgt has to come back owned by
+# the developer and their uid is not known when the image is built. Two things
+# have to be true for that to work, and neither is by default.
+#
+# The installer writes every executable 0764 -- owner-execute only, no x for
+# group or other, 632 files including tools/ide/bin/tizen and the bundled
+# jdk/bin/java. `a+rX` adds execute for everyone exactly where the owner already
+# has it, and read everywhere, without making data files executable. Note also
+# that ubuntu:24.04 already ships a user at uid 1000, so the `tizen` account
+# created above is 1001 -- there is no uid this image could pick that a host
+# user would reliably share, which is why the fix is permissions rather than a
+# matching uid.
+RUN chmod -R a+rX ${TIZEN_STUDIO}
+
+# The data directory is where the CLI writes its log and its security profiles,
+# and it is written by whichever uid the container runs as.
 RUN chmod -R 0777 ${TIZEN_STUDIO_DATA}
+
+# Samsung's CLI POSTs usage analytics on every invocation unless this file says
+# otherwise, and it creates the file with logging enabled on first run -- which,
+# without this, happens during `docker build` and bakes an analytics id into the
+# image. The build service runs with no network at all, but the debug shell does
+# not, so turn it off in the image rather than relying on that.
+RUN mkdir -p ${TIZEN_STUDIO_DATA}/ide \
+    && printf '{"id":"","logging":false}' > ${TIZEN_STUDIO_DATA}/ide/analytics.conf \
+    && chmod 0666 ${TIZEN_STUDIO_DATA}/ide/analytics.conf
 
 COPY --chmod=0755 package-wgt.sh obfuscate-password.sh verify-signed.sh /opt/tizen/
 
