@@ -293,4 +293,75 @@ const shallow = nudge({ base: BASE, head: BASE, baseSha: 'b'.repeat(40) });
 check('an unreachable base skips rather than failing', shallow.status, 0);
 check('  ...saying so', /is not in this checkout/.test(shallow.stdout), true);
 
+// --- the publish step, actually run -----------------------------------------
+// The step before it can only see whether the secret is empty. Every other way
+// a publish fails is an account setting it cannot read, and npm reports each of
+// them as a one-line error code buried under a stack of notices -- so the step
+// translates them, and this drives the real block against each code.
+//
+// The EOTP case is the one that actually happened: the token authenticated,
+// provenance was signed and logged, and npm then asked for a one-time password
+// because the account requires 2FA for writes.
+const PUBLISH = runBlockOf('Publish to npm');
+check('the publish script was extracted', PUBLISH.includes('npm publish'), true);
+
+/** Runs the extracted publish block with a stubbed npm that fails a given way. */
+function publish(npmBody) {
+    const dir = mkdtempSync(join(tmpdir(), 'tt-publish-'));
+    try {
+        const bin = join(dir, 'bin');
+        mkdirSync(bin, { recursive: true });
+        writeFileSync(join(bin, 'npm'), `#!/bin/sh\n${npmBody}\n`, { mode: 0o755 });
+        let stdout = '';
+        let status = 0;
+        try {
+            stdout = execFileSync('bash', ['-c', PUBLISH], {
+                cwd: dir,
+                env: { ...process.env, PATH: `${bin}:${process.env.PATH}` },
+                stdio: ['ignore', 'pipe', 'pipe'],
+            }).toString();
+        } catch (e) {
+            status = e.status ?? 1;
+            stdout = `${e.stdout || ''}${e.stderr || ''}`;
+        }
+        return { status, stdout };
+    } finally {
+        rmSync(dir, { recursive: true, force: true });
+    }
+}
+
+const ok = publish('echo "+ @jadocee/tizentube@1.15.0"\nexit 0');
+check('a successful publish succeeds', ok.status, 0);
+check('  ...and says nothing alarming', /::error::/.test(ok.stdout), false);
+
+const otp = publish(`echo "npm notice Publishing to https://registry.npmjs.org/"
+echo "npm error code EOTP" >&2
+echo "npm error This operation requires a one-time password from your authenticator." >&2
+exit 1`);
+check('an OTP demand fails the step', otp.status !== 0, true);
+check(
+    '  ...naming two-factor authentication as the cause',
+    /::error::.*two-factor authentication/.test(otp.stdout),
+    true,
+);
+check('  ...and Bypass 2FA as the fix', /Bypass 2FA/.test(otp.stdout), true);
+check('  ...and that no version bump is needed to retry', /no bump/.test(otp.stdout), true);
+
+const unauthorized = publish('echo "npm error code E401" >&2\nexit 1');
+check('a rejected token fails the step', unauthorized.status !== 0, true);
+check(
+    '  ...and points at the secret, not at 2FA',
+    /::error::npm rejected NPM_TOKEN/.test(unauthorized.stdout),
+    true,
+);
+
+const forbidden = publish('echo "npm error code E403" >&2\nexit 1');
+check('a forbidden publish fails the step', forbidden.status !== 0, true);
+check('  ...and points at scope ownership', /does not own the scope/.test(forbidden.stdout), true);
+
+// An unrecognised failure must still fail. Translating only the codes we know
+// about would otherwise turn every other npm error into a green run.
+const unknown = publish('echo "npm error code ESOMETHINGNEW" >&2\nexit 1');
+check('an unrecognised npm failure still fails the step', unknown.status !== 0, true);
+
 done();

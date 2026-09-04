@@ -275,6 +275,23 @@ Both follow the same rule: *not configured* is a skip, *configured but broken*
 is a loud failure. A repository that only ships the TizenBrew module should not
 get a red `main` every time a version moves.
 
+**`NPM_TOKEN` has to be a granular access token created with "Bypass 2FA"
+enabled.** npm removed classic tokens in November 2025, and a granular token
+without that capability cannot publish unattended from an account that requires
+two-factor authentication for writes: the token authenticates, the tarball is
+built, provenance is signed — and npm then asks for a one-time password nobody
+is there to type, failing with `EOTP`. The token needs read and write access to
+this package. The publish step recognises `EOTP`, `E401` and `E403` and says
+which of the three it hit, because none of them is visible to the step that
+checks the secret is present — that one can only tell whether it is empty.
+
+npm's own recommendation for CI is
+[trusted publishing](https://docs.npmjs.com/trusted-publishers), which uses the
+workflow's OIDC identity and needs no token at all. It is worth moving to, with
+two caveats: it is configured against a package that already exists, so it
+cannot make a first publish; and it needs npm 11.5.1 or newer, where Node 22
+still ships npm 10, so the workflow would have to upgrade npm before publishing.
+
 Publishing uses `npm publish --provenance --access public`. `--access public`
 because a scoped package is private by default, which would publish something
 nobody can install; `--provenance` attaches a signed statement of which workflow
