@@ -55,7 +55,7 @@ pnpm install                              # all four trees, one lockfile
 (cd service && pnpm run build)            # 2. the DIAL service
 (cd standalone/service && pnpm run build) # 3. the app's service
 
-pnpm test                                 # 40 harnesses
+pnpm test                                 # 41 harnesses
 ```
 
 Under ten seconds in total on a warm checkout. If you only want the TizenBrew
@@ -116,7 +116,7 @@ copy. This is the one way to get a `.wgt` that is quietly a version behind.
 ```sh
 pnpm check                                         # Biome: format + lint
 pnpm -r --workspace-concurrency=1 run typecheck   # all three TypeScript trees
-pnpm test                                          # 40 harnesses
+pnpm test                                          # 41 harnesses
 pnpm test settings                                 # just the ones matching "settings"
 ```
 
@@ -319,6 +319,75 @@ forgetting it publishes something nobody can install.
 > not found". `test/release-gate/npm.test.mjs` keeps the two in step.
 
 ## Packaging the `.wgt`
+
+There are two packagers, and they produce the same widget.
+
+| | `tizen.js` | Tizen Studio in Docker |
+| --- | --- | --- |
+| What it is | a JavaScript reimplementation of Tizen packaging | Samsung's actual SDK, headless |
+| Where it runs | the release workflow, on every version bump | a developer's machine, on demand |
+| Needs | node | Docker, an amd64 host or emulation, a 401 MB download once |
+
+CI still uses `tizen.js`; nothing below changes that. The Docker route exists
+because a JavaScript reimplementation of a signing format is a thing you want to
+be able to check against the real one, and because building a signed widget
+locally should not mean installing a 663 MB SDK on your laptop.
+
+### With Docker
+
+```sh
+# Build the three JS bundles first -- the image packages a build, it does not
+# produce one, and it refuses rather than shipping a widget with no service.
+(cd service && pnpm build) && (cd mods && pnpm build) && (cd standalone/service && pnpm build)
+
+TIZEN_AUTHOR_P12=$PWD/author.p12 \
+TIZEN_AUTHOR_KEY_PW='<password>' \
+  docker compose run --rm wgt
+```
+
+That writes `standalone/release/TizenTube.wgt`. The first run downloads and
+installs the SDK and takes a while; after that it is a few seconds. If your uid
+is not 1000, add `TT_UID=$(id -u) TT_GID=$(id -g)` so the widget comes back owned
+by you. The certificate can also come from `TIZEN_AUTHOR_KEY` as base64, which is
+how CI already stores it, if mounting a file is inconvenient.
+
+`docker compose --profile debug run --rm shell` gives you the same image with a
+prompt, which is where to start if something goes wrong.
+
+> **Do not push this image anywhere public.** The Tizen Studio License Agreement,
+> which ships inside the installer as `res/COPYING` in `installer.jar`, says at
+> §3.1: "You shall not … (ii) lease, rent, copy, redistribute or sublicense the
+> TIZEN STUDIO to third party", and §8.1 adds a confidentiality obligation. That
+> is why `docker/tizen/Dockerfile` downloads the SDK at build time instead of
+> vendoring it, and why there is no published image to pull.
+
+Three things about the SDK are worth knowing before you debug it, because each
+one fails quietly:
+
+- **`tizen package` exits 0 while producing an unsigned `.wgt`** when its
+  security profile is missing or its password is wrong. It prints
+  `Warning: Not found tizen signature file` among many other lines and returns
+  success. `docker/tizen/verify-signed.sh` is the actual gate, and it runs before
+  the file is copied anywhere.
+- **The SDK installer always exits 0.** Its last two lines are `source ~/.bashrc`
+  and `exit 0`, so it discards the real installer's status; the Dockerfile
+  asserts the tree exists afterwards instead of trusting the layer.
+- **The certificate password does not go in `profiles.xml` by default.** On Linux
+  the CLI hands it to a bundled 32-bit `secret-tool`, which stores it in the
+  freedesktop Secret Service over D-Bus — so headless, the profile is written,
+  the command reports success, and the password is nowhere; packaging then fails
+  with `CertificationException: Invaild password`. The usual answer is to run a
+  GNOME keyring in the container. This stack does not: the `password` attribute
+  accepts either a keyring key or an inline DESede ciphertext, chosen by whether
+  the value ends in `.pwd`, so `docker/tizen/obfuscate-password.sh` writes the
+  ciphertext and D-Bus, the keyring and the 32-bit binary all drop out. That
+  matters beyond tidiness — the 32-bit binary is why the keyring route cannot
+  work under emulation on an arm64 host. The encoding is obfuscation, not
+  encryption: the key is a constant compiled into the SDK, which is why the
+  profile is written inside the container and never into a layer or the work
+  tree.
+
+### With `tizen.js`
 
 > Verified: everything above, on a clean checkout. **Not** verified here: the
 > two commands in this section, because this environment cannot reach GitHub to

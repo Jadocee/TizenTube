@@ -41,6 +41,7 @@ const HARNESSES = [
     { name: 'release certificate', dir: 'release-gate', file: 'cert.test.mjs' },
     { name: 'npm publish gate', dir: 'release-gate', file: 'npm.test.mjs' },
     { name: 'release workflow shape', dir: 'release-gate', file: 'workflow.test.mjs' },
+    { name: 'wgt docker stack', dir: 'release-gate', file: 'wgt-docker.test.mjs' },
     { name: 'json-prune matcher', dir: 'json-prune', file: 'test.mjs', types: true },
     { name: 'preview indicator state', dir: 'preview-indicator', file: 'state.mjs', types: true },
     {
