@@ -152,7 +152,7 @@ pnpm install                              # all four trees, one lockfile
 (cd service && pnpm run build)            # 2. the DIAL service
 (cd standalone/service && pnpm run build) # 3. the app's service
 
-pnpm test                                 # 40 harnesses
+pnpm test                                 # 41 harnesses
 ```
 
 Under ten seconds on a warm checkout, and step 1 is the entire build if you only

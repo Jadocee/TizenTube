@@ -1,0 +1,63 @@
+# Builds and signs the standalone Tizen widget with the real Tizen Studio Web CLI.
+#
+#   docker compose run --rm wgt
+#
+# needing only TIZEN_AUTHOR_KEY_PW plus a certificate, and producing
+# standalone/release/TizenTube.wgt. See docs/BUILDING.md for the certificate and
+# for why this image must not be pushed to a public registry.
+#
+# There are no `ports:` anywhere here on purpose. sdb's local server binds
+# 0.0.0.0:26099, and publishing that would expose a debug bridge to the network.
+# Talking to a television needs only outbound access, which the default bridge
+# already gives.
+
+name: tizentube
+
+services:
+  # One-shot. Packages the widget and exits.
+  wgt: &tizen
+    build:
+      context: ./docker/tizen
+      dockerfile: Dockerfile
+    # Samsung ships no arm64 host build of the SDK at any layer, so on Apple
+    # Silicon this runs emulated. Slow, but it works -- the signing path here
+    # avoids the SDK's 32-bit secret-tool, which emulation could not run.
+    platform: linux/amd64
+    # Ownership of the .wgt that lands back on the host. Defaults to the uid the
+    # image's own user has; override on a machine where you are not 1000:
+    #   TT_UID=$(id -u) TT_GID=$(id -g) docker compose run --rm wgt
+    user: "${TT_UID:-1000}:${TT_GID:-1000}"
+    environment:
+      # The certificate password. Required. Nothing else here is secret.
+      TIZEN_AUTHOR_KEY_PW: "${TIZEN_AUTHOR_KEY_PW:?set TIZEN_AUTHOR_KEY_PW to the password of your author .p12}"
+      # Optional alternative to mounting the .p12: the same file, base64, which
+      # is how CI already stores it.
+      TIZEN_AUTHOR_KEY: "${TIZEN_AUTHOR_KEY:-}"
+      # An arbitrary uid needs a writable home; the SDK finds its own paths from
+      # sdk.info rather than from HOME.
+      HOME: /tmp
+    volumes:
+      - type: bind
+        source: .
+        target: /work
+      # The certificate, read-only. Defaults to /dev/null, which mounts as an
+      # empty file -- the entrypoint sees an empty file, says so, and falls back
+      # to TIZEN_AUTHOR_KEY. Point it at a real one with:
+      #   TIZEN_AUTHOR_P12=$PWD/author.p12 docker compose run --rm wgt
+      - type: bind
+        source: "${TIZEN_AUTHOR_P12:-/dev/null}"
+        target: /run/secrets/author.p12
+        read_only: true
+    # A build that cannot reach the outside world cannot phone anywhere with the
+    # certificate it was just handed. The SDK is already installed in the image.
+    network_mode: none
+
+  # The same image with a shell, for looking at what the SDK actually did.
+  #   docker compose run --rm shell
+  shell:
+    <<: *tizen
+    profiles: ["debug"]
+    entrypoint: ["/bin/bash"]
+    # `tizen` needs no network here either, but leaving it on makes the shell
+    # useful for `sdb connect` against a television in Developer Mode.
+    network_mode: bridge
