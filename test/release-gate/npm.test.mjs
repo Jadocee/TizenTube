@@ -36,7 +36,7 @@ const SCRIPT = repoPath('.github', 'scripts', 'npm-gate.sh');
 const manifest = (version, extra = {}) =>
     `${JSON.stringify(
         {
-            name: '@jadocee/tizentube',
+            name: 'tizentube-9',
             version,
             main: 'dist/userScript.js',
             serviceFile: 'dist/service.js',
@@ -63,12 +63,12 @@ function npmStub(registry, argvLog) {
         // proxy error page would satisfy -- turns this case into "absent" and
         // fails the suite.
         return `${log}echo "npm error code E502" >&2
-echo "npm error 502 Bad Gateway - GET https://registry.npmjs.org/@jadocee%2ftizentube (upstream said 404)" >&2
+echo "npm error 502 Bad Gateway - GET https://registry.npmjs.org/tizentube-9 (upstream said 404)" >&2
 exit 1`;
     }
     if (registry === 'absent') {
         return `${log}echo "npm error code E404" >&2
-echo "npm error 404 Not Found - GET https://registry.npmjs.org/@jadocee%2ftizentube" >&2
+echo "npm error 404 Not Found - GET https://registry.npmjs.org/tizentube-9" >&2
 exit 1`;
     }
     if (registry === 'garbage') {
@@ -206,9 +206,9 @@ const PUBLISHED = (latest, ...others) => ({ latest, versions: [...others, latest
 const firstPublish = run({ versions: ['1.0.0', '1.0.0'], registry: 'absent' });
 check('an unpublished package publishes even unchanged', firstPublish.out.publish, 'true');
 check('  ...at that version', firstPublish.out.version, '1.0.0');
-check('  ...under the package name', firstPublish.out.name, '@jadocee/tizentube');
+check('  ...under the package name', firstPublish.out.name, 'tizentube-9');
 check('  ...having asked the registry about that package', firstPublish.argv, [
-    'view @jadocee/tizentube --json',
+    'view tizentube-9 --json',
 ]);
 
 const newVersion = run({ versions: ['1.0.0', '1.1.0'], registry: PUBLISHED('1.0.0') });

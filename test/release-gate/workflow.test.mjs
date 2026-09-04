@@ -180,7 +180,7 @@ check('the nudge script was extracted', NUDGE.includes('set -euo pipefail'), tru
 const widget = (v) =>
     `<?xml version="1.0" encoding="UTF-8"?>\n<widget xmlns="http://www.w3.org/ns/widgets" version="${v}" viewmodes="maximized">\n</widget>\n`;
 const pkg = (v, extra = {}) =>
-    `${JSON.stringify({ name: '@jadocee/tizentube', version: v, ...extra }, null, 2)}\n`;
+    `${JSON.stringify({ name: 'tizentube-9', version: v, ...extra }, null, 2)}\n`;
 
 /**
  * Builds a two-commit repo -- a base and a head -- writes `files` at each, then
@@ -330,7 +330,7 @@ function publish(npmBody) {
     }
 }
 
-const ok = publish('echo "+ @jadocee/tizentube@1.15.0"\nexit 0');
+const ok = publish('echo "+ tizentube-9@1.15.0"\nexit 0');
 check('a successful publish succeeds', ok.status, 0);
 check('  ...and says nothing alarming', /::error::/.test(ok.stdout), false);
 
@@ -358,6 +358,25 @@ check(
 const forbidden = publish('echo "npm error code E403" >&2\nexit 1');
 check('a forbidden publish fails the step', forbidden.status !== 0, true);
 check('  ...and points at scope ownership', /does not own the scope/.test(forbidden.stdout), true);
+
+// The one that actually stopped the first release, and the least legible of the
+// four: npm answers "you cannot publish under this scope" with the same 404 it
+// gives for a package that does not exist, on a PUT, under a pile of notices --
+// which reads as a broken registry rather than as a naming problem.
+const notMyScope = publish(`echo "npm error code E404" >&2
+echo "npm error 404 Not Found - PUT https://registry.npmjs.org/@someone%2fthing" >&2
+exit 1`);
+check('a 404 on upload fails the step', notMyScope.status !== 0, true);
+check(
+    '  ...saying it is not a missing registry',
+    /does not mean the registry is missing/.test(notMyScope.stdout),
+    true,
+);
+check(
+    '  ...but a scope you cannot publish under',
+    /scope you cannot publish under/.test(notMyScope.stdout),
+    true,
+);
 
 // An unrecognised failure must still fail. Translating only the codes we know
 // about would otherwise turn every other npm error into a green run.

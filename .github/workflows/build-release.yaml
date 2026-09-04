@@ -263,6 +263,8 @@ jobs:
             echo "::error::npm rejected NPM_TOKEN. The secret is set but not valid for this registry -- check that it has not expired and was copied whole."
           elif grep -q 'code E403' "$log"; then
             echo "::error::npm accepted NPM_TOKEN but refused the publish. Either the token has no write access to this package, or the account behind it does not own the scope in package.json's name."
+          elif grep -q 'code E404' "$log"; then
+            echo "::error::npm returned 404 for the upload, which does not mean the registry is missing -- for a scoped name it is how npm answers a scope you cannot publish under, reporting a scope somebody else owns exactly like one that does not exist. You can only publish under a scope matching an account or organisation you own. Check package.json's name, or drop the scope: a public unscoped package needs no scope, no organisation and no plan."
           fi
           exit 1
 
