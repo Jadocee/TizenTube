@@ -246,7 +246,25 @@ jobs:
           # --access public because the package is scoped, and a scoped package
           # defaults to private -- which would publish something nobody can
           # install. --provenance ties the tarball to this workflow run.
-          npm publish --provenance --access public
+          #
+          # Captured rather than run bare, because the ways a PRESENT AND VALID
+          # token still cannot publish are all account settings -- invisible from
+          # inside the run, and indistinguishable from a typo in the secret
+          # unless somebody reads npm's error code off the log. The step before
+          # this one can only tell whether the secret is empty; everything below
+          # is what it cannot see.
+          log="$(mktemp)"
+          if npm publish --provenance --access public 2>&1 | tee "$log"; then
+            exit 0
+          fi
+          if grep -q 'code EOTP' "$log"; then
+            echo "::error::npm asked for a one-time password, so NPM_TOKEN cannot publish unattended. The account requires two-factor authentication for writes, and a token only satisfies that from CI when it is a granular access token created with Bypass 2FA enabled. Regenerate it at npmjs.com with read and write access to this package and Bypass 2FA turned on, then replace the NPM_TOKEN secret; the version is still unpublished, so the next push to main will pick it up with no bump. npm's own recommendation for CI is trusted publishing, which needs no token at all -- but it is configured on an existing package, so it is only an option once a first version has landed."
+          elif grep -qE 'code (E401|EAUTHUNKNOWN)' "$log"; then
+            echo "::error::npm rejected NPM_TOKEN. The secret is set but not valid for this registry -- check that it has not expired and was copied whole."
+          elif grep -q 'code E403' "$log"; then
+            echo "::error::npm accepted NPM_TOKEN but refused the publish. Either the token has no write access to this package, or the account behind it does not own the scope in package.json's name."
+          fi
+          exit 1
 
       # ---- the standalone .wgt ------------------------------------------------
 
