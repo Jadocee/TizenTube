@@ -292,18 +292,31 @@ two caveats: it is configured against a package that already exists, so it
 cannot make a first publish; and it needs npm 11.5.1 or newer, where Node 22
 still ships npm 10, so the workflow would have to upgrade npm before publishing.
 
-Publishing uses `npm publish --provenance --access public`. `--access public`
-because a scoped package is private by default, which would publish something
-nobody can install; `--provenance` attaches a signed statement of which workflow
-and commit built the tarball, which is worth having for something people install
-onto a television.
+Publishing uses `npm publish --provenance --access public`. `--provenance`
+attaches a signed statement of which workflow and commit built the tarball, which
+is worth having for something people install onto a television. `--access public`
+is redundant for an unscoped package, where public is the default, and is kept
+deliberately: it costs nothing, it is what makes the intent explicit in the log
+line npm prints, and it is the flag that would otherwise have to be remembered if
+the package ever moved under a scope — where the default flips to private and
+forgetting it publishes something nobody can install.
 
-> The package name is `@jadocee/tizentube`. It was `@foxreis/tizentube` —
-> upstream's scope — which this fork cannot publish to. The DIAL service in
-> `service/service.ts` sends that same name when something casts to the TV:
-> TizenBrew looks it up among the *installed* modules rather than fetching it, so
-> a mismatch makes the launch fail with "App Control module not found".
-> `test/release-gate/npm.test.mjs` keeps the two in step.
+> **The package name is `tizentube-9`, and it is unscoped on purpose.** It was
+> `@foxreis/tizentube` — upstream's scope, which this fork cannot publish to —
+> and then briefly `@jadocee/tizentube`, which npm answered with a `404` on
+> `PUT`: you can only publish under a scope matching an account or organisation
+> you own, and npm reports a scope you do not with the same status as one that
+> does not exist. An unscoped name needs no scope and no organisation, and a
+> public unscoped package costs nothing.
+>
+> TizenBrew is unaffected either way: it splits the module string on its *first*
+> slash, so `npm/tizentube-9` yields type `npm` and name `tizentube-9`, and
+> jsDelivr resolves `cdn.jsdelivr.net/npm/tizentube-9/package.json` normally.
+>
+> The DIAL service in `service/service.ts` sends that same name when something
+> casts to the TV: TizenBrew looks it up among the *installed* modules rather
+> than fetching it, so a mismatch makes the launch fail with "App Control module
+> not found". `test/release-gate/npm.test.mjs` keeps the two in step.
 
 ## Packaging the `.wgt`
 
