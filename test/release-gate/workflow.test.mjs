@@ -355,9 +355,46 @@ check(
     true,
 );
 
+// The real 403 from the first attempt to create this package. npm puts the
+// reason in the body, and it was not a permissions problem: the account's email
+// was unverified. The step used to assert "no write access, or you do not own
+// the scope" and throw npm's own sentence away, which sent the reader looking at
+// the token instead of at the one link that fixes it.
+const unverified = publish(`echo "npm error code E403" >&2
+echo "npm error 403 403 Forbidden - PUT https://registry.npmjs.org/tizentube-9 - you must verify your email before publishing a new package: https://www.npmjs.com/email-edit" >&2
+exit 1`);
+check('an unverified-email 403 fails the step', unverified.status !== 0, true);
+check(
+    '  ...repeating what npm actually said',
+    /npm refused the publish: you must verify your email/.test(unverified.stdout),
+    true,
+);
+// Pinned on the step's OWN sentence, not on the URL: npm's message already
+// carries that link, so matching it would pass with this branch deleted.
+check(
+    '  ...adding that an unverified account cannot create a package',
+    /will not let an account with an unverified email/.test(unverified.stdout),
+    true,
+);
+check(
+    '  ...and that no version bump is needed to retry',
+    /no version bump is needed/.test(unverified.stdout),
+    true,
+);
+check(
+    '  ...without blaming the token or the scope',
+    /(does not|may not) own the scope/.test(unverified.stdout),
+    false,
+);
+
+// A 403 whose body says nothing useful still gets the general interpretation.
 const forbidden = publish('echo "npm error code E403" >&2\nexit 1');
-check('a forbidden publish fails the step', forbidden.status !== 0, true);
-check('  ...and points at scope ownership', /does not own the scope/.test(forbidden.stdout), true);
+check('a bare forbidden publish fails the step', forbidden.status !== 0, true);
+check(
+    '  ...falling back to the likely causes',
+    /may not own the scope/.test(forbidden.stdout),
+    true,
+);
 
 // The one that actually stopped the first release, and the least legible of the
 // four: npm answers "you cannot publish under this scope" with the same 404 it
