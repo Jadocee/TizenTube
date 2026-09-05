@@ -77,14 +77,14 @@ standalone app is a normal Tizen app with no TizenBrew dependency.
 
 1. Install TizenBrew from [here](https://github.com/reisxd/TizenBrew) and follow the instructions.
 
-2. Add `tizentube-9` as an NPM module in the TizenBrew module manager.
+2. Add `@jadocee/tizentube-9` as an NPM module in the TizenBrew module manager.
    CI publishes that package from `main`.
 
 > Earlier revisions of this page named `@foxreis/tizentube` here, which is
 > **upstream's** package — a different project, targeting an older platform floor
 > and without any of this fork's fixes. If you have it installed it keeps
 > working; swap it for this one when you want the fork. If the module manager
-> cannot find `tizentube-9`, no release has landed yet — check the repository's
+> cannot find `@jadocee/tizentube-9`, no release has landed yet — check the repository's
 > Actions tab.
 
 ### As a standalone app

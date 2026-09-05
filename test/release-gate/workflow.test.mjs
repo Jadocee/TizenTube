@@ -180,7 +180,7 @@ check('the nudge script was extracted', NUDGE.includes('set -euo pipefail'), tru
 const widget = (v) =>
     `<?xml version="1.0" encoding="UTF-8"?>\n<widget xmlns="http://www.w3.org/ns/widgets" version="${v}" viewmodes="maximized">\n</widget>\n`;
 const pkg = (v, extra = {}) =>
-    `${JSON.stringify({ name: 'tizentube-9', version: v, ...extra }, null, 2)}\n`;
+    `${JSON.stringify({ name: '@jadocee/tizentube-9', version: v, ...extra }, null, 2)}\n`;
 
 /**
  * Builds a two-commit repo -- a base and a head -- writes `files` at each, then
@@ -330,7 +330,7 @@ function publish(npmBody) {
     }
 }
 
-const ok = publish('echo "+ tizentube-9@1.15.0"\nexit 0');
+const ok = publish('echo "+ @jadocee/tizentube-9@0.1.0"\nexit 0');
 check('a successful publish succeeds', ok.status, 0);
 check('  ...and says nothing alarming', /::error::/.test(ok.stdout), false);
 
@@ -361,7 +361,7 @@ check(
 // the scope" and throw npm's own sentence away, which sent the reader looking at
 // the token instead of at the one link that fixes it.
 const unverified = publish(`echo "npm error code E403" >&2
-echo "npm error 403 403 Forbidden - PUT https://registry.npmjs.org/tizentube-9 - you must verify your email before publishing a new package: https://www.npmjs.com/email-edit" >&2
+echo "npm error 403 403 Forbidden - PUT https://registry.npmjs.org/@jadocee%2ftizentube-9 - you must verify your email before publishing a new package: https://www.npmjs.com/email-edit" >&2
 exit 1`);
 check('an unverified-email 403 fails the step', unverified.status !== 0, true);
 check(

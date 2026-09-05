@@ -1,7 +1,7 @@
 {
-  "name": "tizentube-9",
+  "name": "@jadocee/tizentube-9",
   "appName": "TizenTube 9",
-  "version": "1.15.0",
+  "version": "0.1.0",
   "description": "An ad-free and sponsor-free YouTube for Samsung TVs running Tizen 9.",
   "packageType": "mods",
   "websiteURL": "https://youtube.com/tv?additionalDataUrl=http%3A%2F%2Flocalhost%3A8085%2Fdial%2Fapps%2FYouTube",

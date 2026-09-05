@@ -28,7 +28,7 @@ import fetch from 'node-fetch';
  * self-updater pointed at somebody else's package is a supply chain, not a
  * feature.
  *
- * TizenTube 9 now publishes tizentube-9, so a legitimate source finally
+ * TizenTube 9 now publishes @jadocee/tizentube-9, so a legitimate source finally
  * exists -- but this stays null, deliberately. That package is the TizenBrew
  * module, a separate delivery route with its own version line; wiring the .wgt's
  * updater to it would mean a TV silently swapping in a build it was not shipped
