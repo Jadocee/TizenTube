@@ -45,17 +45,16 @@ const apps: Record<string, DialApp> = {
                                 // running THIS fork found no module and the launch
                                 // did nothing.
                                 //
-                                // Unscoped, because that is what this project can
-                                // actually publish. TizenBrew splits the module
-                                // string on its FIRST slash -- `npm/tizentube-9`
-                                // gives type `npm` and name `tizentube-9` -- so an
-                                // unscoped name round-trips through it unchanged.
+                                // Scoped, and the slash is not a problem: TizenBrew
+                                // splits the module string on its FIRST slash only,
+                                // so `npm/@jadocee/tizentube-9` gives type `npm` and
+                                // name `@jadocee/tizentube-9`, scope included.
                                 //
                                 // Kept in step with package.json by
                                 // test/release-gate/npm.test.mjs, since the two have
                                 // to name the same package and nothing else here
                                 // would notice them drifting apart.
-                                moduleName: 'tizentube-9',
+                                moduleName: '@jadocee/tizentube-9',
                                 moduleType: 'npm',
                                 args: launchData,
                             }),

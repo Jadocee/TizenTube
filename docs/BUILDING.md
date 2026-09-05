@@ -294,24 +294,33 @@ still ships npm 10, so the workflow would have to upgrade npm before publishing.
 
 Publishing uses `npm publish --provenance --access public`. `--provenance`
 attaches a signed statement of which workflow and commit built the tarball, which
-is worth having for something people install onto a television. `--access public`
-is redundant for an unscoped package, where public is the default, and is kept
-deliberately: it costs nothing, it is what makes the intent explicit in the log
-line npm prints, and it is the flag that would otherwise have to be remembered if
-the package ever moved under a scope — where the default flips to private and
-forgetting it publishes something nobody can install.
+is worth having for something people install onto a television. **`--access
+public` is load-bearing**, not decoration: a scoped package defaults to
+*private*, private packages need a paid plan, and forgetting the flag either
+fails the publish or puts up something nobody can install. It is set twice — on
+the command line and as `publishConfig.access` in `package.json` — so neither
+half alone is a single point of failure.
 
-> **The package name is `tizentube-9`, and it is unscoped on purpose.** It was
-> `@foxreis/tizentube` — upstream's scope, which this fork cannot publish to —
-> and then briefly `@jadocee/tizentube`, which npm answered with a `404` on
-> `PUT`: you can only publish under a scope matching an account or organisation
-> you own, and npm reports a scope you do not with the same status as one that
-> does not exist. An unscoped name needs no scope and no organisation, and a
-> public unscoped package costs nothing.
+> **The package name is `@jadocee/tizentube-9`.** It was `@foxreis/tizentube` —
+> upstream's scope, which this fork cannot publish to — then briefly
+> `@jadocee/tizentube`, then unscoped `tizentube-9`, and now scoped again under a
+> name this project owns. A public scoped package costs nothing; only *private*
+> ones need a plan, which is what `--access public` above is for.
 >
-> TizenBrew is unaffected either way: it splits the module string on its *first*
-> slash, so `npm/tizentube-9` yields type `npm` and name `tizentube-9`, and
-> jsDelivr resolves `cdn.jsdelivr.net/npm/tizentube-9/package.json` normally.
+> One piece of history worth keeping, because it will look like a contradiction
+> otherwise: `@jadocee/tizentube` was abandoned after npm answered `PUT` with a
+> `404`, which is how npm reports a scope you may not publish under. That was
+> read as "the scope is not ours". It may not have been: the account's email was
+> unverified at the time, and npm refuses to let an unverified account create any
+> new package — under the unscoped name the same account later got an explicit
+> `403 … you must verify your email`. So if a `404` comes back again *after* the
+> email is verified, the scope really is the problem; before that, it proves
+> nothing.
+>
+> TizenBrew handles the scope: it splits the module string on its *first* slash
+> only, so `npm/@jadocee/tizentube-9` yields type `npm` and name
+> `@jadocee/tizentube-9`, and jsDelivr resolves
+> `cdn.jsdelivr.net/npm/@jadocee/tizentube-9/package.json` normally.
 >
 > The DIAL service in `service/service.ts` sends that same name when something
 > casts to the TV: TizenBrew looks it up among the *installed* modules rather
