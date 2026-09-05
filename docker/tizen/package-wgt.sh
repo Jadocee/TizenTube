@@ -19,7 +19,6 @@ readonly PROFILE=TizenTube
 readonly SCRATCH=/tmp/tizen-build
 readonly STAGE="$SCRATCH/stage"
 readonly CERT="$SCRATCH/author.p12"
-readonly PROFILES="$SCRATCH/profiles.xml"
 
 die() { echo "::error::$*" >&2; exit 1; }
 step() { echo; echo "==> $*"; }
@@ -82,65 +81,112 @@ echo "certificate opens with the supplied password"
 # An author certificate cannot outlive the CA that issued it, and the Tizen
 # Developers CA expires 2027-01-01. Worth a warning now rather than a mystery
 # release failure later.
-if end="$(openssl pkcs12 -in "$CERT" -clcerts -nokeys -passin env:PW 2>/dev/null | openssl x509 -noout -enddate 2>/dev/null)"; then
+author_cert() {
+    openssl pkcs12 -in "$CERT" -clcerts -nokeys -passin env:PW 2>/dev/null ||
+        openssl pkcs12 -in "$CERT" -clcerts -nokeys -legacy -passin env:PW 2>/dev/null
+}
+if end="$(author_cert | openssl x509 -noout -enddate 2>/dev/null)" && [ -n "$end" ]; then
     echo "author certificate ${end}"
-    openssl pkcs12 -in "$CERT" -clcerts -nokeys -passin env:PW 2>/dev/null |
-        openssl x509 -noout -checkend 0 >/dev/null 2>&1 ||
+    author_cert | openssl x509 -noout -checkend 0 >/dev/null 2>&1 ||
         echo "::warning::the author certificate has EXPIRED; the SDK will sign with it anyway but a television may refuse the result"
 fi
 
 # ---- the signing profile ---------------------------------------------------
 
 step "Registering the signing profile"
-# Let the SDK write profiles.xml rather than hand-authoring its schema: it fills
-# in the distributor half by itself (the public tizen-distributor-signer.p12,
-# which is the same certificate the current tizen.js releases are signed with)
-# and it gets the element shape right for whatever version of the format this
-# SDK speaks.
-tizen cli-config -g "default.profiles.path=$PROFILES" >/dev/null
-tizen security-profiles add -n "$PROFILE" -a "$CERT" -p "$PW" -A -f >/dev/null ||
-    die "tizen security-profiles add failed."
-[ -s "$PROFILES" ] || die "tizen security-profiles add reported success but wrote no $PROFILES."
+# The password reaches the CLI as an argv element and its launcher re-evaluates
+# its own arguments, so a quote, a backslash or a tab in the password breaks the
+# command rather than being passed through. Rejected here, with a sentence,
+# rather than failing later inside a Java stack trace.
+case "$PW" in
+    *[\'\"\\]*|*"	"*)
+        die "TIZEN_AUTHOR_KEY_PW contains a quote, a backslash or a tab. The Tizen CLI's launcher re-evaluates its own arguments, so a password containing one of those cannot be passed through it. Re-export the certificate with a password of ordinary printable characters."
+        ;;
+esac
 
-# ...and then fix the one thing it gets wrong headlessly. On Linux the CLI does
-# not store the password in this file; it hands it to a bundled 32-bit secret-tool
-# which puts it in the freedesktop Secret Service over D-Bus. With no session bus
-# the profile is written, the command exits 0, and the password is nowhere -- so
-# packaging fails later with "CertificationException: Invaild password" (sic).
+# NOT relocated with `tizen cli-config`. That was the first thing tried and it
+# silently does nothing: the CLI refuses to set any key in the `default.*`
+# namespace as a global, prints the refusal to STDOUT and then exits 0 -- so with
+# the output discarded it looks like it worked, the profile goes to the SDK's own
+# data directory, and the run dies looking for a file that was never going to be
+# there. Letting the SDK write where it likes and asking it where that was is
+# simpler and cannot rot when a config key is renamed.
 #
-# The file's password attribute accepts either form, chosen by whether the value
-# ends in ".pwd", so writing the DESede ciphertext inline skips D-Bus, the
-# keyring and the 32-bit binary at once. See obfuscate-password.sh.
+# Output captured rather than discarded for the same reason: this command prints
+# the path it wrote, and the one time that matters is when something went wrong.
+profile_out="$(tizen security-profiles add -n "$PROFILE" -a "$CERT" -p "$PW" -A -f 2>&1)" || {
+    echo "$profile_out"
+    die "tizen security-profiles add failed."
+}
+
+# "Wrote to '/path/profiles.xml'." is the CLI's own report; the documented
+# default is the fallback if that wording ever changes.
+PROFILES="$(sed -n "s/.*Wrote to '\\([^']*\\)'.*/\\1/p" <<<"$profile_out" | head -n1)"
+[ -n "$PROFILES" ] && [ -f "$PROFILES" ] || PROFILES="$TIZEN_STUDIO_DATA/profile/profiles.xml"
+[ -s "$PROFILES" ] || {
+    echo "$profile_out"
+    die "tizen security-profiles add reported success but wrote no profiles.xml; its full output is above."
+}
+echo "profile written to $PROFILES"
+
+# Now replace every password the SDK stored as a keyring reference.
 #
-# python3 rather than sed because this is XML: attribute order is not guaranteed
-# and a regex over it is how you end up rewriting the distributor's password
-# with the author's.
+# It stores BOTH halves that way on Linux, not just the author's: the generated
+# file gives the distributor a value ending in .pwd as well, pointing at a path
+# that does not even exist, because it is a Secret Service lookup key rather than
+# a file. Patching only the author entry leaves the distributor password
+# unresolvable and packaging still dies with the same "Invaild password" this
+# whole approach exists to avoid.
+#
+# The distributor is the SDK's own public signer, whose password is a documented
+# constant. It is encoded with the same encoder rather than pasted as a literal,
+# so the two can never disagree.
 "$LIB/obfuscate-password.sh" --self-test >/dev/null ||
     die "The password encoder does not agree with the SDK's own stored value; refusing to write a profile the CLI cannot read."
-CIPHER="$(printf '%s' "$PW" | "$LIB/obfuscate-password.sh")"
+AUTHOR_CIPHER="$(printf '%s' "$PW" | "$LIB/obfuscate-password.sh")"
+DIST_CIPHER="$(printf '%s' 'tizenpkcs12passfordsigner' | "$LIB/obfuscate-password.sh")"
 
-CIPHER="$CIPHER" python3 - "$PROFILES" <<'PY'
+# python3 rather than sed because this is XML: attribute order is not guaranteed,
+# and a regex over it is how you rewrite the wrong entry's password.
+AUTHOR_CIPHER="$AUTHOR_CIPHER" DIST_CIPHER="$DIST_CIPHER" python3 - "$PROFILES" <<'PY'
 import os, sys, xml.etree.ElementTree as ET
 
 path = sys.argv[1]
-cipher = os.environ["CIPHER"]
+author_cipher = os.environ["AUTHOR_CIPHER"]
+dist_cipher = os.environ["DIST_CIPHER"]
+
 tree = ET.parse(path)
 root = tree.getroot()
 
-# distributor="0" is the author entry; 1 and above are distributors, whose
-# passwords the SDK already stores inline and correctly.
-patched = 0
+authors = distributors = 0
 for item in root.iter("profileitem"):
+    # distributor="0" is the author entry; 1 and above are distributors.
     if item.get("distributor") == "0":
-        item.set("password", cipher)
-        patched += 1
+        item.set("password", author_cipher)
+        authors += 1
+    else:
+        item.set("password", dist_cipher)
+        distributors += 1
 
-if patched != 1:
-    sys.exit(f"expected exactly one author profileitem in {path}, found {patched}")
+if authors != 1:
+    sys.exit(f"expected exactly one author profileitem in {path}, found {authors}")
+if distributors < 1:
+    sys.exit(f"expected at least one distributor profileitem in {path}, found none")
+
 tree.write(path, encoding="UTF-8", xml_declaration=True)
+
+# Nothing may still point at the keyring, or signing fails headlessly with no
+# useful message. Re-read from disk so this checks what was written.
+stale = [
+    v
+    for v in (i.get("password") for i in ET.parse(path).getroot().iter("profileitem"))
+    if v is None or v.endswith(".pwd")
+]
+if stale:
+    sys.exit(f"{len(stale)} password(s) in {path} still reference the keyring: {stale}")
+print(f"patched {authors} author and {distributors} distributor password(s)")
 PY
 chmod 600 "$PROFILES"
-echo "profile '$PROFILE' registered with the password stored inline"
 
 # ---- stage ------------------------------------------------------------------
 
@@ -149,12 +195,23 @@ step "Staging the widget source"
 # `tizen package` writes .manifest.tmp, author-signature.xml and signature1.xml
 # into whatever directory it packages, and CI's `rm -rf service/node_modules`
 # would delete a developer's actual dependency tree on the host.
+#
+# Those same three names are also EXCLUDED, which is not redundant. A developer
+# who has ever run `tizen package` against standalone/ directly -- which
+# docs/BUILDING.md documents -- has left them lying in the tree. Staged, they
+# would be packaged verbatim into the new .wgt, and a signature check that only
+# asks whether those entries exist would then pass an unsigned archive carrying
+# last month's signatures.
 tar -C "$SRC" \
     --exclude=node_modules \
     --exclude=release \
     --exclude=userwidget \
     --exclude='*.wgt' \
     --exclude='.buildResult' \
+    --exclude='author-signature.xml' \
+    --exclude='signature1.xml' \
+    --exclude='signature*.xml' \
+    --exclude='.manifest.tmp' \
     -cf - . | tar -C "$STAGE" -xf -
 echo "staged $(find "$STAGE" -type f | wc -l) files"
 

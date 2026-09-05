@@ -39,7 +39,6 @@ const decomment = (text) =>
         .join('\n');
 
 const DOCKERFILE = decomment(readFileSync(repoPath('docker', 'tizen', 'Dockerfile'), 'utf8'));
-const COMPOSE = readFileSync(repoPath('compose.yaml'), 'utf8');
 const ENTRYPOINT = decomment(readFileSync(repoPath('docker', 'tizen', 'package-wgt.sh'), 'utf8'));
 const OBFUSCATE = repoPath('docker', 'tizen', 'obfuscate-password.sh');
 const VERIFY = repoPath('docker', 'tizen', 'verify-signed.sh');
@@ -88,24 +87,68 @@ function wgt(entries) {
     if (names.length) execFileSync('zip', ['-q', out, ...names], { cwd: src });
     return { dir, path: out };
 }
+// Realistic fixtures: the gate reads signature CONTENT, not just entry names,
+// because two files merely NAMED author-signature.xml and signature1.xml travel
+// into the archive verbatim if they were lying in the source tree, and an
+// archive like that is unsigned.
+const sig = (role) =>
+    `<Signature xmlns="http://www.w3.org/2000/09/xmldsig#"><SignatureValue>QUJD</SignatureValue>` +
+    `<Object><SignatureProperties><SignatureProperty><dsp:Role xmlns:dsp="http://www.w3.org/ns/widgets-digsig#" ` +
+    `URI="http://www.w3.org/ns/widgets-digsig#${role}"/></SignatureProperty></SignatureProperties></Object></Signature>`;
+const AUTHOR_SIG = sig('role-author');
+const DIST_SIG = sig('role-distributor');
 const SIGNED = {
     'config.xml': '<widget/>',
     'index.html': '<html></html>',
-    'author-signature.xml': '<Signature/>',
-    'signature1.xml': '<Signature/>',
+    'author-signature.xml': AUTHOR_SIG,
+    'signature1.xml': DIST_SIG,
 };
 const cases = [
     ['a fully signed widget passes', SIGNED, 0],
     ['an unsigned widget fails', { 'config.xml': '<widget/>', 'index.html': 'x' }, 1],
     [
         'an author signature alone fails',
-        { 'config.xml': '<widget/>', 'author-signature.xml': '<S/>' },
+        { 'config.xml': '<widget/>', 'author-signature.xml': AUTHOR_SIG },
         1,
     ],
-    ['a distributor signature alone fails', { 'config.xml': '<widget/>', signature1: '<S/>' }, 1],
+    [
+        'a distributor signature alone fails',
+        { 'config.xml': '<widget/>', 'signature1.xml': DIST_SIG },
+        1,
+    ],
     [
         'signatures without config.xml fail',
-        { 'author-signature.xml': '<S/>', 'signature1.xml': '<S/>' },
+        { 'author-signature.xml': AUTHOR_SIG, 'signature1.xml': DIST_SIG },
+        1,
+    ],
+    // The one that made content-checking necessary: a source tree that still
+    // holds last run's signature files packages them verbatim, and a check that
+    // only reads the file list calls the result signed.
+    [
+        'stale leftovers named like signatures fail',
+        {
+            'config.xml': '<widget/>',
+            'author-signature.xml': '<stale/>',
+            'signature1.xml': '<stale/>',
+        },
+        1,
+    ],
+    // Roles are checked, so one signature copied under the other's name is not
+    // two signatures.
+    [
+        'the author signature copied as the distributor fails',
+        {
+            'config.xml': '<widget/>',
+            'author-signature.xml': AUTHOR_SIG,
+            'signature1.xml': AUTHOR_SIG,
+        },
+        1,
+    ],
+    // The entry name is matched whole; a file whose name merely ends with the
+    // signature's name is not the signature.
+    [
+        'a name that only ends in the signature name fails',
+        { 'config.xml': '<widget/>', 'not-really author-signature.xml': AUTHOR_SIG },
         1,
     ],
 ];
@@ -117,6 +160,7 @@ for (const [name, entries, want] of cases) {
         rmSync(built.dir, { recursive: true, force: true });
     }
 }
+
 // A file that is not a zip at all, and one that is not there. Both are things
 // `tizen package` can leave behind, and neither must read as signed.
 const notZip = mkdtempSync(join(tmpdir(), 'tt-wgt-'));
@@ -139,9 +183,11 @@ rmSync(unsigned.dir, { recursive: true, force: true });
 // A widget whose <tizen:service> points at a bundle that was never built
 // installs and then does nothing, which is the worst kind of success. The
 // entrypoint refuses rather than packaging it.
+// Matched on the test, not on the path: the path also appears in the die()
+// message on the same line, so a guard downgraded to a warning still contains it.
 check(
     'the entrypoint requires the service bundle to exist',
-    ENTRYPOINT.includes('service/dist/index.js'),
+    /\[ -s "\$SRC\/service\/dist\/index\.js" \] \|\| die/.test(ENTRYPOINT),
     true,
 );
 // The repository is bind-mounted. CI deletes service/node_modules before
@@ -185,7 +231,72 @@ check(
     true,
 );
 // The CLI prints "See the log file" and nothing else on most failures.
-check('it dumps the CLI log on failure', /cli\.log/.test(ENTRYPOINT), true);
+// The CLI prints "See the log file" and nothing else on most failures, so the
+// log has to be shown. Both halves: the function, and the trap that calls it.
+check('it can dump the CLI log', /cli\.log/.test(ENTRYPOINT), true);
+check('  ...and a trap actually calls it', /trap [^\n]*dump_log[^\n]*EXIT/.test(ENTRYPOINT), true);
+
+// --- the signing pipeline is actually wired up ---------------------------------
+// Nothing above asserted that the entrypoint ever USES any of this. Every piece
+// could have been deleted -- the encoder never called, no profile registered, no
+// -s passed to `tizen package` -- and the suite stayed green while the container
+// produced a cheerfully unsigned widget.
+check('it registers a signing profile', /tizen security-profiles add/.test(ENTRYPOINT), true);
+check('  ...from the certificate it validated', /-a "\$CERT"/.test(ENTRYPOINT), true);
+check(
+    '  ...and signs with that profile',
+    /tizen package[^\n]*-s "\$PROFILE"/.test(ENTRYPOINT),
+    true,
+);
+check('it encodes the password for profiles.xml', /obfuscate-password\.sh/.test(ENTRYPOINT), true);
+check(
+    '  ...checking the encoder against the SDK first',
+    /obfuscate-password\.sh" --self-test/.test(ENTRYPOINT),
+    true,
+);
+
+// Both halves of profiles.xml, not just the author's. The SDK writes a keyring
+// reference for the DISTRIBUTOR too, and patching only the author leaves signing
+// dependent on the D-Bus Secret Service this whole approach exists to avoid --
+// a failure that only appears once the profile is being found at all.
+// Asserted on the embedded patcher itself, not on a variable name: a rename
+// leaves any substring check happily matching while the distributor half stops
+// being patched.
+const PATCHER = (ENTRYPOINT.match(/<<'PY'\n([\s\S]*?)\nPY\n/) || [])[1] ?? '';
+check('the profiles.xml patcher was found', PATCHER.includes('profileitem'), true);
+check(
+    '  ...it patches the author entry',
+    /distributor"\)\s*==\s*"0"/.test(PATCHER) && /set\("password", author_cipher\)/.test(PATCHER),
+    true,
+);
+check(
+    '  ...and the distributor entry',
+    /else:\s*\n\s*item\.set\("password", dist_cipher\)/.test(PATCHER),
+    true,
+);
+check(
+    '  ...requiring at least one of each',
+    /authors != 1/.test(PATCHER) && /distributors < 1/.test(PATCHER),
+    true,
+);
+check(
+    '  ...and refusing to proceed with any keyring reference left',
+    /endswith\("\.pwd"\)/.test(PATCHER),
+    true,
+);
+
+// Stale signature files in the source tree would otherwise be packaged verbatim
+// and satisfy a name-only signature check.
+for (const excluded of ['author-signature.xml', 'signature1.xml']) {
+    check(
+        `staging excludes ${excluded}`,
+        new RegExp(`--exclude='${excluded.replace('.', '\\.')}'`).test(ENTRYPOINT),
+        true,
+    );
+}
+
+// A password the CLI's own launcher would re-evaluate rather than pass through.
+check('it rejects a password the CLI cannot carry', /backslash or a tab/.test(ENTRYPOINT), true);
 
 // --- the image ---------------------------------------------------------------
 // The installer is a self-extracting wrapper whose last lines are `source
@@ -202,7 +313,11 @@ check(
     true,
 );
 // The installer refuses to run as uid 0.
-check('it installs as a non-root user', /^USER tizen$/m.test(DOCKERFILE), true);
+// Three USER lines exist; what matters is that the one before the installer is
+// not root, because the installer hard-refuses uid 0.
+const installAt = DOCKERFILE.indexOf('--accept-license --no-java-check');
+const userBeforeInstall = [...DOCKERFILE.slice(0, installAt).matchAll(/^USER (\S+)$/gm)].pop();
+check('the SDK is installed as a non-root user', userBeforeInstall?.[1], 'tizen');
 // A pinned digest is what stops an upstream replacement changing what is
 // installed without anyone noticing.
 check('the installer download is pinned by hash', /sha256sum -c/.test(DOCKERFILE), true);
@@ -210,49 +325,60 @@ check('  ...to a specific version', /TIZEN_SDK_VERSION=\d+\.\d+/.test(DOCKERFILE
 // Samsung publishes no arm64 host build at any layer.
 check('the image is pinned to amd64', /FROM --platform=linux\/amd64/.test(DOCKERFILE), true);
 
-// Nothing secret may enter a layer: a COPY survives even if a later RUN deletes
-// it, and a build ARG is recoverable from `docker history`.
-check('no certificate is copied into the image', /COPY[^\n]*\.p12/.test(DOCKERFILE), false);
-check('no password is a build argument', /ARG[^\n]*(PASSWORD|_PW|PASSWD)/i.test(DOCKERFILE), false);
+// The installer writes every executable 0764 -- no execute bit for group or
+// other -- and ubuntu:24.04 already owns uid 1000, so the container's uid is
+// never the SDK's owner. Without this the CLI cannot be run at all.
 check(
-    '  ...and the entrypoint keeps the profile out of the work tree',
-    /readonly PROFILES="\$SCRATCH/.test(ENTRYPOINT),
+    'the SDK tree is executable by any uid',
+    /chmod -R a\+rX \$\{TIZEN_STUDIO\}/.test(DOCKERFILE),
+    true,
+);
+// The CLI POSTs usage analytics unless told not to, and creates the opt-out file
+// with logging ENABLED on first run -- which would otherwise happen during the
+// build and bake an analytics id into the image.
+check('telemetry is turned off in the image', /"logging":false/.test(DOCKERFILE), true);
+check(
+    '  ...before anything runs the CLI',
+    !/tools\/ide\/bin\/tizen version/.test(DOCKERFILE) ||
+        DOCKERFILE.indexOf('"logging":false') < DOCKERFILE.indexOf('tools/ide/bin/tizen version'),
     true,
 );
 
-// --- the compose file --------------------------------------------------------
-// Parsed by compose itself rather than by a regex, so this asserts what compose
-// will actually do. Skipped rather than failed where compose is not installed:
-// a contributor without Docker is not a defect in the stack.
-const composeAvailable = sh('docker', ['compose', 'version']).status === 0;
-if (!composeAvailable) {
-    console.log('  SKIPPED: docker compose is not installed, so the compose file was not parsed');
-} else {
-    const cfg = sh(
-        'docker',
-        ['compose', '-f', repoPath('compose.yaml'), '--profile', 'debug', 'config'],
-        { env: { ...process.env, TIZEN_AUTHOR_KEY_PW: 'harness' } },
-    );
-    check('the compose file parses', cfg.status, 0);
-    const text = cfg.out;
-    // sdb's local server binds 0.0.0.0:26099. Publishing any port from this
-    // stack would put a debug bridge on the network.
-    check('  ...publishing no ports at all', /published:/.test(text), false);
-    check('  ...building the widget with no network', /network_mode: none/.test(text), true);
-    check('  ...on amd64', /platform: linux\/amd64/.test(text), true);
-    // Without a password compose must refuse before spending twenty minutes
-    // building a 663 MB image.
-    const noPassword = sh('docker', ['compose', '-f', repoPath('compose.yaml'), 'config'], {
-        env: Object.fromEntries(
-            Object.entries(process.env).filter(([k]) => k !== 'TIZEN_AUTHOR_KEY_PW'),
-        ),
-    });
-    check('it refuses to run without a certificate password', noPassword.status !== 0, true);
-    check('  ...saying which variable', /TIZEN_AUTHOR_KEY_PW/.test(noPassword.out), true);
-}
+// Nothing secret may enter a layer: a COPY survives even if a later RUN deletes
+// it, and a build ARG is recoverable from `docker history`.
+check(
+    'no certificate is baked into the image',
+    /^(COPY|ADD)[^\n]*\.(p12|pfx)/im.test(DOCKERFILE),
+    false,
+);
+// A build ARG is recoverable from `docker history` long after the build.
+check(
+    'no secret is a build argument',
+    /^ARG[^\n]*(PASSWORD|_PW\b|PASSWD|AUTHOR_KEY|TOKEN|SECRET)/im.test(DOCKERFILE),
+    false,
+);
+// `tizen cli-config -g` refuses every key in the `default.*` namespace, prints
+// the refusal to stdout and exits 0 -- so relocating profiles.xml that way looks
+// like it worked and silently is not. The entrypoint asks the SDK where it wrote
+// instead; this is the regression guard for going back.
+check(
+    'it does not try to relocate profiles.xml with cli-config',
+    /cli-config\s+-g/.test(ENTRYPOINT),
+    false,
+);
+check(
+    '  ...it reads the path the CLI reports',
+    /Wrote to/.test(ENTRYPOINT) && /security-profiles add/.test(ENTRYPOINT),
+    true,
+);
+check(
+    '  ...and does not discard that output',
+    /security-profiles add[^\n]*>\s*\/dev\/null/.test(ENTRYPOINT),
+    false,
+);
 
-// The default service must be the one that does the job; the shell is opt-in, or
-// `docker compose up` would start a bash prompt and call it a build.
-check('the debug shell is behind a profile', /profiles: \["debug"\]/.test(COMPOSE), true);
+// --- what compose.yaml must do is asserted in wgt-compose.test.mjs, which exits
+// 2 when Docker is absent so the skip is visible to TT_STRICT_SKIP rather than
+// being printed in the middle of a passing run.
 
 done();

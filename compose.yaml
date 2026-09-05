@@ -1,10 +1,14 @@
 # Builds and signs the standalone Tizen widget with the real Tizen Studio Web CLI.
 #
+#   docker compose build          once, and after changing anything in docker/
 #   docker compose run --rm wgt
 #
 # needing only TIZEN_AUTHOR_KEY_PW plus a certificate, and producing
-# standalone/release/TizenTube.wgt. See docs/BUILDING.md for the certificate and
-# for why this image must not be pushed to a public registry.
+# standalone/release/TizenTube.wgt. `run` does NOT rebuild the image when
+# docker/tizen/* changes -- pass --build, or build explicitly as above.
+#
+# See docs/BUILDING.md for the certificate and for why this image must not be
+# pushed to a public registry.
 #
 # There are no `ports:` anywhere here on purpose. sdb's local server binds
 # 0.0.0.0:26099, and publishing that would expose a debug bridge to the network.
@@ -23,18 +27,27 @@ services:
     # Silicon this runs emulated. Slow, but it works -- the signing path here
     # avoids the SDK's 32-bit secret-tool, which emulation could not run.
     platform: linux/amd64
-    # Ownership of the .wgt that lands back on the host. Defaults to the uid the
-    # image's own user has; override on a machine where you are not 1000:
+    # Ownership of the .wgt that lands back on the host. Any uid works: the
+    # image makes the SDK tree world-readable and world-executable precisely so
+    # that this is a free choice, because the developer's uid is not knowable at
+    # build time. 1000 is the common case on Linux; override with
     #   TT_UID=$(id -u) TT_GID=$(id -g) docker compose run --rm wgt
+    # Note this is NOT the image's own `tizen` account: ubuntu:24.04 already
+    # ships a user at uid 1000, so `tizen` is 1001.
     user: "${TT_UID:-1000}:${TT_GID:-1000}"
     environment:
-      # The certificate password. Required. Nothing else here is secret.
-      TIZEN_AUTHOR_KEY_PW: "${TIZEN_AUTHOR_KEY_PW:?set TIZEN_AUTHOR_KEY_PW to the password of your author .p12}"
+      # The certificate password. The entrypoint refuses without it, with a
+      # sentence saying so -- deliberately not enforced here with `:?`, because
+      # that would also block `docker compose build`, `ps` and `down`, and
+      # pre-building the image is exactly what you want to do before you have
+      # the certificate to hand.
+      TIZEN_AUTHOR_KEY_PW: "${TIZEN_AUTHOR_KEY_PW:-}"
       # Optional alternative to mounting the .p12: the same file, base64, which
       # is how CI already stores it.
       TIZEN_AUTHOR_KEY: "${TIZEN_AUTHOR_KEY:-}"
-      # An arbitrary uid needs a writable home; the SDK finds its own paths from
-      # sdk.info rather than from HOME.
+      # For the shell, not for the SDK: the Tizen CLI resolves paths from
+      # sdk.info, and resolves ~ through getpwuid rather than $HOME, so an
+      # unlisted uid gets no usable home either way. Nothing here depends on it.
       HOME: /tmp
     volumes:
       - type: bind

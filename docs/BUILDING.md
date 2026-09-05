@@ -55,7 +55,7 @@ pnpm install                              # all four trees, one lockfile
 (cd service && pnpm run build)            # 2. the DIAL service
 (cd standalone/service && pnpm run build) # 3. the app's service
 
-pnpm test                                 # 41 harnesses
+pnpm test                                 # 42 harnesses
 ```
 
 Under ten seconds in total on a warm checkout. If you only want the TizenBrew
@@ -116,7 +116,7 @@ copy. This is the one way to get a `.wgt` that is quietly a version behind.
 ```sh
 pnpm check                                         # Biome: format + lint
 pnpm -r --workspace-concurrency=1 run typecheck   # all three TypeScript trees
-pnpm test                                          # 41 harnesses
+pnpm test                                          # 42 harnesses
 pnpm test settings                                 # just the ones matching "settings"
 ```
 
@@ -320,7 +320,11 @@ forgetting it publishes something nobody can install.
 
 ## Packaging the `.wgt`
 
-There are two packagers, and they produce the same widget.
+There are two packagers. They produce the same *payload* — every file inside the
+two archives matches by hash — but not identical archives: `tizen.js` also writes
+bare directory entries and emits one extra trailing newline in
+`author-signature.xml`, which cascades into a different digest in
+`signature1.xml`. Either widget installs; they are not byte-comparable.
 
 | | `tizen.js` | Tizen Studio in Docker |
 | --- | --- | --- |
@@ -334,6 +338,13 @@ be able to check against the real one, and because building a signed widget
 locally should not mean installing a 663 MB SDK on your laptop.
 
 ### With Docker
+
+> **This route has never been executed end to end.** It was written against an
+> SDK that was installed and driven by hand — the commands, flags and failure
+> modes below are all things that were observed — but the container as assembled
+> here has not been built or run, because the environment it was written in has
+> no Docker daemon. Expect the first run to find something. Every failure path
+> prints the SDK's own log, which is where the real error lives.
 
 ```sh
 # Build the three JS bundles first -- the image packages a build, it does not
@@ -352,7 +363,12 @@ by you. The certificate can also come from `TIZEN_AUTHOR_KEY` as base64, which i
 how CI already stores it, if mounting a file is inconvenient.
 
 `docker compose --profile debug run --rm shell` gives you the same image with a
-prompt, which is where to start if something goes wrong.
+prompt, which is where to start if something goes wrong; it needs no certificate
+and no password.
+
+`run` does not rebuild the image when anything under `docker/` changes. After
+editing the Dockerfile or the scripts, `docker compose build` (or
+`run --build`).
 
 > **Do not push this image anywhere public.** The Tizen Studio License Agreement,
 > which ships inside the installer as `res/COPYING` in `installer.jar`, says at
@@ -389,10 +405,11 @@ one fails quietly:
 
 ### With `tizen.js`
 
-> Verified: everything above, on a clean checkout. **Not** verified here: the
-> two commands in this section, because this environment cannot reach GitHub to
-> install `tizen.js`. They are reproduced exactly from the release workflow,
-> which is what actually cuts releases.
+> Verified: the sections above **Packaging the `.wgt`**, on a clean checkout.
+> **Not** verified: the two commands in this section, because this environment
+> cannot reach GitHub to install `tizen.js` — they are reproduced exactly from
+> the release workflow, which is what actually cuts releases — and nothing in
+> **With Docker** above, for the reason stated there.
 
 A Tizen widget carries `author-signature.xml` and `signature1.xml`, and
 `tizen.js` reads `--author` unconditionally — there is no unsigned path, and a
