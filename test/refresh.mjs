@@ -347,6 +347,55 @@ if (/^\s*import\s/m.test(skipFilter)) {
 }
 out('skip-filter/mod.generated.mts', skipFilter);
 
+// resolveCommand.ts, with its eight imports repointed at one stub module. The
+// harness drives the real command dispatch: a settings toggle arrives as a
+// commandExecutorCommand, and every sub-command has to come back through the
+// wrapper rather than being handed to YouTube's resolver, which has never heard
+// of these settings.
+const resolveCommand = readRepo('mods', 'resolveCommand.ts')
+    .replace(
+        "import { configWrite, configRead, isConfigKey } from './config.js';",
+        "import { configWrite, configRead, isConfigKey } from './stubs.mjs';",
+    )
+    .replace(
+        "import { enablePip } from './features/pictureInPicture.js';",
+        "import { enablePip } from './stubs.mjs';",
+    )
+    .replace(
+        "import modernUI, { optionShow } from './ui/settings.js';",
+        "import modernUI, { optionShow } from './settingsStub.mjs';",
+    )
+    .replace(
+        "import { speedSettings } from './ui/speedUI.js';",
+        "import { speedSettings } from './stubs.mjs';",
+    )
+    .replace(
+        "import { showToast, buttonItem } from './ui/ytUI.js';",
+        "import { showToast, buttonItem } from './stubs.mjs';",
+    )
+    .replace(
+        "import { addEntry, parseEntry } from './features/tileMenu.js';",
+        "import { addEntry, parseEntry } from './stubs.mjs';",
+    )
+    .replace(
+        "import { noteCommand } from './features/commandCounter.js';",
+        "import { noteCommand } from './stubs.mjs';",
+    )
+    .replace(
+        "import checkForUpdates from './features/updater.js';",
+        "import checkForUpdates from './stubs.mjs';",
+    )
+    .replace("import { t } from 'i18next';", "import { t } from './stubs.mjs';")
+    .replace(
+        "import type { Command, SettingData } from './types/youtube';",
+        'type Command = any; type SettingData = any;',
+    );
+if (resolveCommand.includes("from './config.js'") || resolveCommand.includes("from 'i18next'"))
+    fail(
+        'resolveCommand.ts imports moved; the settings-toggle harness would run against stale stubs',
+    );
+out('settings-toggle/mod.generated.mts', resolveCommand);
+
 // speedUI.ts, lifted so the BLUE key handler itself is driven. The registry
 // below has its own tests, but a harness that only proves the registry works
 // still passes with speedUI back to inlining the close and skipping the focus

@@ -68,7 +68,19 @@ check(
 check('the loading state is a real state', /\[data-state="loading"\]/.test(code), true);
 // Logical properties inherit the app's direction. Physical ones do not.
 check('placement uses no logical insets', /inset-inline|inset-block/.test(code), false);
-check('the triangle uses no logical borders', /border-inline|border-block/.test(code), false);
+check('the spinner uses no logical borders', /border-inline|border-block/.test(code), false);
+
+// The three marks previewIndicator.ts builds, as one string used by both pages
+// below -- the fixture is a COPY of the real markup, and two copies drift twice
+// as fast as one.
+const ICON_ATTRS = 'viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"';
+const PLAY_ARROW_PATH = 'M8 5v14l11-7z';
+const VOLUME_UP_PATH =
+    'M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z';
+const MARKS =
+    '<span class="tt-pi-glyph"></span>' +
+    `<svg class="tt-pi-play" ${ICON_ATTRS}><path d="${PLAY_ARROW_PATH}"/></svg>` +
+    `<svg class="tt-pi-sound" ${ICON_ATTRS}><path d="${VOLUME_UP_PATH}"/></svg>`;
 
 const browser = await chromium.launch({ executablePath: chromiumExecutable() });
 const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
@@ -79,7 +91,7 @@ await page.setContent(`<!doctype html><html><head><meta charset="utf-8">
   .fixture{width:300px;height:170px;display:inline-block;margin:8px}</style>
 <style id="tt">${css}</style></head><body>
   <div class="fixture" id="f1"></div><div class="fixture" id="f2"></div>
-  <div id="tizentube-preview-indicator" class="tt-dimmable"><span class="tt-pi-glyph"></span><span class="tt-pi-sound"></span></div>
+  <div id="tizentube-preview-indicator" class="tt-dimmable">${MARKS}</div>
 </body></html>`);
 
 // The markup above is a COPY of what previewIndicator.ts builds, and a copy is
@@ -101,6 +113,7 @@ const source = readRepo('mods', 'ui', 'previewIndicator.ts');
 for (const hook of [
     'tizentube-preview-indicator',
     'tt-pi-glyph',
+    'tt-pi-play',
     'tt-pi-sound',
     'data-state',
     'data-sound',
@@ -111,6 +124,19 @@ for (const hook of [
         );
         process.exit(1);
     }
+}
+
+// The fixture's icons are a copy too, and the class-name tripwire above would
+// not notice the mod drawing a DIFFERENT path under the same class -- which is
+// the whole point of using the icon set rather than something hand-drawn. So the
+// exact path data the fixture asserts against has to appear in the source.
+// Measured: changing the `d` in previewIndicator.ts while leaving this out went
+// undetected.
+for (const [name, path] of [
+    ['PlayArrow', PLAY_ARROW_PATH],
+    ['VolumeUp', VOLUME_UP_PATH],
+]) {
+    check(`the mod draws Material ${name}`, source.includes(path), true);
 }
 
 const px = (v) => parseFloat(v) || 0;
@@ -231,8 +257,34 @@ const boxOf = async (selector) =>
     }, selector);
 
 await setState('playing');
-const triangle = await boxOf('#tizentube-preview-indicator > .tt-pi-glyph');
-check('the triangle is actually drawn', triangle.width > 0 && triangle.height > 0, true);
+// Material's PlayArrow, asserted by the path it draws and not merely by being
+// present: an SVG with the wrong `d` is still an SVG, and the point of using the
+// icon set is that these are the shapes people recognise from every other
+// player.
+const play = await page.evaluate(() => {
+    const el = document.querySelector('#tizentube-preview-indicator > .tt-pi-play');
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return {
+        tag: el.tagName.toLowerCase(),
+        width: r.width,
+        height: r.height,
+        display: getComputedStyle(el).display,
+        fill: getComputedStyle(el).fill,
+        viewBox: el.getAttribute('viewBox'),
+        path: el.querySelector('path')?.getAttribute('d'),
+        hidden: el.getAttribute('aria-hidden'),
+    };
+});
+check('the play mark is an svg', play?.tag, 'svg');
+check('  ...actually drawn', play.width > 0 && play.height > 0, true);
+check('  ...on the Material 24 grid', play.viewBox, '0 0 24 24');
+check('  ...drawing Material PlayArrow', play.path, PLAY_ARROW_PATH);
+// currentColor is what makes the mark dim with the rest of the indicator rather
+// than staying the one bright thing on a dimmed screen.
+check('  ...filled with the inherited colour', play.fill, 'rgb(241, 241, 241)');
+check('  ...and hidden from screen readers', play.hidden, 'true');
+const triangle = { width: play.width, height: play.height };
 
 // --- loading ----------------------------------------------------------------
 // The state that did not exist before. A preview takes a real moment to arrive
@@ -269,9 +321,17 @@ check('  ...as a ring', spinner.radius !== '0px', true);
 check('  ...with a visible leading edge', spinner.colours > 1, true);
 check('  ...and it is actually rotating', spinner.animations > 0, true);
 
-// The triangle and the spinner are the same element in different states, so a
-// rule that matched both would draw a rotating triangle.
-check('the triangle is not also a spinner', spinner.width !== triangle.width, true);
+// They are now separate elements, so the risk is the opposite one: both showing
+// at once, which would stack a spinner on top of a play mark.
+const bothAtOnce = await page.evaluate(() => {
+    const shown = (sel) =>
+        getComputedStyle(document.querySelector(`#tizentube-preview-indicator > ${sel}`))
+            .display !== 'none';
+    return { glyph: shown('.tt-pi-glyph'), play: shown('.tt-pi-play') };
+});
+check('loading shows the spinner', bothAtOnce.glyph, true);
+check('  ...and not the play mark as well', bothAtOnce.play, false);
+check('the spinner is not the play mark', spinner.width !== triangle.width, true);
 
 // --- sound ------------------------------------------------------------------
 // Only ever drawn when previewState.soundState() returned 'audible'. A speaker
@@ -288,28 +348,30 @@ const withSound = await page.evaluate(async () => {
     const speaker = document.querySelector('#tizentube-preview-indicator > .tt-pi-sound');
     const sr = speaker.getBoundingClientRect();
     const nr = node.getBoundingClientRect();
-    const cone = getComputedStyle(speaker, '::before');
-    const wave = getComputedStyle(speaker, '::after');
     return {
-        speaker: { width: sr.width, height: sr.height, display: getComputedStyle(speaker).display },
+        speaker: {
+            tag: speaker.tagName.toLowerCase(),
+            width: sr.width,
+            height: sr.height,
+            display: getComputedStyle(speaker).display,
+            fill: getComputedStyle(speaker).fill,
+            viewBox: speaker.getAttribute('viewBox'),
+            path: speaker.querySelector('path')?.getAttribute('d'),
+        },
         pill: { width: nr.width, height: nr.height },
-        coneBorder: cone.borderRightWidth,
-        waveRadius: wave.borderTopLeftRadius,
-        waveClip: wave.clipPath,
     };
 });
 check('the speaker appears', withSound.speaker.display !== 'none', true);
+check('  ...as an svg', withSound.speaker.tag, 'svg');
 check(
     '  ...and is actually drawn',
     withSound.speaker.width > 0 && withSound.speaker.height > 0,
     true,
 );
-check('  ...with a cone', px(withSound.coneBorder) > 0, true);
-check('  ...and a wave arc', withSound.waveRadius !== '0px', true);
-check('  ...clipped to one side', withSound.waveClip !== 'none', true);
+check('  ...on the Material 24 grid', withSound.speaker.viewBox, '0 0 24 24');
+check('  ...drawing Material VolumeUp', withSound.speaker.path, VOLUME_UP_PATH);
+check('  ...filled with the inherited colour', withSound.speaker.fill, 'rgb(241, 241, 241)');
 
-// The shape change is itself part of the signal: it reads at three metres before
-// either glyph resolves.
 check('sound widens the disc into a pill', withSound.pill.width > withSound.pill.height, true);
 
 // ...which is exactly why the mark has to be re-placed when the speaker appears.
@@ -473,7 +535,7 @@ const reduced = await browser.newPage({
 await reduced.setContent(`<!doctype html><html><head><meta charset="utf-8">
 <style>html,body{margin:0;height:100%;background:#0b0b0b}html{font-size:16px}</style>
 <style id="tt">${css}</style></head><body>
-  <div id="tizentube-preview-indicator" class="tt-dimmable" data-state="loading"><span class="tt-pi-glyph"></span><span class="tt-pi-sound"></span></div>
+  <div id="tizentube-preview-indicator" class="tt-dimmable" data-state="loading">${MARKS}</div>
 </body></html>`);
 const motion = await reduced.evaluate(async () => {
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
