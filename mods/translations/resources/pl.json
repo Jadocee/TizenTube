@@ -168,7 +168,7 @@
                     "disableChannelsOnSidebar": "Wyłącz kanały na pasku bocznym",
                     "clock": {
                         "title": "Zegar",
-                        "subtitle": "Wyświetlaj zegar na ekranie",
+                        "subtitle": "Wyświetlaj zegar w rogu podczas odtwarzania filmu",
                         "options": {
                             "enableClock": "Włącz zegar",
                             "isClock12HourFormat": "Format 12-godzinny",

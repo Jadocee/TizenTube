@@ -141,7 +141,7 @@
                     "disableChannelsOnSidebar": "Ẩn kênh khỏi thanh điều hướng",
                     "clock": {
                         "title": "Đồng hồ",
-                        "subtitle": "Hiển thị đồng hồ trên màn hình",
+                        "subtitle": "Hiển thị đồng hồ ở góc màn hình khi video đang phát",
                         "options": {
                             "enableClock": "Hiển thị đồng hồ",
                             "isClock12HourFormat": "Sử dụng dịnh dạng đồng hồ 12H",

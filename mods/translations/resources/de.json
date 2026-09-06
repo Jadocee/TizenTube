@@ -168,7 +168,7 @@
                     "disableChannelsOnSidebar": "Kanäle in der Seitenleiste deaktivieren",
                     "clock": {
                         "title": "Uhr",
-                        "subtitle": "Die Uhr auf dem Bildschirm anzeigen",
+                        "subtitle": "Die Uhr in der Ecke anzeigen, während ein Video läuft",
                         "options": {
                             "enableClock": "Uhr aktivieren",
                             "isClock12HourFormat": "12-Stunden-Format",

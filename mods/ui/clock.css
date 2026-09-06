@@ -3,22 +3,51 @@
    is a runtime decision, and that is a class now rather than four properties
    being cleared and re-set on every change.
 
-   The offsets clear the 5% title-safe line on sets that still overscan.
-   YouTube's TV app sizes its root font at a fixed fraction of the viewport, so
-   rem lands in the same place whatever resolution the set reports. */
+   YouTube's TV app sizes its root font at a fixed fraction of the viewport --
+   the app's grid is 80rem across, so 1rem is a 1/80th of the viewport width and
+   lands in the same place at 1080p and at 4K alike. At 1920 that makes 1rem =
+   24px, which is what the numbers below are reasoned in.
+
+   THE OFFSETS ARE INSIDE THE TITLE-SAFE BOX, AND THAT IS A TRADE, NOT AN
+   OVERSIGHT. 2rem is 2.5% of the width and 1.5rem is 3.3% of the height; the
+   broadcast title-safe line is 5%, which is exactly where the old 4rem/3rem
+   sat. They were moved because the clock was asked to be in the corner and 5%
+   does not read as one. The cost is real and worth writing down: a set that
+   still applies analogue-era overscan would clip the trailing digits. Modern
+   Tizen panels render app content 1:1, which is the bet being made; if a set
+   ever proves otherwise, 2.25rem/4rem is the smallest pair that clears 5%.
+
+   EVERY BARE DECLARATION COMES BEFORE THE NESTED RULES. Two separate reasons,
+   and neither is the one an earlier version of this comment gave:
+     - What decides the hide is SPECIFICITY, not order. `&[data-watching]` is
+       (1,1,0) and the block's bare `display: none` is (1,0,0), so the attribute
+       wins wherever it is written. Order cannot break that.
+     - Order still matters because test/css-nesting flags every declaration
+       written after a nested rule, by design: Chromium 120 hoists such a
+       declaration above the rule, so any pair where the two have EQUAL
+       specificity -- `& { display: block; }` in place of the attribute, say --
+       would resolve one way on the television and the other way in the harness.
+       Keeping declarations first means that asymmetry can never arise here. */
 
 #tizentube-clock {
     position: fixed;
+
+    /* Hidden until the watch player is actually playing something; clock.ts
+       sets data-watching, and features/clockVisibility.ts decides what counts.
+       DISPLAY rather than opacity: ui.ts's idle dimming writes `opacity` with
+       `!important` over every `.tt-dimmable` element, which this is one of, so
+       an opacity hide would be a race between the two. */
+    display: none;
     /* Below .ytaf-ui-container (1000) so TizenTube's own panels are never stamped
      over, but composited so the video plane cannot occlude it. */
     z-index: 900;
     transform: translateZ(0);
 
-    padding-block: 0.35rem;
-    padding-inline: 0.85rem;
-    border-radius: 0.75rem;
+    padding-block: 0.3rem;
+    padding-inline: 0.7rem;
+    border-radius: 0.6rem;
 
-    font-size: 2rem;
+    font-size: 1.6rem;
     font-weight: 500;
     line-height: 1;
     font-variant-numeric: tabular-nums;
@@ -35,6 +64,10 @@
         0 0.125rem 0.375rem rgb(0 0 0 / 90%),
         0 0 0.125rem rgb(0 0 0 / 90%);
 
+    &[data-watching] {
+        display: block;
+    }
+
     /* Physical left/right on the inline axis, deliberately. The setting names the
      corner in physical terms ("Top Left"), and the clock is appended to
      document.body, so it inherits the app's direction -- which is RTL whenever
@@ -43,19 +76,19 @@
      opposite corner from the one it names. inset-block-* is safe: the block
      axis never remaps under horizontal-tb. */
     &.tt-clock-top-left {
-        inset-block-start: 3rem;
-        left: 4rem;
+        inset-block-start: 1.5rem;
+        left: 2rem;
     }
     &.tt-clock-top-right {
-        inset-block-start: 3rem;
-        right: 4rem;
+        inset-block-start: 1.5rem;
+        right: 2rem;
     }
     &.tt-clock-bottom-left {
-        inset-block-end: 3rem;
-        left: 4rem;
+        inset-block-end: 1.5rem;
+        left: 2rem;
     }
     &.tt-clock-bottom-right {
-        inset-block-end: 3rem;
-        right: 4rem;
+        inset-block-end: 1.5rem;
+        right: 2rem;
     }
 }

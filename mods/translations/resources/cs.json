@@ -140,7 +140,7 @@
                     "disableChannelsOnSidebar": "Zakázat Kanály v Postranním Panelu",
                     "clock": {
                         "title": "Hodiny",
-                        "subtitle": "Zobrazovat hodiny na obrazovce",
+                        "subtitle": "Zobrazovat hodiny v rohu během přehrávání videa",
                         "options": {
                             "enableClock": "Povolit hodiny",
                             "isClock12HourFormat": "Použít 12-ti hodinový formát hodin",

@@ -140,7 +140,7 @@
                     "disableChannelsOnSidebar": "تعطيل القنوات في الشريط الجانبي",
                     "clock": {
                         "title": "الساعة",
-                        "subtitle": "عرض الساعة على الشاشة",
+                        "subtitle": "عرض الساعة في الزاوية أثناء تشغيل الفيديو",
                         "options": {
                             "enableClock": "تمكين الساعة",
                             "isClock12HourFormat": "استخدام نظام 12 ساعة",

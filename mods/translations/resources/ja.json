@@ -141,7 +141,7 @@
                     "disableChannelsOnSidebar": "サイドバーのチャンネルを無効化する",
                     "clock": {
                         "title": "時計",
-                        "subtitle": "画面に時計を表示します",
+                        "subtitle": "動画の再生中に画面の隅に時計を表示します",
                         "options": {
                             "enableClock": "時計を有効化する",
                             "isClock12HourFormat": "12 時間制の時計を使用する",
