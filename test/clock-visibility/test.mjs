@@ -63,18 +63,55 @@ check(
     true,
 );
 
-// --- the latch that would otherwise be permanent ----------------------------
-// playbackPreview can only report a preview ENDING when the shipped service has
-// a teardown method to wrap; previewStopHooked() exists precisely because it has
-// been wrong about that before. If `stop` did not clear `previewing`, one
-// preview with no matching stop would hide the clock for the rest of the
-// session and no signal would ever undo it.
-const latched = play('previewStart', 'play', 'stop');
-check('a stop clears the preview flag as well', latched.previewing, false);
+// --- the preview that BECOMES the video ------------------------------------
+// The single most common way to start a video from the home page: focus rests on
+// a tile, the tile previews, the user presses OK. previewIndicator.ts states the
+// consequence outright -- "a preview that becomes a full-screen watch changes the
+// route without ever calling the teardown" -- so no previewStop arrives, and
+// because the same element carries straight on into fullscreen, no pause or
+// emptied arrives either. Without the route clearing the flag, the clock is
+// missing for the entire video and nothing can bring it back.
 check(
-    '  ...so the next video recovers with no previewStop at all',
-    clockVisible(reduce(reduce(latched, 'enterWatch'), 'play')),
+    'a preview that becomes the video still shows the clock',
+    visibleAfter('previewStart', 'play', 'enterWatch'),
     true,
+);
+check(
+    '  ...and leaving clears it just the same',
+    play('previewStart', 'play', 'leaveWatch').previewing,
+    false,
+);
+// A watch-to-watch hashchange has to keep clearing it, which is what the
+// `&& !state.previewing` conjunct in the enterWatch case is for. Written as an
+// identity check because that is how the bug would present: reduce() returning
+// the same object makes clock.ts skip the DOM write entirely.
+const watchingPreview = { watching: true, playing: true, previewing: true };
+check(
+    '  ...even when already on a watch route',
+    reduce(watchingPreview, 'enterWatch').previewing,
+    false,
+);
+check(
+    '  ...and that is a new object, so the clock is repainted',
+    reduce(watchingPreview, 'enterWatch') !== watchingPreview,
+    true,
+);
+
+// --- a stop must NOT clear the preview flag ---------------------------------
+// It used to, as insurance against the flag latching. That insurance cancelled
+// the thing it was insuring: a preview loads into the SAME element, so its own
+// source swap fires `emptied` on the way in -- after the synchronous
+// previewStart -- and the clock came back over the preview, which is the exact
+// bug the flag exists to prevent.
+check(
+    'a stop leaves the preview flag alone',
+    play('enterWatch', 'play', 'previewStart', 'stop').previewing,
+    true,
+);
+check(
+    '  ...so a preview loading on the watch page stays suppressed',
+    visibleAfter('enterWatch', 'play', 'previewStart', 'stop', 'play'),
+    false,
 );
 
 // --- the reducer's identity contract ----------------------------------------
@@ -110,7 +147,15 @@ check('  ...nor a browse hash', isWatchRoute('#?c=FEwhat_to_watch'), false);
 // carrying `?tv=1` matched a looser test, and every browse page would then have
 // counted as a video.
 check('a parameter merely ending in v does not count', isWatchRoute('#/browse?tv=1'), false);
-check('an empty v does not count', isWatchRoute('#/watch?v='), false);
+// A mix or a playlist is a full-screen watch page with NO v at all. Matching the
+// parameter alone called it home and hid the clock for the whole playlist.
+check('a playlist watch route counts', isWatchRoute('#/watch?list=RDabc&index=0'), true);
+check('  ...as does a watch route with no query', isWatchRoute('#/watch'), true);
+check('  ...and one whose v is empty', isWatchRoute('#/watch?v='), true);
+// The path, not the whole hash: the app puts browse ids in the QUERY, so a bare
+// includes('/watch') would call the Watch Later shelf a video.
+check('the watch-later shelf is not a watch route', isWatchRoute('#?c=FEwatch_later'), false);
+check('  ...nor the history shelf', isWatchRoute('#?c=FEwatch_history'), false);
 check('a missing hash does not throw', isWatchRoute(null), false);
 check('  ...nor a non-string', isWatchRoute(undefined), false);
 
@@ -159,7 +204,23 @@ check(
 
 // The hide has to be an attribute the stylesheet keys off, NOT a style write:
 // see the header. A `style.opacity` or `style.display` here would be the bug.
-check('  ...toggling an attribute rather than a style', code.includes("'data-watching'"), true);
+//
+// The two WRITES, not the name. Matching the literal passes on the constant
+// declaration alone, so both setAttribute and removeAttribute could be deleted
+// -- leaving a clock that clock.css hides and nothing ever un-hides -- and this
+// check would still have reported ok. That is the worst failure this feature
+// has, and it went green for it.
+check('  ...names the attribute', code.includes("'data-watching'"), true);
+check(
+    '  ...sets it when the clock should show',
+    code.includes('setAttribute(WATCHING_ATTRIBUTE'),
+    true,
+);
+check(
+    '  ...and removes it when it should not',
+    code.includes('removeAttribute(WATCHING_ATTRIBUTE'),
+    true,
+);
 check(
     '  ...and never writing opacity or display itself',
     /\.style\.(opacity|display)|setProperty\(\s*'(opacity|display)'/.test(code),
@@ -167,12 +228,29 @@ check(
 );
 // The ticker follows visibility. A hidden clock that still ticks is a timer, a
 // Date and a string compare every second, forever, on a CPU decoding video.
+//
+// Anchored INSIDE the hidden branch. The unanchored version spanned the whole
+// file and was satisfied by the unrelated stopClock() in toggleClock(), so
+// deleting the one in applyVisibility() -- the exact regression it names -- left
+// it green. The branch body contains no closing brace of its own, so [^}] pins
+// it.
 check(
     '  ...stopping the ticker when hidden',
-    /clockVisible\(playback\)[\s\S]*?stopClock\(\)/.test(code),
+    /if \(!clockVisible\(playback\)\)\s*\{[^}]*stopClock\(\)/.test(code),
     true,
 );
-check('  ...and seeding state when the clock is enabled', code.includes('resyncPlayback()'), true);
+// CALL SITES, not declarations. `includes('resyncPlayback()')` matched the
+// `function resyncPlayback()` line, so the call could be deleted and the clock
+// would not appear when enabled from the settings panel over a playing video.
+// listen() had the same hole, and it is worse: every listener assertion above
+// matches text inside its body whether or not anything ever calls it, so the
+// whole wiring could go and all of them stayed green.
+const callsTo = (name) => (code.match(new RegExp(`\\b${name}\\(\\)`, 'g')) || []).length;
+check('  ...seeding state when the clock is enabled', callsTo('resyncPlayback') > 1, true);
+check('  ...and actually attaching the listeners', callsTo('listen') > 1, true);
+// The preview flag is only trusted when a teardown exists to clear it --
+// otherwise one preview would suppress the clock for the rest of the session.
+check('  ...gating previews on a teardown existing', code.includes('previewStopHooked()'), true);
 
 // --- clock.css does the hiding ----------------------------------------------
 const css = readRepo('mods', 'ui', 'clock.css');

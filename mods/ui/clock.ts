@@ -2,7 +2,7 @@ import { configChangeEmitter, configRead } from '../config.js';
 import { t } from 'i18next';
 import { whenBodyReady } from '../utils/domReady.js';
 import { setStyleBlock } from './styleSheet.js';
-import { onPreviewStart, onPreviewStop } from '../features/playbackPreview.js';
+import { onPreviewStart, onPreviewStop, previewStopHooked } from '../features/playbackPreview.js';
 import {
     HIDDEN,
     clockVisible,
@@ -166,13 +166,20 @@ function signal(name: PlaybackSignal): void {
     applyVisibility();
 }
 
-/** Re-reads the two signals that can be observed rather than waited for. The
- *  third, `previewing`, has no getter to poll, so it is left as it stands. */
+/**
+ * Re-reads the world when the clock is switched on.
+ *
+ * `previewing` has no getter to poll, so it is cleared rather than carried:
+ * this runs with the settings panel open, where no tile has focus and no
+ * preview can be running, and turning a feature off and on again is the
+ * gesture a user reaches for when something looks stuck. Carrying the flag
+ * forward would make that gesture the one thing that cannot fix it.
+ */
 function resyncPlayback(): void {
     playback = {
-        ...playback,
         watching: isWatchRoute(location.hash),
         playing: videoIsPlaying(),
+        previewing: false,
     };
 }
 
@@ -203,7 +210,16 @@ function listen(): void {
     // Neither of these can be unregistered -- playbackPreview keeps a plain list
     // -- which is why they are registered once and gated by state rather than
     // added and removed with the setting.
-    onPreviewStart(() => signal('previewStart'));
+    onPreviewStart(() => {
+        // Only believe a preview STARTED if there is a teardown that can say it
+        // stopped. previewStopHooked() is false when the shipped service has no
+        // method this build knows how to wrap, and it has been wrong about that
+        // before -- playbackPreview wrapped `service.stop`, which does not
+        // exist, for its whole life. Suppressing the clock on a signal whose
+        // counterpart cannot arrive trades the bug this flag prevents for a
+        // worse one: a clock that is never seen again.
+        if (previewStopHooked()) signal('previewStart');
+    });
     onPreviewStop(() => signal('previewStop'));
 }
 

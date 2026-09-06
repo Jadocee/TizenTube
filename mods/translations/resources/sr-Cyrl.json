@@ -140,7 +140,7 @@
                     "disableChannelsOnSidebar": "Онемогући канале на бочној траци",
                     "clock": {
                         "title": "Сат",
-                        "subtitle": "Прикажи сат на екрану",
+                        "subtitle": "Прикажи сат у углу док се видео репродукује",
                         "options": {
                             "enableClock": "Омогући сат",
                             "isClock12HourFormat": "Користи 12-часовни формат за сат",

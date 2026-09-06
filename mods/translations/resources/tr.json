@@ -141,7 +141,7 @@
                     "disableChannelsOnSidebar": "Kenar Çubuğunda Kanalları Devre Dışı Bırak",
                     "clock": {
                         "title": "Saat",
-                        "subtitle": "Ekranda saat göster",
+                        "subtitle": "Video oynatılırken saati köşede göster",
                         "options": {
                             "enableClock": "Saati Etkinleştir",
                             "isClock12HourFormat": "Saat için 12 Saat Formatını Kullan",

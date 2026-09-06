@@ -140,7 +140,7 @@
                     "disableChannelsOnSidebar": "Dezactivează canalele din bara laterală",
                     "clock": {
                         "title": "Ceas",
-                        "subtitle": "Afișează un ceas pe ecran",
+                        "subtitle": "Afișează un ceas în colț în timpul redării unui videoclip",
                         "options": {
                             "enableClock": "Activează ceasul",
                             "isClock12HourFormat": "Folosește formatul de 12 ore pentru ceas",

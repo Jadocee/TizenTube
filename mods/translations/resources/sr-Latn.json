@@ -140,7 +140,7 @@
                     "disableChannelsOnSidebar": "Onemogući kanale na bočnoj traci",
                     "clock": {
                         "title": "Sat",
-                        "subtitle": "Prikaži sat na ekranu",
+                        "subtitle": "Prikaži sat u uglu dok se video reprodukuje",
                         "options": {
                             "enableClock": "Omogući sat",
                             "isClock12HourFormat": "Koristi 12-časovni format za sat",

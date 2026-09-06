@@ -187,7 +187,7 @@
                     "refreshOnReselect": "Refresh the page when you re-select it in the sidebar",
                     "clock": {
                         "title": "Clock",
-                        "subtitle": "Display a clock on the screen",
+                        "subtitle": "Show a clock in the corner while a video is playing",
                         "options": {
                             "enableClock": "Enable Clock",
                             "isClock12HourFormat": "Use 12-Hour Format for Clock",

@@ -3,23 +3,37 @@
    is a runtime decision, and that is a class now rather than four properties
    being cleared and re-set on every change.
 
-   YouTube's TV app sizes its root font at a fixed fraction of the viewport, so
-   rem lands in the same place whatever resolution the set reports. The offsets
-   sit inside the 5% title-safe line rather than on it: the clock is asked to be
-   in the very corner, and a corner it can be cropped out of is not one, so what
-   is kept is the smallest margin that survives a set which still overscans.
+   YouTube's TV app sizes its root font at a fixed fraction of the viewport --
+   the app's grid is 80rem across, so 1rem is a 1/80th of the viewport width and
+   lands in the same place at 1080p and at 4K alike. At 1920 that makes 1rem =
+   24px, which is what the numbers below are reasoned in.
 
-   EVERY BARE DECLARATION COMES BEFORE THE NESTED RULES, and that is not style.
-   Chromium 120 hoists a declaration written after a nested rule ABOVE it, so a
-   `display` written below `&[data-watching]` would lose to nothing and win over
-   everything -- the clock would be permanently hidden. test/css-nesting checks
-   this file for exactly that shape. */
+   THE OFFSETS ARE INSIDE THE TITLE-SAFE BOX, AND THAT IS A TRADE, NOT AN
+   OVERSIGHT. 2rem is 2.5% of the width and 1.5rem is 3.3% of the height; the
+   broadcast title-safe line is 5%, which is exactly where the old 4rem/3rem
+   sat. They were moved because the clock was asked to be in the corner and 5%
+   does not read as one. The cost is real and worth writing down: a set that
+   still applies analogue-era overscan would clip the trailing digits. Modern
+   Tizen panels render app content 1:1, which is the bet being made; if a set
+   ever proves otherwise, 2.25rem/4rem is the smallest pair that clears 5%.
+
+   EVERY BARE DECLARATION COMES BEFORE THE NESTED RULES. Two separate reasons,
+   and neither is the one an earlier version of this comment gave:
+     - What decides the hide is SPECIFICITY, not order. `&[data-watching]` is
+       (1,1,0) and the block's bare `display: none` is (1,0,0), so the attribute
+       wins wherever it is written. Order cannot break that.
+     - Order still matters because test/css-nesting flags every declaration
+       written after a nested rule, by design: Chromium 120 hoists such a
+       declaration above the rule, so any pair where the two have EQUAL
+       specificity -- `& { display: block; }` in place of the attribute, say --
+       would resolve one way on the television and the other way in the harness.
+       Keeping declarations first means that asymmetry can never arise here. */
 
 #tizentube-clock {
     position: fixed;
 
     /* Hidden until the watch player is actually playing something; clock.ts
-       sets data-watching. See features/clockVisibility.ts for what counts.
+       sets data-watching, and features/clockVisibility.ts decides what counts.
        DISPLAY rather than opacity: ui.ts's idle dimming writes `opacity` with
        `!important` over every `.tt-dimmable` element, which this is one of, so
        an opacity hide would be a race between the two. */

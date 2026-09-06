@@ -51,7 +51,7 @@ jobs:
       # Pinned deliberately. Twenty-seven harnesses run under
       # --experimental-strip-types, which needs Node 22.6+, and the workflow
       # previously took whatever the runner image happened to ship: on Node 20
-      # those twenty-six fail before running a single assertion.
+      # those twenty-seven harnesses fail before running a single assertion.
       #
       # registry-url is load-bearing and easy to mistake for decoration. It is
       # what makes setup-node write an .npmrc containing
