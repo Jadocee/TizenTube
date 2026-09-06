@@ -94,6 +94,41 @@ function refreshSound(): void {
     place();
 }
 
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+/* Material Icons, verbatim. These are the exact paths @mui/icons-material draws
+   for PlayArrow and VolumeUp, on the same 24x24 grid -- taken from the icon set
+   rather than redrawn, so they are the shapes people already recognise from
+   every other player. Apache 2.0.
+
+   Inlined as path data instead of loaded: this runs on a television, over
+   whatever connection it has, and an icon that arrives late or not at all is
+   worse than one that was never promised. There is no font to miss and no
+   request to fail. */
+const MATERIAL_PLAY_ARROW = 'M8 5v14l11-7z';
+const MATERIAL_VOLUME_UP =
+    'M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z';
+
+/** One Material icon as an inline SVG, sized and coloured by the stylesheet. */
+function materialIcon(className: string, path: string): SVGSVGElement {
+    const svg = document.createElementNS(SVG_NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    // currentColor so the mark dims with the rest of the indicator rather than
+    // staying the one bright thing on a dimmed screen.
+    svg.setAttribute('fill', 'currentColor');
+    // The indicator is inert decoration sitting over a tile; a screen reader
+    // announcing it would be describing the tile twice.
+    svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('focusable', 'false');
+    // setAttribute, not classList: SVGElement.classList is fine on this engine,
+    // but the attribute is what every other element here is built with.
+    svg.setAttribute('class', className);
+    const d = document.createElementNS(SVG_NS, 'path');
+    d.setAttribute('d', path);
+    svg.appendChild(d);
+    return svg;
+}
+
 function ensureElement(): HTMLDivElement | null {
     if (element) return element;
     // Built on the first real start(), not at module scope: if the stylesheet
@@ -105,15 +140,17 @@ function ensureElement(): HTMLDivElement | null {
     // Dimmed along with everything else by ui.ts's idle timer. Without this the
     // mark would be the one bright thing left on a dimmed screen.
     node.className = 'tt-dimmable';
-    // Two glyphs, both CSS: the state mark (triangle or spinner) and the sound
-    // mark. Separate elements rather than one that changes class, so the CSS
-    // decides what each state shows and this file only ever sets attributes.
+    // Three marks, and which one shows is decided entirely by CSS from the two
+    // data attributes this file sets. Separate elements rather than one that
+    // changes shape, so nothing here has to know what a state looks like.
+    //
+    // The spinner stays a plain span: it is motion, not an icon, and a rotating
+    // ring is a border and a keyframe rather than a path.
     const glyph = document.createElement('span');
     glyph.className = 'tt-pi-glyph';
     node.appendChild(glyph);
-    const speaker = document.createElement('span');
-    speaker.className = 'tt-pi-sound';
-    node.appendChild(speaker);
+    node.appendChild(materialIcon('tt-pi-play', MATERIAL_PLAY_ARROW));
+    node.appendChild(materialIcon('tt-pi-sound', MATERIAL_VOLUME_UP));
     element = node;
     whenBodyReady(() => {
         if (element && !element.isConnected) document.body.appendChild(element);

@@ -118,29 +118,42 @@
 
 /* --- the state glyph ------------------------------------------------------ */
 
-/* The triangle, as borders, so there is no glyph font to miss and no SVG to
-   inline. Physical borders on purpose, per the note above. */
-#tizentube-preview-indicator[data-state="playing"] > .tt-pi-glyph,
-#tizentube-preview-indicator[data-state="stalled"] > .tt-pi-glyph {
-    display: block;
-    inline-size: 0;
-    block-size: 0;
-    /* Optical centring: a triangle's visual centre of mass sits behind its
-     geometric one, so it needs nudging right of centre to look centred. */
-    margin-left: 0.3rem;
-    border-top: 0.7rem solid transparent;
-    border-bottom: 0.7rem solid transparent;
-    border-left: 1.15rem solid currentColor;
+/* Both marks are hidden until a state asks for one, so a rule that never
+   matches shows nothing rather than stacking two icons. */
+#tizentube-preview-indicator > .tt-pi-play,
+#tizentube-preview-indicator > .tt-pi-sound {
+    display: none;
+    flex: none;
 }
 
-/* A pill has room for the triangle to sit properly, so the optical nudge that
-   centres it inside a disc becomes wrong. */
-#tizentube-preview-indicator[data-sound="on"] > .tt-pi-glyph {
+/* Material's PlayArrow. Shown while playing AND while stalled: the disc is
+   already dimmed to say "stuttering", and swapping the shape as well would
+   flicker between two icons on a flaky connection, which is louder than the
+   thing it is reporting. */
+#tizentube-preview-indicator[data-state="playing"] > .tt-pi-play,
+#tizentube-preview-indicator[data-state="stalled"] > .tt-pi-play {
+    display: block;
+    inline-size: 1.7rem;
+    block-size: 1.7rem;
+    /* Optical centring: the glyph's mass sits left of the box's middle, so it
+     needs nudging right to look centred inside a disc. */
+    margin-left: 0.15rem;
+}
+
+/* A pill has room for the icon to sit properly, so the nudge that centres it
+   inside a disc becomes wrong. */
+#tizentube-preview-indicator[data-sound="on"] > .tt-pi-play {
     margin-left: 0;
 }
 
-/* The spinner: a ring with one quadrant left transparent, rotating. No SVG, no
-   font, and no second element. */
+/* The spinner, and the only thing .tt-pi-glyph is now: a ring with one quadrant
+   left transparent, rotating. Motion rather than an icon, so it stays a border
+   and a keyframe. */
+#tizentube-preview-indicator > .tt-pi-glyph {
+    display: none;
+    flex: none;
+}
+
 #tizentube-preview-indicator[data-state="loading"] > .tt-pi-glyph {
     display: block;
     box-sizing: border-box;
@@ -160,55 +173,13 @@
 
 /* --- the sound mark ------------------------------------------------------- */
 
-/* Drawn only when previewState.soundState() returned 'audible'. A speaker on a
-   silent video sends someone hunting for audio that was never there, so
-   'unknown' draws nothing at all. */
-#tizentube-preview-indicator > .tt-pi-sound {
-    display: none;
-}
-
+/* Material's VolumeUp, drawn only when previewState.soundState() returned
+   'audible'. A speaker on a silent video sends someone hunting for audio that
+   was never there, so 'unknown' draws nothing at all. */
 #tizentube-preview-indicator[data-sound="on"] > .tt-pi-sound {
-    /* The speaker body: a small block, with the cone and one wave as
-     pseudo-elements. Built from boxes and borders for the same reason as the
-     triangle -- nothing to load, nothing to miss. */
     display: block;
-    position: relative;
-    box-sizing: border-box;
-    inline-size: 0.45rem;
-    block-size: 0.75rem;
-    margin-left: 0.15rem;
-    background-color: currentColor;
-
-    &::before {
-        /* The cone. */
-        content: "";
-        position: absolute;
-        left: 0.4rem;
-        top: 50%;
-        margin-top: -0.7rem;
-        inline-size: 0;
-        block-size: 0;
-        border-top: 0.7rem solid transparent;
-        border-bottom: 0.7rem solid transparent;
-        border-right: 0.7rem solid currentColor;
-    }
-
-    &::after {
-        /* One wave: a ring with everything but its right half clipped away.
-         One rather than the usual three -- at three metres the extra arcs
-         merge into a smudge. */
-        content: "";
-        position: absolute;
-        left: 1.35rem;
-        top: 50%;
-        margin-top: -0.5rem;
-        box-sizing: border-box;
-        inline-size: 1rem;
-        block-size: 1rem;
-        border: 0.16rem solid currentColor;
-        border-radius: 50%;
-        clip-path: inset(0 0 0 55%);
-    }
+    inline-size: 1.45rem;
+    block-size: 1.45rem;
 }
 
 @media (prefers-reduced-motion: reduce) {

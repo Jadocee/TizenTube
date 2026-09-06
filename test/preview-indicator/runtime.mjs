@@ -100,12 +100,22 @@ const makeEl = () => {
 };
 let removed = 0;
 let created = 0;
+let createdNS = 0;
 const body = makeEl();
 globalThis.document = {
     body,
     activeElement: null,
     createElement: () => {
         created++;
+        return makeEl();
+    },
+    // The two state marks are inline SVG, which is built through the namespaced
+    // constructor rather than createElement. Counted separately: `created`
+    // measures how many times the indicator's container is built, and folding
+    // its children into that number would make the build-once assertions below
+    // pass for the wrong reason.
+    createElementNS: () => {
+        createdNS++;
         return makeEl();
     },
     addEventListener: (t, fn, capture) => {
@@ -215,11 +225,16 @@ check('  ...and clears every timer', liveTimers(), 0);
 // callbacks in place, so the next preview rebuilt it through ensureElement() and
 // the mark came back with the setting off.
 const createdBefore = created;
+const createdNSBefore = createdNS;
 startPreview();
 tick(500);
 fireMedia('playing');
 check('a preview while disabled draws nothing', stateOf(), null);
 check('  ...and builds no element', created, createdBefore);
+// The two Material marks are the element's children, so a rebuild that slipped
+// past the check above would show up here as fresh SVGs even if the container
+// were somehow reused.
+check('  ...nor the icons inside it', createdNS, createdNSBefore);
 check('  ...and schedules nothing', liveTimers(), 0);
 
 configWrite('enablePreviewIndicator', true);

@@ -60,11 +60,9 @@ export function patchResolveCommand(): void {
             window._yttv[key].instance.resolveCommand
         ) {
             const ogResolve = window._yttv[key].instance.resolveCommand;
-            window._yttv[key].instance.resolveCommand = function (
-                this: any,
-                cmd: Command,
-                _?: any,
-            ): any {
+            // Named, because a commandExecutorCommand's sub-commands are routed
+            // back through it -- see the loop near the end of this function.
+            const wrapped = function (this: any, cmd: Command, _?: any): any {
                 // First statement, before any branch that returns early: the
                 // sidebar refresh works by noticing that a press dispatched
                 // NOTHING, so the counter has to move for every command the app
@@ -74,6 +72,14 @@ export function patchResolveCommand(): void {
                 // navigation is always visible here.
                 noteCommand();
                 if (cmd.setClientSettingEndpoint) {
+                    // Whether any of these settings turned out to be ours. A
+                    // command we fully handled must not also go to YouTube's
+                    // resolver, which has never heard of these keys -- before the
+                    // executor loop below started routing sub-commands back here,
+                    // this branch was only ever reached by commands that were not
+                    // ours, so the fall-through was never exercised with one that
+                    // was.
+                    let consumed = false;
                     // Command to change client settings. Use TizenTube configuration to change settings.
                     // One pass. There used to be an inner loop over the same
                     // array, so with N entries in one command every entry was
@@ -103,7 +109,9 @@ export function patchResolveCommand(): void {
                                     }
                                     configWrite(item, arr);
                                 }
+                                consumed = true;
                             } else configWrite(item, value);
+                            consumed = true;
                         } else if (setting.clientSettingEnum.item === 'I18N_LANGUAGE') {
                             const lang = setting.stringValue;
                             const date = new Date();
@@ -121,6 +129,7 @@ export function patchResolveCommand(): void {
                             return true;
                         }
                     }
+                    if (consumed) return true;
                 } else if (cmd.customAction) {
                     customAction(cmd.customAction.action, cmd.customAction.parameters);
                     return true;
@@ -246,29 +255,28 @@ export function patchResolveCommand(): void {
                 if (cmd.customAction) return ogResolve.call(this, cmd, _);
 
                 if (cmd.commandExecutorCommand && cmd.commandExecutorCommand.commands) {
+                    // EACH SUB-COMMAND GOES BACK THROUGH THIS WRAPPER, not to
+                    // ogResolve. It used to re-implement a handful of the cases
+                    // above and send everything else straight to YouTube, which
+                    // silently disabled every TizenTube setting: buttonItem wraps
+                    // ALL of its commands in a commandExecutorCommand, so a toggle
+                    // row's setClientSettingEndpoint -- the half that writes the
+                    // config -- arrived here and was handed to a resolver that has
+                    // never heard of these settings. The redraw that followed it
+                    // was handled, so the menu appeared to respond while reading
+                    // back an unchanged value, and every switch looked stuck.
+                    //
+                    // Recursing is also what stops the two dispatch tables
+                    // drifting apart again: there is only one now.
                     for (const command of cmd.commandExecutorCommand.commands) {
-                        if (command.customAction) {
-                            customAction(
-                                command.customAction.action,
-                                command.customAction.parameters,
-                            );
-                        } else if (command.signalAction?.customAction) {
-                            customAction(
-                                command.signalAction.customAction.action,
-                                command.signalAction.customAction.parameters,
-                            );
-                        } else if (command.showEngagementPanelEndpoint?.customAction) {
-                            customAction(
-                                command.showEngagementPanelEndpoint.customAction.action,
-                                command.showEngagementPanelEndpoint.customAction.parameters,
-                            );
-                        } else if (command.playlistEditEndpoint?.customAction) {
-                            customAction(
-                                command.playlistEditEndpoint.customAction.action,
-                                command.playlistEditEndpoint.customAction.parameters,
-                            );
-                        } else {
+                        // A command executor nested inside its own sub-commands
+                        // would otherwise recurse forever. YouTube does not emit
+                        // that shape, but this wrapper sees whatever the page
+                        // hands it.
+                        if (command.commandExecutorCommand) {
                             ogResolve.call(this, command, _);
+                        } else {
+                            wrapped.call(this, command, _);
                         }
                     }
                     return true;
@@ -291,6 +299,7 @@ export function patchResolveCommand(): void {
 
                 return ogResolve.call(this, cmd, _);
             };
+            window._yttv[key].instance.resolveCommand = wrapped;
         }
     }
 }
