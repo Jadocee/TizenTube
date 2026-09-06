@@ -1,6 +1,6 @@
 # Harnesses
 
-Forty-three regression harnesses. They exist because the things that break TizenTube
+Forty-four regression harnesses. They exist because the things that break TizenTube
 mostly cannot be caught by a typechecker or by reading a diff: a renderer shape
 that only appears at runtime, a focus trap you only find with a D-pad, a
 stylesheet that works until CSP is enforced, a script that behaves differently
@@ -52,6 +52,7 @@ here (no browser, no built bundle) report as *skipped*, not passed.
 | `tile-fixes/test.mjs` | The per-tile and per-shelf decisions the home page depends on: picking a thumbnail that actually exists instead of synthesising a 4:3 URL and declaring it fact, deciding a tile is previewable, reading the members-only badge out of the real `lineItemRenderer` path, and recognising an emptied shelf. |
 | `tile-fixes/dearrow.mjs` | How many DeArrow requests actually leave the machine, driven with a counting fake `fetch`. Uncached, a first home screen was on the order of a hundred and fifty outbound requests fired at once at a television SoC, again on every continuation. |
 | `focus-motion/test.mjs` | That one failing write to `tectonicConfig` costs only its own switch. All six lived in a single bare `try`/`catch` whose first statement dereferenced an object the app may not have published yet, so the two most-felt animation switches were lost silently. |
+| `clock-visibility/test.mjs` | When the clock is allowed on screen, and the two ways that decision breaks where a state machine cannot see it. The clock is meant to appear only over a playing fullscreen video, which is three separate facts about the app -- the route, the player, and whether the thing playing is a *thumbnail preview* through the same element. The source-shape half asserts that the hide uses `display` behind an attribute rather than `opacity` (idle dimming writes `opacity` with `!important` over the same element, so an opacity hide is a race), and that `display: none` is written **above** the nested rules in `clock.css` -- Chromium 120 hoists a declaration written below them, which would hide the clock permanently. Both wrong versions type-check, bundle and pass every other harness. |
 | `guide-reselect/test.mjs` | Selecting the sidebar entry for the page you are already on, where the app deliberately dispatches nothing. The feature works by noticing an absence, so what is asserted is the set of conditions under which it stands down — a wrong refresh reloads a page the user was navigating away from. |
 | `tile-menu/test.mjs` | The long-press menu's suppression rows against tiles lifted verbatim from captured browse responses, including the ones the captures proved are real: a tile from a channel's own page that yields no `UC` id at all, and a subtitle whose tail is a series name rather than a handle. |
 | `guide-filter/test.mjs` | Which sidebar entries get removed, against a genuine `/youtubei/v1/guide` response — which is why it exists: the capture shows a guide keeps its entries in `items`, `footer` and `topbar`, and the previous filter walked only the first. |

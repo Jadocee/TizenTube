@@ -276,6 +276,16 @@ for (const [file, dir, landmarks] of [
         ],
     ],
     [
+        'clockVisibility.ts',
+        'clock-visibility',
+        [
+            'export function reduce',
+            'export function clockVisible',
+            'export function isWatchRoute',
+            'export const HIDDEN',
+        ],
+    ],
+    [
         'tileMenu.ts',
         'tile-menu',
         [

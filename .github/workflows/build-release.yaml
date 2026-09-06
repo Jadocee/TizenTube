@@ -48,7 +48,7 @@ jobs:
       - name: Use pnpm
         uses: pnpm/action-setup@v4
 
-      # Pinned deliberately. Twenty-six harnesses run under
+      # Pinned deliberately. Twenty-seven harnesses run under
       # --experimental-strip-types, which needs Node 22.6+, and the workflow
       # previously took whatever the runner image happened to ship: on Node 20
       # those twenty-six fail before running a single assertion.

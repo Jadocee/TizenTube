@@ -2,6 +2,15 @@ import { configChangeEmitter, configRead } from '../config.js';
 import { t } from 'i18next';
 import { whenBodyReady } from '../utils/domReady.js';
 import { setStyleBlock } from './styleSheet.js';
+import { onPreviewStart, onPreviewStop } from '../features/playbackPreview.js';
+import {
+    HIDDEN,
+    clockVisible,
+    isWatchRoute,
+    reduce,
+    type PlaybackSignal,
+    type PlaybackState,
+} from '../features/clockVisibility.js';
 import clockCss from './clock.css';
 
 // Registered on evaluation, not from ui.ts's startup path: that one waits for a
@@ -30,12 +39,40 @@ const positionClass = (position: string): string =>
 
 const CLOCK_ID = 'tizentube-clock';
 
+// Presence, not a value: clock.css hides #tizentube-clock outright and this
+// attribute is what un-hides it. DISPLAY rather than opacity, deliberately --
+// ui.ts's idle dimming writes `opacity` with `!important` across every
+// `.tt-dimmable` element, and the clock is one of them, so an opacity-based
+// hide would be overwritten by whichever of the two ran last.
+const WATCHING_ATTRIBUTE = 'data-watching';
+
+/** The media events that mean the player started or stopped, and what each one
+ *  says. `emptied` is in here because leaving a video tears the source down
+ *  without necessarily pausing first. */
+const MEDIA_SIGNALS: ReadonlyArray<readonly [string, PlaybackSignal]> = [
+    ['playing', 'play'],
+    ['pause', 'stop'],
+    ['ended', 'stop'],
+    ['emptied', 'stop'],
+];
+
 let actualClock: HTMLDivElement | null | undefined;
 let clockTimeout: ReturnType<typeof setTimeout> | null | undefined;
 let lastText: string | null | undefined;
+let playback: PlaybackState = HIDDEN;
+let listening = false;
 
 function pad2(value: number): string {
     return String(value).padStart(2, '0');
+}
+
+/** Whether the shared <video> is actually running right now. Used only to seed
+ *  the state, so that turning the clock on from the settings panel -- which is
+ *  open OVER a playing video -- shows it immediately rather than at the next
+ *  media event, which on a paused-free playthrough may never come. */
+function videoIsPlaying(): boolean {
+    const video = document.querySelector('video');
+    return !!video && !video.paused && !video.ended && video.readyState > 2;
 }
 
 function placeClock(): void {
@@ -92,6 +129,84 @@ function stopClock(): void {
     }
 }
 
+/**
+ * Shows or hides the clock, and starts or stops the ticker with it.
+ *
+ * The ticker is tied to visibility rather than left running: a hidden clock
+ * ticking once a second is a timer, a Date and a string comparison every second
+ * for as long as the app is open, on a CPU that has a video to decode. Stopping
+ * it is the point of the feature as much as the hiding is.
+ */
+function applyVisibility(): void {
+    if (!actualClock) return;
+
+    if (!clockVisible(playback)) {
+        actualClock.removeAttribute(WATCHING_ATTRIBUTE);
+        stopClock();
+        // updateClock() skips the write when the text has not changed, so the
+        // next show would otherwise paint whatever minute it was hidden in.
+        lastText = null;
+        return;
+    }
+
+    actualClock.setAttribute(WATCHING_ATTRIBUTE, '');
+    // Re-showing must not stack a second ticker on the one already running.
+    if (clockTimeout) return;
+    updateClock();
+    scheduleTick();
+}
+
+function signal(name: PlaybackSignal): void {
+    const next = reduce(playback, name);
+    // reduce() returns the same object when nothing moved. Media events repeat
+    // -- `playing` fires again after every buffer stall -- and this is what
+    // keeps those from touching the DOM.
+    if (next === playback) return;
+    playback = next;
+    applyVisibility();
+}
+
+/** Re-reads the two signals that can be observed rather than waited for. The
+ *  third, `previewing`, has no getter to poll, so it is left as it stands. */
+function resyncPlayback(): void {
+    playback = {
+        ...playback,
+        watching: isWatchRoute(location.hash),
+        playing: videoIsPlaying(),
+    };
+}
+
+function listen(): void {
+    if (listening) return;
+    listening = true;
+
+    for (const [type, name] of MEDIA_SIGNALS) {
+        // Capture phase, on the document. Media events do not bubble, and the
+        // app creates and replaces its <video> on its own schedule, so a
+        // listener bound to the element would have to be rebound every time the
+        // element changed -- which is precisely when these events matter most.
+        // Capture reaches a non-bubbling event on any descendant, whenever it
+        // was created.
+        document.addEventListener(
+            type,
+            (e: Event) => {
+                if ((e.target as HTMLElement | null)?.tagName === 'VIDEO') signal(name);
+            },
+            true,
+        );
+    }
+
+    window.addEventListener('hashchange', () => {
+        signal(isWatchRoute(location.hash) ? 'enterWatch' : 'leaveWatch');
+    });
+
+    // Neither of these can be unregistered -- playbackPreview keeps a plain list
+    // -- which is why they are registered once and gated by state rather than
+    // added and removed with the setting.
+    onPreviewStart(() => signal('previewStart'));
+    onPreviewStop(() => signal('previewStop'));
+}
+
 function toggleClock(value: unknown): void {
     const existingClock = document.getElementById(CLOCK_ID);
     // Both states are already what was asked for; nothing to do.
@@ -119,8 +234,11 @@ function toggleClock(value: unknown): void {
     });
 
     lastText = null;
-    updateClock();
-    scheduleTick();
+    // Seeded before the first paint decision, so enabling the clock during a
+    // video shows it now rather than at the next media event.
+    resyncPlayback();
+    listen();
+    applyVisibility();
 }
 
 toggleClock(configRead('enableClock'));
