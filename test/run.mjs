@@ -67,6 +67,7 @@ const HARNESSES = [
     { name: 'focus motion switches', dir: 'focus-motion', file: 'test.mjs', types: true },
     { name: 'clock visibility', dir: 'clock-visibility', file: 'test.mjs', types: true },
     { name: 'skip notice timing', dir: 'skip-notice', file: 'test.mjs', types: true },
+    { name: 'skip notice runtime', dir: 'skip-notice', file: 'runtime.mjs', types: true },
     { name: 'ambient wash', dir: 'ambient-wash', file: 'test.mjs' },
     { name: 'version stamp', dir: 'version-stamp', file: 'test.mjs', needsBundle: true },
     { name: 'sidebar re-select', dir: 'guide-reselect', file: 'test.mjs', types: true },

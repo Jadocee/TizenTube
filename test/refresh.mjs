@@ -486,6 +486,36 @@ if (/^\s*import\s/m.test(hook)) {
 }
 out('preview-indicator/hook.generated.mts', hook);
 
+// skipNotice.ts, the DOM shell around features/skipNotice.ts. Lifted for the
+// same reason previewIndicator.ts is: the pure module had a harness from the
+// day it was written and its arithmetic was right, while the first defect a
+// review found was in the shell around it -- hide() reset the coalesce record,
+// which silently made the window the same length as the notice. A pure-function
+// harness cannot see that, because the function was never wrong.
+const skipRuntime = readRepo('mods', 'ui', 'skipNotice.ts')
+    .replace("from '../utils/domReady.js'", "from './stub.mjs'")
+    .replace("from './styleSheet.js'", "from './stub.mjs'")
+    .replace("from '../features/skipNotice.js'", "from './skipNotice.generated.mts'")
+    .replace(/^import css from '\.\/skipNotice\.css';\n/m, "const css = '';\n");
+for (const gone of [
+    '../utils/domReady.js',
+    './styleSheet.js',
+    '../features/skipNotice.js',
+    './skipNotice.css',
+]) {
+    if (skipRuntime.includes(`'${gone}'`))
+        fail(`skipNotice.ts import of ${gone} no longer matches; fix test/refresh.mjs`);
+}
+for (const landmark of [
+    'export function showSkipNotice',
+    'export function hideSkipNotice',
+    'function hide(',
+]) {
+    if (!skipRuntime.includes(landmark))
+        fail(`skipNotice.ts no longer contains "${landmark}"; fix test/refresh.mjs`);
+}
+out('skip-notice/runtime.generated.mts', skipRuntime);
+
 // previewIndicator.ts, the DOM shell around previewState. Lifted because the
 // review that found its bugs found them all in HERE, not in the pure functions:
 // the reducer was right and the dispatcher around it reset the wrong things and

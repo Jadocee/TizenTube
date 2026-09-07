@@ -63,9 +63,22 @@ function clearHide(): void {
     }
 }
 
+/**
+ * Takes the pill down, and DELIBERATELY KEEPS the coalesce record.
+ *
+ * It used to reset `state` here, which quietly made the coalesce window the
+ * same length as the notice: the record died with the pill, so the same text
+ * arriving in the 400ms between NOTICE_DURATION_MS and COALESCE_WINDOW_MS found
+ * no history and drew again -- the notice blinking straight back in, which is
+ * the one thing the window exists to prevent. skipNotice.ts's own constants say
+ * the window is deliberately wider than the notice; this is what makes that
+ * true rather than decorative.
+ *
+ * The record is cleared only by forget(), below, because leaving the player is
+ * the one event that genuinely makes the history irrelevant.
+ */
 function hide(): void {
     clearHide();
-    state = NONE;
     if (element) element.removeAttribute('data-shown');
 }
 
@@ -94,9 +107,15 @@ export function showSkipNotice(text: string): void {
     hideTimer = setTimeout(hide, remainingMs(state.shownAt, now));
 }
 
-/** Tears the notice down. Used when the player goes away, so a skip announced
- *  on the last second of a video does not follow the user back to the home
- *  page. */
+/**
+ * Tears the notice down and forgets what was on it.
+ *
+ * Used when the player goes away, so a skip announced on the last second of a
+ * video does not follow the user back to the home page -- and so the NEXT
+ * video's first skip is never swallowed as a repeat of the previous video's
+ * last one, which is what keeping the record across a teardown would do.
+ */
 export function hideSkipNotice(): void {
     hide();
+    state = NONE;
 }
