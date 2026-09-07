@@ -26,6 +26,10 @@ const defaultConfig = {
     routeColor: '#0f0f0f' as string,
     enableFixedUI: !(window.h5vcc && window.h5vcc.tizentube),
     enableHqThumbnails: false,
+    // On by default: it was asked for. The cost is a 27% narrower title box on
+    // every card -- the metadata font does not shrink with the thumbnail -- so
+    // it is a taste call, and the toggle is how it gets reversed.
+    enableCompactShelves: true,
     enableChapters: true,
     enableLongPress: true,
     enableShorts: true,
