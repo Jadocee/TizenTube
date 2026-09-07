@@ -32,12 +32,27 @@
 
 #tizentube-skip-notice {
     position: fixed;
-    /* Centred by transform rather than by inset-inline: the element is sized by
-     its text, and `inset-inline: 0` plus `margin: auto` would need a width to
-     centre against. translateX(-50%) needs none. */
-    left: 50%;
+    /* CENTRED BY MARGINS, NOT BY A TRANSFORM. `left: 50%` with
+       translateX(-50%) looks like the same thing and is not: for an
+       out-of-flow box with `left` set and `right` auto, the width available to
+       shrink-to-fit is measured from that left edge to the containing block's
+       right edge -- so the pill can never exceed 50% of the screen, whatever
+       max-inline-size says. Measured in Chromium at 1920: 960px exactly, with
+       the longest translated string wrapping to two lines at 90px tall. Pinning
+       both edges and letting the margins centre it gives 1044px and one line,
+       and makes the cap below mean what it says.
+
+       Physical left/right, as everywhere else in this mod: the element is
+       appended to document.body and inherits the app's direction, which is rtl
+       for an Arabic account. Both edges are 0 and both margins auto, so this is
+       symmetric either way -- but the file next door records the trap, and
+       writing it physically is how it stays obvious. */
+    left: 0;
+    right: 0;
+    margin-left: auto;
+    margin-right: auto;
+    inline-size: fit-content;
     inset-block-end: 14%;
-    transform: translate3d(-50%, 0, 0);
 
     z-index: 900;
 
@@ -77,7 +92,8 @@
 
        74% rather than 90%: the pill is centred, so this leaves 13% of the
        canvas clear on each side, comfortably past the 5% title-safe line even
-       on a set that overscans. */
+       on a set that overscans. This is only reachable because the box is
+       centred by margins rather than by a transform -- see above. */
     max-inline-size: 74%;
 
     /* Inert decoration over the player. It must never take a press. */

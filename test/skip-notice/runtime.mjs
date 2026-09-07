@@ -87,6 +87,12 @@ const { check, done } = checker();
 const pill = () => body.children.find((c) => c.id === 'tizentube-skip-notice') || null;
 const shown = () => pill()?.getAttribute('data-shown') ?? null;
 const text = () => pill()?.children.find((c) => c.className === 'tt-sn-text')?.textContent ?? null;
+/** The glyph currently drawn. Found through the svg's single child, which is
+ *  how the module builds it. */
+const glyph = () => {
+    const svg = pill()?.children.find((c) => c.getAttribute('class') === 'tt-sn-icon');
+    return svg?.children[0]?.getAttribute('d') ?? null;
+};
 
 // --- the ordinary lifecycle -------------------------------------------------
 showSkipNotice('Skipping sponsored segment');
@@ -136,6 +142,23 @@ tick(NOTICE_DURATION_MS - 1);
 check('  ...running its OWN full duration, not the remainder', shown(), '');
 tick(1);
 check('  ...and then coming down', shown(), null);
+
+// --- the glyph has to agree with the sentence -------------------------------
+// "Not skipping ..." under a fast-forward arrow says two opposite things at
+// once, and that message is the one a user is least likely to already
+// understand -- so it is the one that can least afford a contradictory mark.
+tick(COALESCE_WINDOW_MS);
+showSkipNotice('Skipping sponsored segment', true);
+const forward = glyph();
+check('a skip draws an arrow', typeof forward === 'string' && forward.length > 0, true);
+tick(COALESCE_WINDOW_MS);
+showSkipNotice('Not skipping sponsored segment (was skipped 3 times)', false);
+check('a NOT-skip draws a different mark', glyph() !== forward, true);
+check('  ...and it is still a real path', (glyph() || '').length > 0, true);
+tick(COALESCE_WINDOW_MS);
+showSkipNotice('Skipping outro', true);
+check('  ...and a later skip goes back to the arrow', glyph(), forward);
+tick(COALESCE_WINDOW_MS);
 
 // --- leaving the player forgets ---------------------------------------------
 // The one event that makes the history irrelevant: the next video's first skip

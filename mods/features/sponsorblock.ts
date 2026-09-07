@@ -495,6 +495,9 @@ class SponsorBlockHandler {
                                             segment: skipName,
                                             count: wasSkippedBefore.count,
                                         }),
+                                        // Nothing was skipped, so the mark must
+                                        // not be a fast-forward arrow.
+                                        false,
                                     );
                                 }
                                 wasSkippedBefore.hasShownToast = true;

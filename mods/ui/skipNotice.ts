@@ -17,9 +17,16 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
    a television over whatever connection it has, and an icon that arrives late
    is worse than one that was never promised. */
 const MATERIAL_FAST_FORWARD = 'M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z';
+/* Material's Block, for the message that says a segment was NOT skipped. A
+   fast-forward glyph on that sentence asserts the opposite of the words beside
+   it, and that message is the one a user is least likely to already understand,
+   so it is the one that can least afford a contradictory mark. */
+const MATERIAL_BLOCK =
+    'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM4 12c0-4.42 3.58-8 8-8 1.85 0 3.55.63 4.9 1.69L5.69 16.9C4.63 15.55 4 13.85 4 12zm8 8c-1.85 0-3.55-.63-4.9-1.69L18.31 7.1C19.37 8.45 20 10.15 20 12c0 4.42-3.58 8-8 8z';
 
 let element: HTMLDivElement | null = null;
 let label: HTMLSpanElement | null = null;
+let iconPath: SVGPathElement | null = null;
 let hideTimer: ReturnType<typeof setTimeout> | null = null;
 let state: NoticeState = NONE;
 
@@ -43,6 +50,7 @@ function ensureElement(): HTMLDivElement | null {
     path.setAttribute('d', MATERIAL_FAST_FORWARD);
     svg.appendChild(path);
     node.appendChild(svg);
+    iconPath = path;
 
     const text = document.createElement('span');
     text.className = 'tt-sn-text';
@@ -89,7 +97,7 @@ function hide(): void {
  * re-arm: chained segments fire in quick succession and a notice that keeps
  * extending its own life outlives the thing it is describing.
  */
-export function showSkipNotice(text: string): void {
+export function showSkipNotice(text: string, skipped = true): void {
     const now = Date.now();
     if (!shouldShow(state, text, now)) return;
 
@@ -97,6 +105,10 @@ export function showSkipNotice(text: string): void {
     if (!node || !label) return;
 
     if (label.textContent !== text) label.textContent = text;
+    // The glyph has to agree with the sentence: "Not skipping ..." under a
+    // fast-forward arrow says two opposite things at once.
+    const glyph = skipped ? MATERIAL_FAST_FORWARD : MATERIAL_BLOCK;
+    if (iconPath && iconPath.getAttribute('d') !== glyph) iconPath.setAttribute('d', glyph);
     state = { text, shownAt: now };
     node.setAttribute('data-shown', '');
 

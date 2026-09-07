@@ -14,6 +14,8 @@ import { readRepo, checker } from '../lib/repo.mjs';
 const { check, done } = checker();
 
 const css = readRepo('mods', 'ui', 'bubbles.css');
+const module_ = readRepo('mods', 'ui', 'bubbles.ts');
+const entry = readRepo('mods', 'userScript.ts');
 // Every assertion here is about code, and the file's own comment explains each
 // one in prose that would otherwise match.
 const code = css.replace(/\/\*[\s\S]*?\*\//g, '');
@@ -58,9 +60,12 @@ check('  ...and needs no !important', code.includes('!important'), false);
 // to deliver drift of about 1.2 px/s, which is below the threshold at which a
 // person notices motion at all.
 check('nothing animates', /@keyframes|animation\s*:|transition\s*:/.test(code), false);
+// translate3d as well as translateZ: 3d is the spelling every other stylesheet
+// in this mod uses, so naming only the other one is a check that misses the
+// likely edit. Raised in review against this very file.
 check(
     '  ...and nothing is promoted to its own layer',
-    /will-change|translateZ|backface-/.test(code),
+    /will-change|translateZ|translate3d|backface-/.test(code),
     false,
 );
 // blur() costs frames rather than memory, and a radial-gradient falloff already
@@ -72,11 +77,24 @@ check('  ...and nothing is blurred', /filter\s*:|backdrop-filter/.test(code), fa
 // One 8% peak takes it to 5.41:1, two overlapping 8% peaks to 4.90:1, 10% to
 // 4.53:1 and 12% to 4.25:1. 8% is the ceiling that keeps two overlapping
 // bubbles clear of 4.5:1.
-const alphas = [...code.matchAll(/rgb\([^)]*\/\s*([\d.]+)%\s*\)/g)]
-    .map((m) => Number(m[1]))
-    .filter((a) => a > 0);
+// EVERY spelling of an alpha, not just the one this file happens to use. The
+// first version matched `rgb(r g b / N%)` alone, so rgba(), a decimal alpha and
+// hsl() all sailed past the ceiling -- a check that constrains only the way the
+// value is written today constrains nothing.
+const alphas = [
+    ...[...code.matchAll(/(?:rgb|hsl)\([^)]*\/\s*([\d.]+)%\s*\)/g)].map((m) => Number(m[1])),
+    ...[...code.matchAll(/(?:rgb|hsl)\([^)]*\/\s*(0?\.\d+|[01])\s*\)/g)].map(
+        (m) => Number(m[1]) * 100,
+    ),
+    ...[...code.matchAll(/rgba?\([^)]*,\s*(0?\.\d+|[01])\s*\)/g)].map((m) => Number(m[1]) * 100),
+].filter((a) => a > 0);
 check('the wash has peaks to check', alphas.length > 0, true);
 check('  ...none above the 8% contrast ceiling', Math.max(...alphas), 8);
+// An alpha written in a spelling the scan misses would be invisible rather than
+// loud, so assert the scan actually saw every colour in the file. The +1 is the
+// one fully transparent stop per gradient, which is filtered out above.
+const colours = (code.match(/(?:rgba?|hsla?)\(/g) || []).length;
+check('  ...and every colour written was scanned', alphas.length * 2 >= colours, true);
 
 // --- shape ------------------------------------------------------------------
 const gradients = (code.match(/radial-gradient\(/g) || []).length;
@@ -93,5 +111,18 @@ const positions = [...code.matchAll(/at\s+(-?[\d.]+)%\s+(-?[\d.]+)%/g)].map((m) 
 check('every bubble has a placed peak', positions.length, gradients);
 const parked = positions.filter(([x, y]) => x > 15 && x < 85 && y > 15 && y < 85);
 check('  ...and none is parked in the middle of the screen', parked, []);
+
+// --- the wash has to actually be registered ---------------------------------
+// Everything above reads the stylesheet, and none of it fails if that
+// stylesheet never reaches the page: delete the import from userScript.ts and
+// this whole file still reports green. That is the same hole the clock harness
+// had for listen(). The chain is userScript.ts -> bubbles.ts -> setStyleBlock.
+check('the entry point imports the wash', entry.includes('./ui/bubbles.js'), true);
+check(
+    '  ...and the module registers a style block',
+    /setStyleBlock\(\s*'bubbles'/.test(module_),
+    true,
+);
+check('  ...from this stylesheet', /import css from '\.\/bubbles\.css'/.test(module_), true);
 
 done();
