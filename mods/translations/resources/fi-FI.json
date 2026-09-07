@@ -149,6 +149,7 @@
         "ttSettings": {
             "title": "TizenTube 9 -asetukset",
             "madeByText": "Tekijä Reis Can (reisxd) ❤️",
+            "madeByVersion": "{{madeBy}}  ·  v{{version}}",
             "summary": "Avaa TizenTube 9 -asetukset"
         },
         "supportTT": {

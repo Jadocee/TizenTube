@@ -150,6 +150,7 @@
         "ttSettings": {
             "title": "Pengaturan TizenTube 9",
             "madeByText": "Dibuat oleh Reis Can (reisxd) dengan ❤️",
+            "madeByVersion": "{{madeBy}}  ·  v{{version}}",
             "summary": "Buka Pengaturan TizenTube 9"
         },
         "supportTT": {

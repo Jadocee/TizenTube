@@ -162,6 +162,7 @@
         "ttSettings": {
             "title": "TizenTube 9 postavke",
             "madeByText": "Izradio: Reis Can (reisxd) uz ❤️",
+            "madeByVersion": "{{madeBy}}  ·  v{{version}}",
             "summary": "Otvori TizenTube 9 postavke"
         },
         "supportTT": {

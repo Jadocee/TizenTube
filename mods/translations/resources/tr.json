@@ -163,6 +163,7 @@
         "ttSettings": {
             "title": "TizenTube 9 Ayarları",
             "madeByText": "Reis Can (reisxd) tarafından ❤️ ile yapıldı",
+            "madeByVersion": "{{madeBy}}  ·  v{{version}}",
             "summary": "TizenTube 9 Ayarlarını Aç"
         },
         "supportTT": {

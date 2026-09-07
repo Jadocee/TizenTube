@@ -150,6 +150,7 @@
         "ttSettings": {
             "title": "„TizenTube 9“ nustatymai",
             "madeByText": "Sukūrta Reis Can (reisxd) su ❤️",
+            "madeByVersion": "{{madeBy}}  ·  v{{version}}",
             "summary": "Atidaryti „TizenTube 9“ nustatymus"
         },
         "supportTT": {

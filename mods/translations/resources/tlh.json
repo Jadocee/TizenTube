@@ -162,6 +162,7 @@
         "ttSettings": {
             "title": "TizenTube 9 choHtaHghach",
             "madeByText": "Reis Can (reisxd) bang ❤️",
+            "madeByVersion": "{{madeBy}}  ·  v{{version}}",
             "summary": "TizenTube 9 choHtaHghach yIpoS"
         },
         "supportTT": {

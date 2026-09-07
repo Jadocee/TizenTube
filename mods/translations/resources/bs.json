@@ -162,6 +162,7 @@
         "ttSettings": {
             "title": "TizenTube 9 postavke",
             "madeByText": "Autor: Reis Can (reisxd) sa ❤️",
+            "madeByVersion": "{{madeBy}}  ·  v{{version}}",
             "summary": "Otvori TizenTube 9 postavke"
         },
         "supportTT": {

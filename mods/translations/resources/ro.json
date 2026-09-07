@@ -162,6 +162,7 @@
         "ttSettings": {
             "title": "Setări TizenTube 9",
             "madeByText": "Creat de Reis Can (reisxd), traducători: Alin (palincat), Vuzzy cu ❤️",
+            "madeByVersion": "{{madeBy}}  ·  v{{version}}",
             "summary": "Deschide setările TizenTube 9"
         },
         "supportTT": {

@@ -162,6 +162,7 @@
         "ttSettings": {
             "title": "Nastavení TizenTube 9",
             "madeByText": "Vytvořil Reis Can (reisxd) s ❤️",
+            "madeByVersion": "{{madeBy}}  ·  v{{version}}",
             "summary": "Otevřít TizenTube 9 Nastavení"
         },
         "supportTT": {

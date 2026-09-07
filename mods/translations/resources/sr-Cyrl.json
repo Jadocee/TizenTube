@@ -162,6 +162,7 @@
         "ttSettings": {
             "title": "ТизенТубе 9 подешавања",
             "madeByText": "Аутор: Реис Цан (reisxd) уз ❤️",
+            "madeByVersion": "{{madeBy}}  ·  v{{version}}",
             "summary": "Отвори ТизенТубе 9 подешавања"
         },
         "supportTT": {
