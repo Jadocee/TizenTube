@@ -29,8 +29,14 @@ check(
     /body\.WEB_PAGE_TYPE_BROWSE\s+#container\s*\{/.test(code),
     true,
 );
+// Positive, not negative. A negative gate names the one surface to exclude and
+// silently includes every other -- the account selector, Shorts, search, the
+// cast screen -- so each new page type YouTube adds would arrive with the wash
+// already on it. (It would NOT paint under the splash, as an earlier comment
+// claimed: the document ships a style hiding #container until the splash is
+// dismissed. The reason is scope, not boot.)
 check(
-    '  ...positively, so boot and playback match nothing',
+    '  ...positively, so a new page type arrives without it',
     /body:not\(|:not\(\s*\.WEB_PAGE_TYPE/.test(code),
     false,
 );

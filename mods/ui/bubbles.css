@@ -29,18 +29,31 @@
    of five gradients into the root layer at the same moment the app rasterises
    everything else.
 
-   THE GATE IS POSITIVE, AND DELIBERATELY SO. `body.WEB_PAGE_TYPE_BROWSE` is the
-   app's own page-type class, assigned wholesale to <body> immediately before it
-   renders and therefore already correct before the first pixel. A negative gate
-   -- `body:not(.WEB_PAGE_TYPE_WATCH)` -- would also match during boot, when the
-   body carries no class at all, and paint the wash under the splash screen.
-   Matching nothing until the app says where it is is the safe default.
+   THE GATE IS POSITIVE, AND DELIBERATELY SO -- but not for the reason an
+   earlier version of this comment gave. It claimed a negative gate
+   (`body:not(.WEB_PAGE_TYPE_WATCH)`) would paint the wash under the splash,
+   because the body carries no class before the first navigation. It would not:
+   the document ships a `<style id="hide-app-container">#container{display:none}`
+   which is only removed when the splash is dismissed, so nothing on #container
+   paints during boot however it is selected.
 
-   That also means the wash is absent, not merely hidden, on the watch page, on
-   Shorts and on the account selector: no rule matches, so there is nothing to
-   composite while a video is playing. Specificity does the rest -- (1,1,1)
-   against the app's own (1,0,0) on #container -- so no !important is needed
-   anywhere, and the app never writes backgroundImage on #container inline.
+   The real reason is scope. A negative gate names the ONE surface to exclude
+   and silently includes every other -- the account selector, Shorts, search,
+   settings, the cast screen -- so each new page type YouTube adds arrives with
+   the wash already on it. The positive gate names the surfaces this was asked
+   for and leaves everything else alone, which is the direction that fails safe.
+
+   Either way the wash is absent, not merely hidden, while a video is playing:
+   no rule matches, so there is nothing to composite. Specificity does the rest
+   -- (1,1,1) against the app's own (1,0,0) on #container -- so no !important is
+   needed anywhere, and the app never writes backgroundImage on #container
+   inline.
+
+   IT DOES NOT COVER SEARCH OR CHANNEL PAGES, which are their own page types.
+   That is the request ("the home screen") read narrowly on purpose: those
+   surfaces can be added by naming them here once someone has looked at them,
+   and the cost of the narrow reading is a wash that stops at a boundary rather
+   than one that turns up somewhere it was never designed for.
 
    background-IMAGE, never the `background` shorthand: the shorthand resets
    background-color, and #container's #0f0f0f fill is what these gradients are
@@ -52,6 +65,16 @@
    One 8% peak takes that to 5.41:1; two overlapping 8% peaks to 4.90:1; 10% to
    4.53:1 and 12% to 4.25:1. 8% is the ceiling that keeps two overlapping
    bubbles clear of 4.5:1. Titles at #f1f1f1 stay at 15.29:1 throughout.
+
+   THOSE FIGURES ARE FOR THE DEFAULT GROUND. theme.ts writes
+   `#container { background-color: <routeColor> !important }`, so what these
+   gradients actually composite over is the user's own Main Content Colour --
+   #0f0f0f by default, which is where the arithmetic above comes from. A user
+   who picks a light colour has already changed the contrast of every tile
+   caption on the page, and the wash is one more thin layer over that rather
+   than the thing that broke it; the setting is how they turn it off. Worth
+   knowing rather than worth defending against, and it is not a conflict:
+   theme.ts sets background-COLOR and this sets background-IMAGE.
 
    The peaks sit OFF the canvas or at its edges on purpose. Nothing bright is
    parked in one place in the middle of the screen for hours, which is what an
