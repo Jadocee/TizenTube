@@ -33,6 +33,7 @@ import './ui/customUI.js';
 import './ui/customGuideAction.js';
 import './features/autoFrameRate.js';
 import './ui/clock.js';
+import './ui/bubbles.js';
 import './ui/previewIndicator.js';
 import './features/captionRuntime.js';
 import './features/aisListRefresh.js';

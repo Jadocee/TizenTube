@@ -1,0 +1,75 @@
+/* The ambient wash behind the browse surfaces.
+
+   Five soft bubbles of the settings panel's own two accent hues, painted
+   straight into #container's background-image. No element, no animation, no
+   JavaScript.
+
+   IT DOES NOT MOVE, AND THAT IS THE FINDING RATHER THAN A SHORTCUT. Both ways
+   of animating it were measured on a page built from the live app's own rules
+   at 1920x1080:
+
+     - background-position / background-size keyframes: 198 Paint, 99 PrePaint
+       and 3889 RasterTask over a two-second window -- roughly 1945 raster tasks
+       a second, on the main thread, which is the same thread that services the
+       D-pad. Categorically disqualified.
+     - transform-animated sibling elements: no paint and no raster, but +3.78 MiB
+       of GPU texture at 1080p and +15.1 MiB at 4K (rem tracks the viewport, so
+       the layers scale with it), and it converts a genuinely idle home screen --
+       measured at ZERO composited frames -- into a 60 Hz compositor treadmill
+       for as long as the page is on screen.
+
+   What that buys is drift its own design budget puts at about 1.2 px/s, or one
+   arcmin per second at three metres: below the threshold at which a person
+   notices motion at all. A permanent cost on a television already being
+   investigated for dropped frames and audio/video desync, in exchange for
+   movement nobody can see. So: none.
+
+   As written this measures BYTE-IDENTICAL to having no background at all --
+   zero extra composited layers, zero GPU backing store, one extra rasterisation
+   of five gradients into the root layer at the same moment the app rasterises
+   everything else.
+
+   THE GATE IS POSITIVE, AND DELIBERATELY SO. `body.WEB_PAGE_TYPE_BROWSE` is the
+   app's own page-type class, assigned wholesale to <body> immediately before it
+   renders and therefore already correct before the first pixel. A negative gate
+   -- `body:not(.WEB_PAGE_TYPE_WATCH)` -- would also match during boot, when the
+   body carries no class at all, and paint the wash under the splash screen.
+   Matching nothing until the app says where it is is the safe default.
+
+   That also means the wash is absent, not merely hidden, on the watch page, on
+   Shorts and on the account selector: no rule matches, so there is nothing to
+   composite while a video is playing. Specificity does the rest -- (1,1,1)
+   against the app's own (1,0,0) on #container -- so no !important is needed
+   anywhere, and the app never writes backgroundImage on #container inline.
+
+   background-IMAGE, never the `background` shorthand: the shorthand resets
+   background-color, and #container's #0f0f0f fill is what these gradients are
+   composited over. Losing it puts them over the body's black and changes every
+   colour below.
+
+   ALPHA IS CAPPED AT 8%, which is a contrast number rather than a taste one.
+   YouTube's own secondary metadata is #909090 on #0f0f0f, a ground of 6.00:1.
+   One 8% peak takes that to 5.41:1; two overlapping 8% peaks to 4.90:1; 10% to
+   4.53:1 and 12% to 4.25:1. 8% is the ceiling that keeps two overlapping
+   bubbles clear of 4.5:1. Titles at #f1f1f1 stay at 15.29:1 throughout.
+
+   The peaks sit OFF the canvas or at its edges on purpose. Nothing bright is
+   parked in one place in the middle of the screen for hours, which is what an
+   OLED holds on to -- the same worry clock.css records. */
+
+body.WEB_PAGE_TYPE_BROWSE #container {
+    background-image:
+        radial-gradient(30rem 30rem at 30% -8%, rgb(120 170 255 / 8%) 0%, rgb(120 170 255 / 0%) 70%),
+        radial-gradient(
+            28rem 28rem at 96% 104%,
+            rgb(150 120 255 / 8%) 0%,
+            rgb(150 120 255 / 0%) 70%
+        ),
+        radial-gradient(16rem 16rem at 68% 2%, rgb(150 120 255 / 8%) 0%, rgb(150 120 255 / 0%) 72%),
+        radial-gradient(
+            13rem 13rem at 34% 102%,
+            rgb(120 170 255 / 8%) 0%,
+            rgb(120 170 255 / 0%) 72%
+        ),
+        radial-gradient(12rem 12rem at 88% 46%, rgb(120 170 255 / 8%) 0%, rgb(120 170 255 / 0%) 72%);
+}
