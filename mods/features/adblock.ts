@@ -8,7 +8,9 @@ import {
     previewableTile,
     startInlinePlayback,
     pageNameFromHash,
+    shelfCanShrink,
     shelfIsEmpty,
+    shrinkShelf,
     hasMembersOnlyBadge,
 } from './tileFixes.js';
 import { fetchBranding, bestTitle, bestThumbnailTime } from './dearrowCache.js';
@@ -607,6 +609,15 @@ function processShelves(shelves: any[], shouldAddPreviews = true) {
                     shelve.shelfRenderer.content.horizontalListRenderer.items.filter(
                         (item: any) => !item.tileRenderer?.onSelectCommand?.reelWatchEndpoint,
                     );
+            }
+
+            // Last, because the predicate has to see the FINAL item list. Every
+            // filter above changes what is in the shelf, and a shelf that
+            // qualified before hideVideo removed a watched tile -- or that did
+            // not qualify until the Shorts filter dropped the one reel in it --
+            // would otherwise be judged on a list that no longer exists.
+            if (configRead('enableCompactShelves') && shelfCanShrink(shelve.shelfRenderer)) {
+                shrinkShelf(shelve.shelfRenderer);
             }
 
             // A shelf every filter emptied is worse than one that was never there:

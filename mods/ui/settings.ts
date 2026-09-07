@@ -632,6 +632,11 @@ export default function modernUI(update?: boolean, parameters?: number[]): void 
                     icon: 'VIDEO_QUALITY',
                     value: 'enableHqThumbnails',
                 },
+                {
+                    name: t('settings.options.misc.options.compactShelves'),
+                    icon: 'VIDEO_QUALITY',
+                    value: 'enableCompactShelves',
+                },
                 /*{
                     name: 'Chapters',
                     icon: 'BOOKMARK_BORDER',

@@ -192,4 +192,29 @@ for (const file of files) {
     check(`${file} has no declaration M120 would reorder`, hits.length, 0);
 }
 
+// --- selectors that cannot match anything -----------------------------------
+// Nine `.ytLr*` overrides shipped in ui.css for a long time matching NOTHING:
+// the string occurs zero times across the app's base.js, main.js, main.css and
+// the /tv document, because leanback moved to per-build hashed class names.
+// `div[idomkey="shadow"]` was the same -- idomKey is an internal renderer key
+// and the app's attribute writer skips it by name, so it never reaches the DOM.
+//
+// They came from copying an override out of another project. This is the guard
+// against that happening again: it is cheap, it needs no network, and the whole
+// failure mode is that the rule looks right and silently does nothing. Comments
+// are stripped first, because the note in ui.css explaining the removal names
+// every one of these selectors.
+const DEAD_PATTERNS = [
+    { what: '.ytLr* selectors', re: /(^|[\s,({])[.:][a-zA-Z-]*\bytLr[A-Za-z0-9_-]*/ },
+    { what: '[idomkey] attribute selectors', re: /\[\s*idomkey\s*[~^$*|]?=/i },
+];
+for (const file of files) {
+    const source = readRepo(...file.split('/')).replace(/\/\*[\s\S]*?\*\//g, '');
+    for (const { what, re } of DEAD_PATTERNS) {
+        const hit = source.match(re);
+        if (hit) console.log(`        ${file}  ${hit[0].trim()}`);
+        check(`${file} carries no ${what}`, !!hit, false);
+    }
+}
+
 done();

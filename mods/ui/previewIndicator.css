@@ -14,8 +14,18 @@
    previews asked "where is that audio coming from?" while declining to draw the
    one glyph that answers it.
 
-   Still deliberately absent: a progress meter (the duration is what we ASK the
-   app for, not what it does), equaliser bars, and a countdown.
+   THE COUNTDOWN IS NOW HERE, and an earlier revision of this file argued
+   against it on the grounds that "the duration is what we ASK the app for, not
+   what it does". That objection was right about the naive implementation and is
+   answered by previewState.remainingMs() rather than overruled: the number is
+   the requested duration measured FROM THE FRAME THAT ACTUALLY ARRIVED, which
+   is the same base `resume` re-bases the watchdog on, and it is absent
+   altogether -- not zero, not guessed -- while loading or when the app gave no
+   usable duration. It counts down to the real end, not to endsAt, which carries
+   WATCHDOG_SLACK_MS and would sit at "5s" for five seconds after the preview
+   had visibly stopped.
+
+   Still deliberately absent: a progress meter and equaliser bars.
 
    THE SPINNER IS BOUNDED. previewState.ts retires the mark after
    LOADING_TIMEOUT_MS if no frame ever arrives, so the rotation cannot outlive
@@ -40,11 +50,15 @@
    wrong way. clock.css records the same trap; this is the same trap. */
 
 #tizentube-preview-indicator {
-    /* 64px at a 16px root, and the root on a television is larger than that --
-     panel-style/test.mjs records that every rem number here is a floor rather
-     than what a set actually shows. Sized against the ~45 arcmin a simple
-     non-text glyph needs to resolve at three metres. */
-    --tt-pi-size: 4rem;
+    /* 48px at a 16px root, and the root on a television is larger than that --
+     the app's grid is 80rem across, so 1rem is a 1/80th of the viewport width,
+     which makes this 72px at 1920. Down from 4rem because the mark was asked to
+     be smaller, and stopped AT the floor rather than through it: 3rem is exactly
+     the >= 48px minimum preview-indicator/style.mjs has always asserted, which
+     is the ~45 arcmin a simple non-text glyph needs to resolve at three metres.
+     Below this the disc stops being legible from a sofa and the countdown digits
+     go first. */
+    --tt-pi-size: 3rem;
     /* Written by previewIndicator.ts in physical viewport pixels. */
     --tt-pi-x: 0px;
     --tt-pi-y: 0px;
@@ -55,7 +69,14 @@
     transform: translate3d(var(--tt-pi-x), var(--tt-pi-y), 0);
 
     box-sizing: border-box;
-    inline-size: var(--tt-pi-size);
+    /* Sized by its contents, floored at a circle. It used to be a fixed square
+     widened by a fixed 1.75x multiple when a speaker appeared -- which worked
+     while there were exactly two possible shapes. There are now four (disc,
+     +time, +sound, +both), and a multiple per combination is a table nobody can
+     keep right. min-inline-size keeps the silent, timeless case an exact circle,
+     which is what style.mjs measures. */
+    inline-size: auto;
+    min-inline-size: var(--tt-pi-size);
     block-size: var(--tt-pi-size);
 
     display: flex;
@@ -106,12 +127,21 @@
         opacity: 0.55;
     }
 
-    /* With sound, the disc becomes a pill wide enough for both marks. The shape
-     change is itself part of the signal -- it is legible at three metres before
-     either glyph resolves. */
-    &[data-sound="on"] {
-        inline-size: calc(var(--tt-pi-size) * 1.75);
+    /* Anything beyond the single play mark makes this a pill. The shape change
+     is itself part of the signal -- it is legible at three metres before any
+     glyph resolves. Padding rather than a width multiple, so the pill is as wide
+     as whatever it happens to contain. */
+    &[data-sound="on"],
+    &[data-time="on"] {
         border-radius: calc(var(--tt-pi-size) / 2);
+        /* Generous on purpose. The pill has to be tellable from the disc at
+         three metres BEFORE either glyph resolves -- that shape change is
+         itself part of the signal -- and style.mjs holds it to a >= 24px
+         difference at a 16px root, which is the width the clamp in place()
+         would otherwise be wrong by. With the glyphs now smaller, the padding
+         is what keeps that true: 1.25rem play + 0.35rem gap + 1.05rem speaker
+         + 2rem padding = 74.4px against a 48px disc. */
+        padding-inline: 1rem;
         gap: 0.35rem;
     }
 }
@@ -133,8 +163,8 @@
 #tizentube-preview-indicator[data-state="playing"] > .tt-pi-play,
 #tizentube-preview-indicator[data-state="stalled"] > .tt-pi-play {
     display: block;
-    inline-size: 1.7rem;
-    block-size: 1.7rem;
+    inline-size: 1.25rem;
+    block-size: 1.25rem;
     /* Optical centring: the glyph's mass sits left of the box's middle, so it
      needs nudging right to look centred inside a disc. */
     margin-left: 0.15rem;
@@ -142,8 +172,35 @@
 
 /* A pill has room for the icon to sit properly, so the nudge that centres it
    inside a disc becomes wrong. */
-#tizentube-preview-indicator[data-sound="on"] > .tt-pi-play {
+#tizentube-preview-indicator[data-sound="on"] > .tt-pi-play,
+#tizentube-preview-indicator[data-time="on"] > .tt-pi-play {
     margin-left: 0;
+}
+
+/* --- the countdown -------------------------------------------------------- */
+
+/* Hidden by default, like both glyphs: a rule that never matches shows nothing
+   rather than parking an empty box in the pill. */
+#tizentube-preview-indicator > .tt-pi-time {
+    display: none;
+    flex: none;
+}
+
+/* Only ever drawn when previewState.remainingMs() returned a number. The
+   readout is the one part of this mark that is TEXT, so it carries the larger
+   of the sizes here -- digits need more angular size than a solid triangle to
+   resolve at three metres, and shrinking it in step with the icons would have
+   made it the first thing to become unreadable. */
+#tizentube-preview-indicator[data-time="on"] > .tt-pi-time {
+    display: block;
+    font-size: 1.15rem;
+    font-weight: 600;
+    line-height: 1;
+    /* So the pill does not breathe as the digits change. */
+    font-variant-numeric: tabular-nums;
+    /* The digits sit over a dark disc that is itself over arbitrary video; the
+     same shadow the clock uses, for the same reason. */
+    text-shadow: 0 0.0625rem 0.1875rem rgb(0 0 0 / 90%);
 }
 
 /* The spinner, and the only thing .tt-pi-glyph is now: a ring with one quadrant
@@ -157,9 +214,11 @@
 #tizentube-preview-indicator[data-state="loading"] > .tt-pi-glyph {
     display: block;
     box-sizing: border-box;
-    inline-size: 1.6rem;
-    block-size: 1.6rem;
-    border: 0.22rem solid rgb(255 255 255 / 30%);
+    inline-size: 1.15rem;
+    block-size: 1.15rem;
+    /* Scaled with the ring: 0.22rem on a 1.15rem circle is a washer, not a
+     spinner -- the transparent quadrant stops reading as a gap. */
+    border: 0.16rem solid rgb(255 255 255 / 30%);
     border-top-color: currentColor;
     border-radius: 50%;
     animation: tt-pi-spin 900ms linear infinite;
@@ -178,8 +237,8 @@
    was never there, so 'unknown' draws nothing at all. */
 #tizentube-preview-indicator[data-sound="on"] > .tt-pi-sound {
     display: block;
-    inline-size: 1.45rem;
-    block-size: 1.45rem;
+    inline-size: 1.05rem;
+    block-size: 1.05rem;
 }
 
 @media (prefers-reduced-motion: reduce) {

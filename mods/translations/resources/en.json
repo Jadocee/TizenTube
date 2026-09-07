@@ -58,6 +58,7 @@
                     },
                     "fixUI": "Fix UI",
                     "hqThumbnails": "Enable High Quality Thumbnails",
+                    "compactShelves": "Smaller Video Cards",
                     "longPress": "Enable Long Press Actions",
                     "hideRecommendations": "Apply videos and channels hidden from the long-press menu",
                     "hideMembersOnly": "Hide members-only videos",

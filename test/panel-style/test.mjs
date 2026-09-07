@@ -61,10 +61,6 @@ await page.setContent(`<!doctype html><html><head><meta charset="utf-8">
        inline gradient so the override has something to remove: background-image
        computes to none on its own, so without this the check would pass with the
        rule deleted. -->
-  <div class="ytLrWatchDefaultShadow"></div>
-  <div class="ytLrTileHeaderRendererShorts" style="background-image:linear-gradient(rgb(0,0,0),rgb(0,0,0))"></div>
-  <div class="ytLrProgressBarPlayhead"></div>
-  <div class="ytLrOverlayPanelHeaderRendererSubtitle"></div>
 </body></html>`);
 
 const px = (v) => parseFloat(v) || 0;
@@ -214,19 +210,28 @@ check(
     true,
 );
 
-// --- the YouTube overrides still land ---------------------------------------
-const shadow = await styles('.ytLrWatchDefaultShadow', ['position', 'pointer-events', 'display']);
-check(
-    'player shadow override applies',
-    shadow.position === 'absolute' && shadow['pointer-events'] === 'none',
-    true,
-);
-const shorts = await styles('.ytLrTileHeaderRendererShorts', ['background-image']);
-check('shorts background override applies', shorts['background-image'], 'none');
-const playhead = await styles('.ytLrProgressBarPlayhead', ['z-index']);
-check('playhead z-index override applies', playhead['z-index'], '1');
-const subtitle = await styles('.ytLrOverlayPanelHeaderRendererSubtitle', ['white-space']);
-check('multiline subtitle override applies', subtitle['white-space'], 'pre-wrap');
+// --- four assertions used to sit here, and they were the reason ------------
+//
+// They checked that ui.css's `.ytLr*` overrides -- the player shadow, the Shorts
+// background, the playhead z-index, the multiline subtitle -- "still land". They
+// did it by putting four divs carrying those class names into THIS page's own
+// fixture markup and confirming the rules applied to them.
+//
+// That is a tautology about CSS, not a fact about YouTube. The classes had
+// already disappeared from the app -- `ytLr` occurs zero times across its
+// base.js, main.js, main.css and the /tv document -- so on a real television
+// every one of those rules matched nothing, while these four assertions
+// reported green. A harness that manufactures the element under test cannot
+// tell "the rule works" from "the rule is unreachable", and this one had been
+// answering the first question for a year while the second was the one that
+// mattered.
+//
+// The rules are gone; see the note where they were in mods/ui/ui.css. Nothing
+// replaces these checks HERE, because nothing this page can build would be
+// evidence either. What replaced them is a guard in test/css-nesting that fails
+// if a `.ytLr*` or `[idomkey]` selector is ever added back -- a claim about the
+// source, which is the only claim a harness with no television can honestly
+// make about a selector it did not write.
 
 // --- stays inside the title-safe area ---------------------------------------
 // 5% of each dimension independently: 96px horizontally at 1920, 54px vertically

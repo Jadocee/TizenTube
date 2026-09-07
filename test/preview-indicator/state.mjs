@@ -19,6 +19,8 @@ import {
     chipOrigin,
     shouldAnchor,
     soundState,
+    remainingMs,
+    formatRemaining,
     LOADING_TIMEOUT_MS,
     AUDIO_SETTLE_MS,
     MOVE_GRACE_MS,
@@ -361,5 +363,67 @@ check('mid-movement does not anchor', shouldAnchor(T0, T0 + ANCHOR_SETTLE_MS - 1
 check('settled focus anchors', shouldAnchor(T0, T0 + ANCHOR_SETTLE_MS), true);
 check('a backwards clock does not anchor', shouldAnchor(T0, T0 - 1000), false);
 check('a NaN clock anchors rather than throwing', shouldAnchor(T0, NaN), true);
+
+// --- the countdown ----------------------------------------------------------
+// The stylesheet argued for years that a countdown could not be honest, because
+// "the duration is what we ASK the app for, not what it does". These are the
+// assertions that answer it. The number is measured from the frame that
+// ARRIVED, not from the request, and it is absent rather than invented whenever
+// the app gave nothing usable.
+const counting = reduce(IDLE, { type: 'start', now: T0, durationMs: 30000, anchored: true });
+const rolling = reduce(counting, { type: 'resume', now: T0 + 4000 });
+
+check('a preview still loading has no countdown', remainingMs(counting, T0 + 100), null);
+check(
+    'playing counts from the FIRST FRAME, not the request',
+    remainingMs(rolling, T0 + 4000),
+    30000,
+);
+check('  ...so the 4s spent loading are not deducted', remainingMs(rolling, T0 + 5000), 29000);
+// NOT endsAt. endsAt carries WATCHDOG_SLACK_MS, so counting to it would sit at
+// "0:05" for five seconds after the preview visibly stopped.
+check(
+    '  ...and it reaches zero at the real end, not the watchdog',
+    remainingMs(rolling, T0 + 34000),
+    0,
+);
+check('  ...never going negative', remainingMs(rolling, T0 + 99000), 0);
+check(
+    '  ...while the watchdog is still five seconds out',
+    rolling.endsAt - (rolling.playingAt + rolling.durationMs),
+    WATCHDOG_SLACK_MS,
+);
+
+// A stall is still a running preview: the disc dims but the clock does not stop,
+// because the app has not stopped counting either.
+check(
+    'a stalled preview keeps counting',
+    remainingMs(reduce(rolling, { type: 'stall' }), T0 + 6000),
+    28000,
+);
+
+// Absent, not zero. A readout that invents a number is the thing the old
+// objection was actually about.
+const noDuration = reduce(reduce(IDLE, { type: 'start', now: T0, durationMs: 0, anchored: true }), {
+    type: 'resume',
+    now: T0,
+});
+check('a preview with no usable duration shows nothing', remainingMs(noDuration, T0), null);
+check('an idle state shows nothing', remainingMs(IDLE, T0), null);
+check('a NaN clock shows nothing', remainingMs(rolling, NaN), null);
+check('a missing state does not throw', remainingMs(null, T0), null);
+
+// --- how it reads -----------------------------------------------------------
+// Ceil, so a preview with 200ms left reads 0:01 and hits 0:00 only when it is
+// actually over. A readout that reaches zero while frames are still arriving is
+// the one error a countdown cannot afford.
+check('a whole second reads as one', formatRemaining(1000), '0:01');
+check('  ...and a part second rounds up', formatRemaining(200), '0:01');
+check('  ...and only zero is zero', formatRemaining(0), '0:00');
+check('seconds are zero padded', formatRemaining(9000), '0:09');
+check('  ...and minutes are not', formatRemaining(65000), '1:05');
+check('a long preview still reads', formatRemaining(605000), '10:05');
+check('junk reads as zero rather than NaN', formatRemaining(NaN), '0:00');
+check('  ...as does a negative', formatRemaining(-5), '0:00');
 
 done();

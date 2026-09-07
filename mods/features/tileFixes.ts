@@ -198,3 +198,92 @@ export function shelfIsEmpty(shelf: any): boolean {
     if (!Array.isArray(items)) return false;
     return items.length === 0;
 }
+
+/* --- compact shelves ------------------------------------------------------
+
+   YouTube'S OWN SMALLER-TILE MODE, not one of ours. The TV app reads
+   `shelfRenderer.tvhtml5Style.effects.shrink` and turns it into an `isShrunk`
+   prop that reaches the tile size resolver, the thumbnail box, the virtual
+   list's item pitch AND the shelf row height. One flag moves all four, computed
+   by the app, so the painted geometry and the layout arithmetic cannot drift
+   apart -- which is the failure that sinks every approach that sets sizes from
+   CSS. The tile box is an inline rem style the app rewrites on every render,
+   and the same numbers feed the horizontal list's `positions` array: a
+   stylesheet can win the painted box and can never reach the arithmetic, so it
+   buys smaller cards sitting in unchanged slots, with holes between them and
+   focus stepping the old pitch.
+
+   Measured on the live app at 1920x1080: the default tile goes 22 x 20.5rem to
+   16 x 17.125rem, its thumbnail 22 x 12.375rem to 16 x 9rem, the shelf row
+   21.625rem to 18.375rem, and a row fits one more card.
+
+   THE PREDICATE IS THE WHOLE FEATURE. The app honours the flag for the ROW
+   whatever the shelf contains, but two item kinds ignore it for their own size:
+   a `lockupViewModel` (its size function never receives isShrunk) and any
+   `tileRenderer` carrying `styling` (which returns from the style table before
+   the isShrunk branch is reached). Either way the card keeps 21.625rem of
+   height inside an 18.375rem row and roughly 78px is sliced off the bottom of
+   every one of them -- the channel name and the view count. Search is already
+   100% lockupViewModel and home is drifting the same way, so this is a live
+   trap that gets worse with time rather than a theoretical one.
+
+   The metadata block does NOT shrink with the thumbnail: its reserved height
+   stays 7.125rem while the title box narrows by 27%, so titles ellipsize
+   sooner. That is the honest cost of the setting and it is why the setting
+   exists. */
+
+/** Exactly the tile styles the app's shrink branch has a smaller size for.
+ *  Anything else keeps its full height and would be clipped by the shorter row
+ *  -- a GAME poster is 18.813rem and a Shorts tile 21.25rem, against a shrunk
+ *  row of 18.375rem. */
+export const SHRINKABLE_TILE_STYLES = [
+    'TILE_STYLE_YTLR_DEFAULT',
+    'TILE_STYLE_YTLR_CAROUSEL_FULL_METADATA',
+    'TILE_STYLE_YTLR_ROUND',
+    'TILE_STYLE_YTLR_SQUARE',
+];
+
+/**
+ * Whether every card in this shelf will shrink along with its row.
+ *
+ * Deliberately conservative: a shelf this returns false for simply keeps
+ * YouTube's stock layout, which is a visibly inconsistent grid but never a
+ * clipped one. The opposite error cuts the bottom off every card in the row.
+ */
+export function shelfCanShrink(shelf: any): boolean {
+    if (!shelf || typeof shelf !== 'object') return false;
+    // Never fight the app's own enlarge mode; it is asking for the opposite.
+    if (shelf.tvhtml5Style?.effects?.enlarge) return false;
+    // A typed shelf can shrink its row without shrinking its cards, because the
+    // tile-sizing path short-circuits on several of those types before it
+    // reaches the shrink branch. Untyped is the ordinary browse shelf.
+    const type = shelf.tvhtml5ShelfRendererType;
+    if (type && type !== 'TVHTML5_SHELF_RENDERER_TYPE_UNKNOWN') return false;
+
+    const items = shelf.content?.horizontalListRenderer?.items;
+    // An empty shelf has nothing to be inconsistent with, but it is also about
+    // to be spliced by shelfIsEmpty; either way there is nothing to shrink.
+    if (!Array.isArray(items) || items.length === 0) return false;
+
+    for (const item of items) {
+        const tile = item?.tileRenderer;
+        // A lockupViewModel, a grid button, an ad slot: the row shrinks, the
+        // item does not.
+        if (!tile) return false;
+        // `styling` short-circuits the size table before the shrink branch.
+        if (tile.styling) return false;
+        if (!SHRINKABLE_TILE_STYLES.includes(tile.style)) return false;
+    }
+    return true;
+}
+
+/** Sets the app's own flag. Idempotent, and additive -- anything else already
+ *  on tvhtml5Style.effects is preserved, because the app reads siblings of
+ *  `shrink` from the same object. */
+export function shrinkShelf(shelf: any): void {
+    if (!shelf || typeof shelf !== 'object') return;
+    if (!shelf.tvhtml5Style || typeof shelf.tvhtml5Style !== 'object') shelf.tvhtml5Style = {};
+    const style = shelf.tvhtml5Style;
+    if (!style.effects || typeof style.effects !== 'object') style.effects = {};
+    style.effects.shrink = true;
+}

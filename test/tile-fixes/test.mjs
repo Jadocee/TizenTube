@@ -13,6 +13,9 @@ import {
     hasMembersOnlyBadge,
     MEMBERS_ONLY_BADGE,
     DEFAULT_PREVIEW_DURATION_MS,
+    shelfCanShrink,
+    shrinkShelf,
+    SHRINKABLE_TILE_STYLES,
 } from './tileFixes.generated.mts';
 
 const { check, done } = checker();
@@ -262,5 +265,100 @@ for (const tile of tiles) {
     bestThumbnail(THUMBS);
 }
 check('300 tiles cost under 100ms', Date.now() - before < 100, true);
+
+// --- compact shelves --------------------------------------------------------
+// The flag is YouTube's own: the app turns tvhtml5Style.effects.shrink into an
+// `isShrunk` prop that drives the tile box, the thumbnail, the virtual list's
+// item pitch and the shelf row height together. THE PREDICATE IS THE WHOLE
+// FEATURE. The app shortens the ROW for any shelf carrying the flag, but two
+// item kinds keep their full height regardless -- a lockupViewModel, and any
+// tileRenderer carrying `styling` -- so a shelf containing either ends up with
+// 21.625rem of card in an 18.375rem row and roughly 78px sliced off the bottom
+// of every card: the channel name and the view count. Measured on the live
+// search surface, where every item is a lockupViewModel today: 4 of 4 children
+// overflowed their shelf. Each rejection below is one of those traps.
+const tile = (style = 'TILE_STYLE_YTLR_DEFAULT', extra = {}) => ({
+    tileRenderer: { style, ...extra },
+});
+const shelf = (items, extra = {}) => ({
+    content: { horizontalListRenderer: { items } },
+    ...extra,
+});
+
+check('an ordinary browse shelf shrinks', shelfCanShrink(shelf([tile(), tile()])), true);
+for (const style of SHRINKABLE_TILE_STYLES) {
+    check(`  ...${style} is shrinkable`, shelfCanShrink(shelf([tile(style)])), true);
+}
+
+// A row that shrinks around cards that do not.
+check(
+    'a lockupViewModel item blocks it',
+    shelfCanShrink(shelf([tile(), { lockupViewModel: {} }])),
+    false,
+);
+check('  ...as does a grid button', shelfCanShrink(shelf([{ gridButtonRenderer: {} }])), false);
+check(
+    '  ...and a tile carrying styling, which skips the shrink branch',
+    shelfCanShrink(
+        shelf([tile('TILE_STYLE_YTLR_DEFAULT', { styling: { scale: 'TILE_SCALE_MD' } })]),
+    ),
+    false,
+);
+// A GAME poster is 18.813rem and a Shorts tile 21.25rem against an 18.375rem row.
+check(
+    '  ...and a style with no smaller size, which would be clipped',
+    shelfCanShrink(shelf([tile('TILE_STYLE_YTLR_GAME')])),
+    false,
+);
+check(
+    '  ...even when only one tile in the shelf is wrong',
+    shelfCanShrink(shelf([tile(), tile(), tile('TILE_STYLE_YTLR_SHORTS')])),
+    false,
+);
+
+// A typed shelf can shrink its row without shrinking its cards.
+check(
+    'a typed shelf is left alone',
+    shelfCanShrink(
+        shelf([tile()], { tvhtml5ShelfRendererType: 'TVHTML5_SHELF_RENDERER_TYPE_GRID' }),
+    ),
+    false,
+);
+check(
+    '  ...but the UNKNOWN type is just an ordinary shelf',
+    shelfCanShrink(
+        shelf([tile()], { tvhtml5ShelfRendererType: 'TVHTML5_SHELF_RENDERER_TYPE_UNKNOWN' }),
+    ),
+    true,
+);
+// Asking for the opposite.
+check(
+    "the app's own enlarge mode wins",
+    shelfCanShrink(shelf([tile()], { tvhtml5Style: { effects: { enlarge: true } } })),
+    false,
+);
+
+// Shapes rather than crashes.
+check('a shelf with no items does not shrink', shelfCanShrink(shelf([])), false);
+check('  ...nor one with no list at all', shelfCanShrink({}), false);
+check('  ...nor null', shelfCanShrink(null), false);
+check('  ...nor a string', shelfCanShrink('shelf'), false);
+
+// --- setting the flag -------------------------------------------------------
+const target = shelf([tile()]);
+shrinkShelf(target);
+check('the flag is written where the app reads it', target.tvhtml5Style.effects.shrink, true);
+shrinkShelf(target);
+check('  ...and setting it twice is the same', target.tvhtml5Style.effects.shrink, true);
+// Additive: the app reads siblings of `shrink` off the same object, so
+// replacing effects wholesale would drop whatever else the server sent.
+const withEffects = shelf([tile()], { tvhtml5Style: { effects: { spotlight: true } } });
+shrinkShelf(withEffects);
+check('  ...preserving other effects', withEffects.tvhtml5Style.effects.spotlight, true);
+check('  ...alongside the new one', withEffects.tvhtml5Style.effects.shrink, true);
+const withStyle = shelf([tile()], { tvhtml5Style: { somethingElse: 1 } });
+shrinkShelf(withStyle);
+check('  ...and other tvhtml5Style fields', withStyle.tvhtml5Style.somethingElse, 1);
+check('junk does not throw', shrinkShelf(null) ?? 'no throw', 'no throw');
 
 done();

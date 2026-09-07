@@ -152,6 +152,12 @@ const fireMedia = (type) => {
 const mark = () => body.children.find((c) => c.id === 'tizentube-preview-indicator') || null;
 const stateOf = () => mark()?.getAttribute('data-state') ?? null;
 const soundOf = () => mark()?.getAttribute('data-sound') ?? null;
+/** The countdown: whether it is drawn at all, and what it reads. Found by class
+ *  rather than position, so reordering the mark's children cannot silently make
+ *  this assert about the speaker. */
+const timeOf = () => mark()?.getAttribute('data-time') ?? null;
+const timeText = () =>
+    mark()?.children.find((c) => c.className === 'tt-pi-time')?.textContent ?? null;
 
 // --- the ordinary lifecycle -------------------------------------------------
 startPreview();
@@ -161,12 +167,35 @@ check('  ...and arms exactly one timer', liveTimers(), 1);
 tick(500);
 fireMedia('playing');
 check('the first frame switches to playing', stateOf(), 'playing');
-// Two timers here, and both are wanted: the watchdog and the one-shot audio
-// settle re-check. Recorded rather than hard-coded, so the re-enable check at
-// the end compares against what a first enable actually does instead of a
-// number picked by hand -- which is how that assertion was wrong the first time.
+// THREE timers here, and all three are wanted: the watchdog, the one-shot audio
+// settle re-check, and the countdown's 1Hz tick. Recorded rather than
+// hard-coded, so the re-enable check at the end compares against what a first
+// enable actually does instead of a number picked by hand -- which is how that
+// assertion was wrong the first time. Recorded is not the same as unexamined,
+// though: the next line pins the number, because a recorded value silently
+// absorbs a leak, and this one silently absorbed the countdown when it was added.
 const timersWhilePlaying = liveTimers();
+check('  ...arming the watchdog, the audio re-check and the countdown', timersWhilePlaying, 3);
 check('  ...and no speaker until the audio is known', soundOf(), null);
+
+// --- the countdown ----------------------------------------------------------
+// Drawn only once frames arrive: while loading there is nothing honest to count.
+// DEFAULT_PREVIEW_DURATION_MS is 40s and the frame landed at +500ms.
+check('playing draws the countdown', timeOf(), 'on');
+check('  ...reading the full duration from the first frame', timeText(), '0:40');
+// The values below look off by one and are not. remainingMs CEILS, so a preview
+// with 39.5s left reads 0:40 -- the readout never shows a second the preview has
+// not actually finished, which is the one error a countdown cannot afford. The
+// frame landed at 500ms and the tick re-arms on the wall second, so the reading
+// at any moment is ceil((40500 - clock) / 1000).
+tick(1000); // clock 1500; last tick ran at 1000 with 39.5s left
+check('  ...which a half second in still ceils to', timeText(), '0:40');
+tick(4000); // clock 5500; last tick ran at 5000 with 35.5s left
+check('  ...and five seconds later has counted down', timeText(), '0:36');
+// Re-armed against the wall clock rather than on a fixed 1000ms period, so a
+// busy TV SoC cannot make the readout drift behind the preview it describes.
+tick(30000); // clock 35500; 5.5s left
+check('  ...still tracking the clock thirty seconds in', timeText(), '0:06');
 
 player.webkitAudioDecodedByteCount = 8192;
 fireMedia('volumechange');
@@ -206,9 +235,15 @@ startPreview();
 tick(300);
 fireMedia('playing');
 check('playing again', stateOf(), 'playing');
+check('the countdown is running again', timeOf(), 'on');
 stopPreview();
 check('a stop retires the mark', stateOf(), null);
+// render()'s idle branch RETURNS before the countdown code at the bottom of the
+// function, so every stop path had to be given an explicit clear. Without it the
+// 1Hz tick outlived every ordinary preview -- one timer, forever, per session.
 check('  ...and clears its timers', liveTimers(), 0);
+check('  ...including the countdown', timeOf(), null);
+check('  ...and blanks its text, so a restart cannot flash a stale number', timeText(), '');
 
 // --- the setting -------------------------------------------------------------
 startPreview();
