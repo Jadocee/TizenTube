@@ -63,8 +63,22 @@
 
     font-size: 1.15rem;
     font-weight: 500;
-    line-height: 1;
-    white-space: nowrap;
+    line-height: 1.25;
+    text-align: center;
+    /* BOUNDED, NOT nowrap. The message carries a translated segment name, and
+       the longest of them are much longer than the English: Greek's "Not
+       skipping non-music part (was skipped N times)" is 83 characters against
+       English's 47. Measured, that is roughly 71% of the 1920 canvas at this
+       size -- inside the title-safe box, but only on an estimate of average
+       glyph width, and a heavier script would breach it. A width cap makes the
+       question moot: long text wraps to a second centred line instead of
+       growing until it runs off the screen. Everything short enough -- which is
+       the ordinary case, and every English string -- still sits on one line.
+
+       74% rather than 90%: the pill is centred, so this leaves 13% of the
+       canvas clear on each side, comfortably past the 5% title-safe line even
+       on a set that overscans. */
+    max-inline-size: 74%;
 
     /* Inert decoration over the player. It must never take a press. */
     pointer-events: none;
