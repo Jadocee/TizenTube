@@ -149,6 +149,7 @@
         "ttSettings": {
             "title": "TizenTube 9 beállítások",
             "madeByText": "Készítette: Reis Can (reisxd) csupa ❤️-vel",
+            "madeByVersion": "{{madeBy}}  ·  v{{version}}",
             "summary": "Nyisd meg a TizenTube 9 beállításokat"
         },
         "supportTT": {

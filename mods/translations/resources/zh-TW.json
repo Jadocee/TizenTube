@@ -150,6 +150,7 @@
         "ttSettings": {
             "title": "TizenTube 9 設定",
             "madeByText": "由 Reis Can (reisxd) 製作❤️",
+            "madeByVersion": "{{madeBy}}  ·  v{{version}}",
             "summary": "開啟 TizenTube 9 設定"
         },
         "supportTT": {

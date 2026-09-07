@@ -69,8 +69,17 @@ function transpile(source, name) {
 
 console.log('Refreshing harness snapshots from source:');
 
+// The version rolldown's `define` substitutes into the real build. The lifted
+// copy is plain JavaScript with no bundler in front of it, so an unsubstituted
+// `__TT_VERSION__` is a ReferenceError the moment the panel renders -- which is
+// exactly what it was, and it took out both settings harnesses. Substituted here
+// from the same source the build reads, so the harness exercises the real
+// interpolation rather than a stub of it.
+const packageVersion = JSON.parse(readRepo('package.json')).version;
+
 // settings.ts, with its imports repointed at the stub module.
 const settings = readRepo('mods', 'ui', 'settings.ts')
+    .replaceAll('__TT_VERSION__', JSON.stringify(packageVersion))
     .replace("import qrcode from 'qrcode-npm';", "import { qrcode } from './stubs.mjs';")
     .replace("from '../config.js'", "from './stubs.mjs'")
     .replace("from './ytUI.js'", "from './stubs.mjs'")
@@ -92,6 +101,18 @@ for (const gone of [
 ]) {
     if (settings.includes(`'${gone}'`))
         fail(`settings.ts import of ${gone} no longer matches; fix test/refresh.mjs`);
+}
+// The version substitution has to have BITTEN. A .replaceAll() that matches
+// nothing is a silent no-op, so if settings.ts stops naming __TT_VERSION__ the
+// lift keeps working and the settings harnesses keep passing while the panel has
+// quietly stopped showing which build it is -- the exact regression
+// test/version-stamp exists to prevent, hidden from the harness that would
+// otherwise notice.
+if (!readRepo('mods', 'ui', 'settings.ts').includes('__TT_VERSION__')) {
+    fail('settings.ts no longer shows __TT_VERSION__; fix test/refresh.mjs and version-stamp');
+}
+if (settings.includes('__TT_VERSION__')) {
+    fail('__TT_VERSION__ survived the settings lift; fix test/refresh.mjs');
 }
 out('settings/settings.generated.mts', settings);
 

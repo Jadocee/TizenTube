@@ -163,6 +163,7 @@
         "ttSettings": {
             "title": "Cài đặt TizenTube 9",
             "madeByText": "Được tạo bởi Reis Can (reisxd) ❤️",
+            "madeByVersion": "{{madeBy}}  ·  v{{version}}",
             "summary": "Mở Cài đặt TizenTube 9"
         },
         "supportTT": {

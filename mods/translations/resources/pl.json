@@ -215,6 +215,7 @@
         "ttSettings": {
             "title": "Ustawienia TizenTube 9",
             "madeByText": "Stworzony przez Reisa Cana „reisxd” z ❤️",
+            "madeByVersion": "{{madeBy}}  ·  v{{version}}",
             "summary": "Otwórz ustawienia TizenTube 9"
         },
         "supportTT": {

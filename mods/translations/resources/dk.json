@@ -150,6 +150,7 @@
         "ttSettings": {
             "title": "TizenTube 9-indstillinger",
             "madeByText": "Lavet af Reis Can (reisxd) med ❤️",
+            "madeByVersion": "{{madeBy}}  ·  v{{version}}",
             "summary": "Åbn TizenTube 9-indstillinger"
         },
         "supportTT": {

@@ -8,6 +8,15 @@
 import type { QueuedVideos } from './youtube';
 
 declare global {
+    /**
+     * The published package version, substituted at build time by
+     * rolldown.config.js from the repository root's package.json.
+     *
+     * Declared rather than imported: it is a compile-time constant, not a
+     * runtime lookup, so nothing has to ship package.json to read it.
+     */
+    const __TT_VERSION__: string;
+
     /** Registry of YouTube's own minified modules. Shapes are not stable. */
     type YttvRegistry = Record<string, any>;
 

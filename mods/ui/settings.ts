@@ -1600,7 +1600,14 @@ export default function modernUI(update?: boolean, parameters?: number[]): void 
     showModal(
         {
             title: t('settings.ttSettings.title'),
-            subtitle: t('settings.ttSettings.madeByText'),
+            // The version rides in the header rather than in a row, because the
+            // question it answers -- "is the TV running the build I just
+            // published?" -- has to be answerable without navigating anywhere.
+            // The attribution keeps its place; the version is appended to it.
+            subtitle: t('settings.ttSettings.madeByVersion', {
+                madeBy: t('settings.ttSettings.madeByText'),
+                version: __TT_VERSION__,
+            }),
         },
         overlayPanelItemListRenderer(
             buttons,

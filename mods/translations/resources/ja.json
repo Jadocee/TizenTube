@@ -163,6 +163,7 @@
         "ttSettings": {
             "title": "TizenTube 9 の設定",
             "madeByText": "Made by Reis Can (reisxd) with ❤️",
+            "madeByVersion": "{{madeBy}}  ·  v{{version}}",
             "summary": "TizenTube 9 の設定を開きます"
         },
         "supportTT": {

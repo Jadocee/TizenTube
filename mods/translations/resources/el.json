@@ -150,6 +150,7 @@
         "ttSettings": {
             "title": "Έναρξη TizenTube 9",
             "madeByText": "Φτιαγμένο από τον Reis Can (reisxd) με ❤️",
+            "madeByVersion": "{{madeBy}}  ·  v{{version}}",
             "summary": "Άνοιγμα ρυθμίσεων TizenTube 9"
         },
         "supportTT": {

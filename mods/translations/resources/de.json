@@ -215,6 +215,7 @@
         "ttSettings": {
             "title": "TizenTube 9-Einstellungen",
             "madeByText": "Erstellt von Reis Can (reisxd) mit ❤️",
+            "madeByVersion": "{{madeBy}}  ·  v{{version}}",
             "summary": "TizenTube 9-Einstellungen öffnen"
         },
         "supportTT": {
