@@ -17,6 +17,8 @@ import { setStyleBlock } from './styleSheet.js';
 import { onPreviewStart, onPreviewStop } from '../features/playbackPreview.js';
 import { DEFAULT_PREVIEW_DURATION_MS } from '../features/tileFixes.js';
 import {
+    remainingMs,
+    formatRemaining,
     IDLE,
     reduce,
     chipOrigin,
@@ -50,6 +52,13 @@ let sound: SoundState = 'unknown';
  *  counter is legitimately 0 at that moment for a video that does have sound, so
  *  asking once at `playing` would call every video silent. */
 let soundTimer: ReturnType<typeof setTimeout> | null = null;
+/** The 1Hz countdown tick. Only alive while a preview is actually playing --
+ *  renderRemaining() starts it and every retirement path stops it. */
+let countdown: ReturnType<typeof setTimeout> | null = null;
+/** The countdown's own node, held rather than looked up. One reference beats a
+ *  querySelector on every tick, and the element is built here so there is no
+ *  reason to go looking for it. */
+let timeElement: HTMLElement | null = null;
 
 /** Media events tell us buffering apart from finished, which no timer can, and
  *  -- since `playing` is the first frame -- loading apart from playing. They are
@@ -150,6 +159,13 @@ function ensureElement(): HTMLDivElement | null {
     glyph.className = 'tt-pi-glyph';
     node.appendChild(glyph);
     node.appendChild(materialIcon('tt-pi-play', MATERIAL_PLAY_ARROW));
+    // How much preview is left. A span rather than a third icon: it is the one
+    // part of this mark that is a number, and previewState.remainingMs decides
+    // whether there is an honest one to show.
+    const time = document.createElement('span');
+    time.className = 'tt-pi-time';
+    node.appendChild(time);
+    timeElement = time;
     node.appendChild(materialIcon('tt-pi-sound', MATERIAL_VOLUME_UP));
     element = node;
     whenBodyReady(() => {
@@ -189,6 +205,14 @@ function clearWatchdog(): void {
 function render(): void {
     if (state.phase === 'idle') {
         if (element) element.removeAttribute('data-state');
+        // This branch RETURNS, so anything that has to stop when the mark
+        // retires has to stop here as well -- renderRemaining() at the bottom of
+        // this function is never reached from idle. The countdown's 1Hz timer
+        // outlived every ordinary stop until this line existed, which the
+        // runtime harness caught by counting live timers after a stop.
+        clearCountdown();
+        if (element) element.removeAttribute('data-time');
+        if (timeElement) timeElement.textContent = '';
         return;
     }
     const node = ensureElement();
@@ -200,6 +224,53 @@ function render(): void {
     // worse failure than saying nothing.
     if (sound === 'audible') node.setAttribute('data-sound', 'on');
     else node.removeAttribute('data-sound');
+
+    renderRemaining(node);
+}
+
+/**
+ * Draws the countdown, and keeps it ticking only while there is one.
+ *
+ * The timer is started and stopped from here rather than from the state
+ * machine, so it cannot outlive the mark: every path that retires the indicator
+ * goes through render(), and every one of them lands in the `null` branch.
+ * One setTimeout at 1Hz, alive for the few seconds a preview lasts, is the whole
+ * cost -- and it re-arms against the wall clock so the digits change when the
+ * second does rather than drifting a little further from it each time.
+ */
+function renderRemaining(node: HTMLElement): void {
+    const readout = timeElement;
+    if (!readout) return;
+
+    const left = remainingMs(state, Date.now());
+    if (left === null) {
+        clearCountdown();
+        node.removeAttribute('data-time');
+        readout.textContent = '';
+        return;
+    }
+
+    const text = formatRemaining(left);
+    // The same string 59 times a minute otherwise, each one a layout on a TV SoC.
+    if (readout.textContent !== text) readout.textContent = text;
+    node.setAttribute('data-time', 'on');
+
+    clearCountdown();
+    // Re-armed against the wall clock, so the readout changes on the second.
+    countdown = setTimeout(
+        () => {
+            countdown = null;
+            if (element) renderRemaining(element);
+        },
+        Math.max(50, 1000 - (Date.now() % 1000)),
+    );
+}
+
+function clearCountdown(): void {
+    if (countdown !== null) {
+        clearTimeout(countdown);
+        countdown = null;
+    }
 }
 
 function place(): void {
@@ -395,6 +466,10 @@ function disable(): void {
     listenToMedia(false);
     clearWatchdog();
     clearSoundTimer();
+    // Explicit, though render()'s idle branch would also stop it: disable()
+    // drops the element without going through render(), and a timer whose only
+    // brake is `if (element)` is one tick of dead work rather than none.
+    clearCountdown();
 
     state = IDLE;
     media = null;
@@ -404,6 +479,9 @@ function disable(): void {
         element.remove();
         element = null;
     }
+    // Held above; a stale reference into a removed tree would keep it alive and
+    // would be written to by the next preview's first render.
+    timeElement = null;
 }
 
 configChangeEmitter.addEventListener('configChange', (e) => {

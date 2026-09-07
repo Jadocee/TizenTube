@@ -217,6 +217,46 @@ export interface SoundInput {
  * it, which is the best claim available and the one that is right for the
  * overwhelming majority of videos.
  */
+/**
+ * Milliseconds of preview left, or null when there is nothing honest to say.
+ *
+ * NOT `endsAt - now`. endsAt is the WATCHDOG deadline and carries
+ * WATCHDOG_SLACK_MS on top of the real end, so counting down to it would sit at
+ * "5s" for five seconds after the preview had visibly stopped. The honest number
+ * is the duration the app asked for, measured from the frame that actually
+ * arrived -- which is the same base `resume` re-bases endsAt on.
+ *
+ * Null, not zero, when the answer is unknown: while loading nothing has started
+ * so there is nothing to count, and a preview whose duration came through as 0
+ * or nonsense (see `start`) has no length to count down. A readout that invents
+ * a number is worse than one that is absent, which is why this file's own
+ * stylesheet argued against a countdown at all -- the answer to that objection
+ * is this function, not a guess.
+ */
+export function remainingMs(state: PreviewState, now: number): number | null {
+    if (!state) return null;
+    if (state.phase !== 'playing' && state.phase !== 'stalled') return null;
+    if (!state.playingAt || !state.durationMs) return null;
+    if (!Number.isFinite(now)) return null;
+    const left = state.playingAt + state.durationMs - now;
+    return left > 0 ? left : 0;
+}
+
+/**
+ * The countdown as it is drawn: m:ss.
+ *
+ * Ceil rather than round, so a preview with 200ms left reads "0:01" and reaches
+ * "0:00" only when it is actually over -- a readout that hits zero while frames
+ * are still arriving is the one error a countdown cannot afford.
+ */
+export function formatRemaining(ms: number): string {
+    if (!Number.isFinite(ms) || ms < 0) return '0:00';
+    const total = Math.ceil(ms / 1000);
+    const minutes = Math.floor(total / 60);
+    const seconds = total % 60;
+    return `${minutes}:${String(seconds).padStart(2, '0')}`;
+}
+
 export function soundState(input: SoundInput | null | undefined): SoundState {
     if (!input) return 'unknown';
     if (input.muted === true) return 'silent';
