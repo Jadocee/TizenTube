@@ -2,7 +2,7 @@ import sha256 from '../tiny-sha256.js';
 import { nextSegments as pickNextSegments, seekTargetFor } from './skipFilter.js';
 import { configRead } from '../config.js';
 import { channelOf, isChannelDisabled } from './videoContext.js';
-import { showToast } from '../ui/ytUI.js';
+import { hideSkipNotice, showSkipNotice } from '../ui/skipNotice.js';
 import { t } from 'i18next';
 
 /** A segment as SponsorBlock's public API returns it. Only the three fields
@@ -487,14 +487,17 @@ class SponsorBlockHandler {
                         if (wasSkippedBefore.lastSkipped - wasSkippedBefore.firstSkipped < 1000) {
                             if (!wasSkippedBefore.hasShownToast) {
                                 if (configRead('enableSponsorBlockToasts')) {
-                                    showToast(
-                                        'SponsorBlock',
+                                    // The category, not the product name. The
+                                    // notice's own coalescing replaces the
+                                    // toast helper's `coalesce` flag.
+                                    showSkipNotice(
                                         t('sponsorblock.toasts.notSkipping', {
                                             segment: skipName,
                                             count: wasSkippedBefore.count,
                                         }),
-                                        null,
-                                        true,
+                                        // Nothing was skipped, so the mark must
+                                        // not be a fast-forward arrow.
+                                        false,
                                     );
                                 }
                                 wasSkippedBefore.hasShownToast = true;
@@ -511,12 +514,7 @@ class SponsorBlockHandler {
                         });
                     }
                     if (configRead('enableSponsorBlockToasts')) {
-                        showToast(
-                            'SponsorBlock',
-                            t('sponsorblock.toasts.skipping', { segment: skipName }),
-                            null,
-                            true,
-                        );
+                        showSkipNotice(t('sponsorblock.toasts.skipping', { segment: skipName }));
                     }
                     this.video!.currentTime = seekTargetFor(end, this.video!.duration);
                     this.scheduleSkip();
@@ -530,6 +528,11 @@ class SponsorBlockHandler {
         console.info(this.videoID, 'Destroying');
 
         this.active = false;
+
+        // A skip announced in the last second of a video must not follow the
+        // user back to the home page. The notice's own timer would take it down
+        // eventually; this makes leaving the player immediate.
+        hideSkipNotice();
 
         if (this.nextSkipTimeout) {
             clearTimeout(this.nextSkipTimeout);
