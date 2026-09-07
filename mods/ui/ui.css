@@ -192,74 +192,41 @@
     }
 }
 
-/* Fixes transparency effect for the video player */
+/* NINE OVERRIDES USED TO LIVE HERE, and every one of them was dead.
 
-:is(.ytLrWatchDefaultShadow, div[idomkey="shadow"]) {
-    background-image: linear-gradient(
-        to bottom,
-        rgb(0 0 0 / 0%) 0,
-        rgb(0 0 0 / 80%) 90%
-    ) !important;
-    background-color: rgb(0 0 0 / 30%) !important;
-    display: block !important;
-    block-size: 100% !important;
-    inline-size: 100% !important;
-    pointer-events: none !important;
-    position: absolute !important;
-}
+   They targeted `.ytLrWatchDefaultShadow`, `.ytLrWatchDefault2025Shadow`,
+   `.ytLrTileHeaderRendererShorts`, `.ytLrOverlayPanelHeaderRendererSubtitle`,
+   `.ytLrProgressBarPlayhead`, `.ytLrProgressBarPlayed` and three
+   `.ytLrSearchVoice*` classes, plus `div[idomkey="shadow"]`. Measured against
+   the live app rather than assumed: the string `ytLr` occurs ZERO times across
+   base.js (1.1 MB), main.js (1.9 MB), main.css (302 KB) and the /tv document.
+   The app moved to per-build hashed class names, and these are from a leanback
+   generation that is gone.
 
-/* https://github.com/webosbrew/youtube-webos/commit/4fbe38a18df31ddd62b6cf15f141dd58e1d1a71d */
-.ytLrWatchDefault2025Shadow {
-    background-color: rgb(11 11 11 / 50%) !important;
-}
+   `div[idomkey="shadow"]` cannot match either, for a different reason worth
+   writing down: idomKey is an internal key in the app's renderer, not an
+   attribute. Its own attribute writer skips it BY NAME --
+   `else if(b!=="idomKey"&&b!=="skip"&&b!=="skipchildren"&&...)` -- and the
+   lowercase literal an attribute selector would have to match appears nowhere
+   in either bundle.
 
-/* Fixes shorts having a black background */
-.ytLrTileHeaderRendererShorts {
-    background-image: none !important;
-}
+   THE PROBLEMS THEY WERE WRITTEN FOR WERE REAL: the player's bottom gradient,
+   Shorts tiles on a black background, SponsorBlock segments overlapping the
+   playhead, single-line panel subtitles, the voice-search button. If any of
+   those returns, this file is not where the fix went missing -- the selectors
+   need finding again against the current app, and the old rules are in git
+   history rather than lost. Do not restore them from an upstream project
+   without first checking the class still exists; copying from one is how they
+   came to be here.
 
-/* Multiline support for strings in the UI */
-.ytLrOverlayPanelHeaderRendererSubtitle {
-    white-space: pre-wrap !important;
-}
+   Nothing is attempted in their place, because a rule that matches nothing is
+   indistinguishable from a rule that is not needed, and none of these symptoms
+   has been reported on Tizen 9.
 
-/* Fixes SponsorBlock segments overlapping with the playhead */
-:is(.ytLrProgressBarPlayhead, .ytLrProgressBarPlayed) {
-    z-index: 1 !important;
-}
-
-.ytLrSearchBarSearchVoice {
-    display: block;
-    position: absolute;
-    inset-block-start: 0;
-    inset-inline-start: 0;
-    pointer-events: auto;
-}
-
-.ytLrSearchVoiceHost {
-    font-size: 3rem;
-}
-
-.ytLrSearchVoiceMicButtonHost {
-    display: block;
-    inline-size: 1em;
-    block-size: 1em;
-    border-radius: 50%;
-    background-color: rgb(255 255 255 / 10%);
-    color: var(--tt-ink, #f1f1f1);
-    text-align: center;
-}
-
-.ytLrSearchVoiceMicButtonIcon {
-    display: inline-block;
-    /* The declaration order here used to set .5em and then immediately overwrite
-     it with 1em; only the 1em ever applied. */
-    font-size: 0.5em;
-    inline-size: 1em;
-    block-size: 1em;
-    margin-block-start: 0.5em;
-    vertical-align: top !important;
-}
+   The `.ytContrib*` rules below are a DIFFERENT case and deliberately kept:
+   that prefix is alive in the current stylesheet (`.ytContribIconJewel`,
+   `.ytContribIconMemberships` and others are defined there), so the two classes
+   we name being absent from one signed-out fetch is not the same evidence. */
 
 .ytContribIconHost {
     display: inline-block;
