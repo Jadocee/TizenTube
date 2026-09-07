@@ -66,6 +66,7 @@ const HARNESSES = [
     { name: 'dearrow request cache', dir: 'tile-fixes', file: 'dearrow.mjs', types: true },
     { name: 'focus motion switches', dir: 'focus-motion', file: 'test.mjs', types: true },
     { name: 'clock visibility', dir: 'clock-visibility', file: 'test.mjs', types: true },
+    { name: 'skip notice timing', dir: 'skip-notice', file: 'test.mjs', types: true },
     { name: 'version stamp', dir: 'version-stamp', file: 'test.mjs', needsBundle: true },
     { name: 'sidebar re-select', dir: 'guide-reselect', file: 'test.mjs', types: true },
     { name: 'tile menu suppression', dir: 'tile-menu', file: 'test.mjs', types: true },

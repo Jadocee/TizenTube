@@ -48,10 +48,10 @@ jobs:
       - name: Use pnpm
         uses: pnpm/action-setup@v4
 
-      # Pinned deliberately. Twenty-seven harnesses run under
+      # Pinned deliberately. Twenty-eight harnesses run under
       # --experimental-strip-types, which needs Node 22.6+, and the workflow
       # previously took whatever the runner image happened to ship: on Node 20
-      # those twenty-seven harnesses fail before running a single assertion.
+      # those twenty-eight harnesses fail before running a single assertion.
       #
       # registry-url is load-bearing and easy to mistake for decoration. It is
       # what makes setup-node write an .npmrc containing

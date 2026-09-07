@@ -1,0 +1,105 @@
+/* The SponsorBlock skip notice.
+
+   Replaces YouTube's overlayToastRenderer for this one message. That toast is
+   the APP's chrome -- a two-line banner in the bottom corner reading
+   "SponsorBlock" over "Skipping Sponsor" -- and it said the obvious thing
+   twice. The user knows what SponsorBlock is; the interesting word is the
+   category.
+
+   CENTRED ON THE INLINE AXIS, LOW ON THE BLOCK AXIS. Horizontally centred
+   because that is what was asked for and because a notice that appears in the
+   same place every time is read faster than one anchored to a corner. Low
+   rather than dead centre because this appears OVER VIDEO, and the middle of
+   the frame is where the subject is: a 2.6-second pill across someone's face is
+   worse than the toast it replaces. It sits above where the transport controls
+   come up, so a skip during scrubbing does not collide with them.
+
+   THE PALETTE IS ui.css's, deliberately. The values are repeated rather than
+   shared because ui.css scopes its tokens to .ytaf-ui-container so nothing
+   leaks into YouTube's own styles, and this element is a sibling of that panel
+   rather than a child. Repeating four values is the cost of that scoping and it
+   is the right trade; what matters is that they are the SAME four.
+
+   OPACITY IS SAFE HERE, unlike on the clock. ui.ts's idle dimming writes
+   `opacity` with `!important` across `#container` and every `.tt-dimmable`
+   element. This notice is neither -- and deliberately not `.tt-dimmable`, since
+   a 2.6-second message that appears because something just happened is exactly
+   what should NOT be dimmed for inactivity.
+
+   DECLARATIONS BEFORE NESTED RULES, as everywhere in this mod: Chromium M120
+   hoists a bare declaration written after a nested rule above it, and
+   test/css-nesting scans for the shape. */
+
+#tizentube-skip-notice {
+    position: fixed;
+    /* Centred by transform rather than by inset-inline: the element is sized by
+     its text, and `inset-inline: 0` plus `margin: auto` would need a width to
+     centre against. translateX(-50%) needs none. */
+    left: 50%;
+    inset-block-end: 14%;
+    transform: translate3d(-50%, 0, 0);
+
+    z-index: 900;
+
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    /* Pinned, for the same reason previewIndicator.css pins it: this is
+     appended to document.body and inherits the app's direction, which is rtl
+     for an Arabic account, and a flex row follows `direction` -- so the glyph
+     would swap to the far side of the text. */
+    direction: ltr;
+
+    box-sizing: border-box;
+    padding-block: 0.55rem;
+    padding-inline: 1.1rem;
+    /* ui.css's --tt-radius-field, at this smaller scale. */
+    border-radius: 0.75rem;
+
+    /* ui.css's --tt-surface, --tt-line and --tt-ink. */
+    background-color: rgb(18 18 18 / 96%);
+    border: 0.0625rem solid rgb(255 255 255 / 12%);
+    color: #f1f1f1;
+
+    font-size: 1.15rem;
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+
+    /* Inert decoration over the player. It must never take a press. */
+    pointer-events: none;
+
+    /* Hidden until skipNotice.ts sets data-shown, so a rule that never matches
+     shows nothing rather than parking an empty pill over the video. */
+    visibility: hidden;
+    opacity: 0;
+    /* Out is slower than in: the notice should register immediately and then
+     leave without drawing a second glance. */
+    transition:
+        opacity 220ms ease-out,
+        visibility 0s linear 220ms;
+
+    &[data-shown] {
+        visibility: visible;
+        opacity: 1;
+        transition:
+            opacity 120ms ease-out,
+            visibility 0s linear 0s;
+    }
+
+    & > .tt-sn-icon {
+        flex: none;
+        inline-size: 1.15rem;
+        block-size: 1.15rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #tizentube-skip-notice {
+        transition: none;
+
+        &[data-shown] {
+            transition: none;
+        }
+    }
+}

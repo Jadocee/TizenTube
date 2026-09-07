@@ -310,6 +310,17 @@ for (const [file, dir, landmarks] of [
         ],
     ],
     [
+        'skipNotice.ts',
+        'skip-notice',
+        [
+            'export function shouldShow',
+            'export function remainingMs',
+            'export function hidesAt',
+            'NOTICE_DURATION_MS',
+            'COALESCE_WINDOW_MS',
+        ],
+    ],
+    [
         'tileMenu.ts',
         'tile-menu',
         [
