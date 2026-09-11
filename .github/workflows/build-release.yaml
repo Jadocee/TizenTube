@@ -114,7 +114,7 @@ jobs:
 
       - name: Run the harnesses
         env:
-          # A skipped harness is not a passing one. Five harnesses drive a
+          # A skipped harness is not a passing one. Six harnesses drive a
           # browser and two load the real built bundle; if the Chromium install
           # fails or a bundle is missing, they skip and the run would otherwise
           # go green reporting coverage that never happened.
