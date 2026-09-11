@@ -38,7 +38,7 @@ injector, and a `.wgt` cannot exist unsigned — see
 | --- | --- | --- |
 | Node | **22.6 or newer** | twenty-nine harnesses run under `--experimental-strip-types`, which lands in 22.6. On Node 20 they fail before a single assertion. CI pins 22. |
 | pnpm | 10.33.0 | pinned by `packageManager` in the root `package.json`; `corepack enable` picks it up |
-| Chromium | any recent | only for the five browser harnesses. Without it they *skip*, which is fine locally and a failure in CI |
+| Chromium | any recent | only for the six browser harnesses. Without it they *skip*, which is fine locally and a failure in CI |
 | `tizen.js` | from git `main` | only to package a `.wgt`. Not needed to build, typecheck or test |
 | A Tizen author certificate | — | only to package a `.wgt` |
 
@@ -55,7 +55,7 @@ pnpm install                              # all four trees, one lockfile
 (cd service && pnpm run build)            # 2. the DIAL service
 (cd standalone/service && pnpm run build) # 3. the app's service
 
-pnpm test                                 # 48 harnesses
+pnpm test                                 # 49 harnesses
 ```
 
 Under ten seconds in total on a warm checkout. If you only want the TizenBrew
@@ -116,7 +116,7 @@ copy. This is the one way to get a `.wgt` that is quietly a version behind.
 ```sh
 pnpm check                                         # Biome: format + lint
 pnpm -r --workspace-concurrency=1 run typecheck   # all three TypeScript trees
-pnpm test                                          # 48 harnesses
+pnpm test                                          # 49 harnesses
 pnpm test settings                                 # just the ones matching "settings"
 ```
 
@@ -182,7 +182,7 @@ once and blame will read as though the reformat never happened.
 before every run, so a failure always means the code changed rather than a copy
 going stale. See [test/README.md](../test/README.md).
 
-Five harnesses drive real Chromium through Playwright and two of those also need
+Six harnesses drive real Chromium through Playwright and two of those also need
 `dist/userScript.js` to exist. Without Chromium they report `SKIPPED` and the run
 still passes — a missing browser is not a defect in the code under test. CI sets
 `TT_STRICT_SKIP=1`, which makes a skip count as a failure, because there a

@@ -19,6 +19,7 @@ const HARNESSES = [
     { name: 'settings toggle dispatch', dir: 'settings-toggle', file: 'test.mjs', types: true },
     { name: 'stylesheet under CSP', dir: 'stylesheet', file: 'run.mjs', browser: true },
     { name: 'theme panel styling', dir: 'panel-style', file: 'test.mjs', browser: true },
+    { name: 'watch backdrop', dir: 'watch-backdrop', file: 'test.mjs', browser: true },
     { name: 'proxy injection', dir: 'injection', file: 'proxy.test.mjs' },
     {
         name: 'bundle at document-start',

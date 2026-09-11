@@ -5,6 +5,7 @@ import {
     TILE_STYLE_DEFAULT,
     DEFAULT_PREVIEW_DURATION_MS,
     bestThumbnail,
+    deArrowableTile,
     previewableTile,
     startInlinePlayback,
     pageNameFromHash,
@@ -668,7 +669,10 @@ function deArrowify(items: any[]) {
             continue;
         }
         if (!item.tileRenderer) continue;
-        if (configRead('enableDeArrow')) {
+        // Videos only. DeArrow brands videos, so asking it about a channel, a
+        // playlist, a shelf button or a reel is a request that can only 404 --
+        // one per tile, on every shelf, from a television.
+        if (configRead('enableDeArrow') && deArrowableTile(item)) {
             const videoID = item.tileRenderer.contentId;
             // One request per video rather than one per tile. This used to fire an
             // uncached, undeduplicated fetch for every tile it walked -- on the order
@@ -689,17 +693,39 @@ function deArrowify(items: any[]) {
 
                     if (configRead('enableDeArrowThumbnails')) {
                         const time = bestThumbnailTime(data);
-                        if (
-                            time !== null &&
-                            item.tileRenderer?.header?.tileHeaderRenderer?.thumbnail
-                        ) {
-                            item.tileRenderer.header.tileHeaderRenderer.thumbnail.thumbnails = [
-                                {
-                                    url: `https://dearrow-thumb.ajay.app/api/v1/getThumbnail?videoID=${encodeURIComponent(videoID)}&time=${time}`,
-                                    width: 1280,
-                                    height: 720,
-                                },
-                            ];
+                        const thumb = item.tileRenderer?.header?.tileHeaderRenderer?.thumbnail;
+                        if (time !== null && thumb) {
+                            // VERIFIED BEFORE IT REPLACES ANYTHING. This
+                            // overwrites the tile's ONLY thumbnail -- a real TV
+                            // payload carries exactly one entry -- so a
+                            // substitute that does not load leaves the tile with
+                            // no image at all: a grey box. The generator answers
+                            // 204 with an empty body for a frame it has not
+                            // produced yet, which is an ordinary reply and
+                            // decodes to nothing. This is the only path in the
+                            // whole mod that can blank a tile, which is why it
+                            // is the only one that checks.
+                            //
+                            // The probe is not an extra download: it is the same
+                            // request the renderer would make, made sooner, so a
+                            // success is already cached when the swap lands. A
+                            // failure costs one request and keeps YouTube's own
+                            // frame.
+                            const url = `https://dearrow-thumb.ajay.app/api/v1/getThumbnail?videoID=${encodeURIComponent(videoID)}&time=${time}`;
+                            const original = thumb.thumbnails;
+                            const probe = new Image();
+                            probe.onload = () => {
+                                // An empty body can still reach onload; only a
+                                // decoded image has a width.
+                                if (!probe.naturalWidth) return;
+                                // And only if nothing else has changed it since.
+                                if (thumb.thumbnails !== original) return;
+                                thumb.thumbnails = [{ url, width: 1280, height: 720 }];
+                            };
+                            // Deliberately empty: keeping YouTube's thumbnail IS
+                            // the handling, and there is nothing to report.
+                            probe.onerror = () => {};
+                            probe.src = url;
                         }
                     }
                 })

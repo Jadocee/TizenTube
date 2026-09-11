@@ -287,3 +287,33 @@ export function shrinkShelf(shelf: any): void {
     if (!style.effects || typeof style.effects !== 'object') style.effects = {};
     style.effects.shrink = true;
 }
+
+/* --- who DeArrow can be asked about ---------------------------------------
+
+   DeArrow holds community titles and thumbnails for VIDEOS. Asking it about a
+   channel, a playlist, a shelf button or a Shorts reel is a request that can
+   only ever 404 -- and adblock.ts fires one per tile, so on a home screen that
+   is a steady trickle of outbound requests from a television, each one
+   answering a question nobody asked.
+
+   The same predicate is what keeps the thumbnail substitution off tiles whose
+   `contentId` is not a video id at all, where the synthesised URL would be
+   nonsense rather than merely absent. */
+
+/** A YouTube video id: eleven characters of base64url. Checked rather than
+ *  assumed, because `contentId` carries channel ids and playlist ids on the
+ *  same field for other tile kinds. */
+const VIDEO_ID = /^[A-Za-z0-9_-]{11}$/;
+
+export function deArrowableTile(item: any): boolean {
+    const tile = item && item.tileRenderer;
+    if (!tile) return false;
+    // A watchEndpoint is the app's own statement that selecting this plays a
+    // video. previewableTile uses the same test for the same reason.
+    if (!tile.onSelectCommand?.watchEndpoint) return false;
+    // A reel is a video, but DeArrow does not brand Shorts and the tile's
+    // thumbnail is a different shape.
+    if (tile.onSelectCommand?.reelWatchEndpoint) return false;
+    if (tile.tvhtml5ShelfRendererType === 'TVHTML5_TILE_RENDERER_TYPE_SHORTS') return false;
+    return typeof tile.contentId === 'string' && VIDEO_ID.test(tile.contentId);
+}
