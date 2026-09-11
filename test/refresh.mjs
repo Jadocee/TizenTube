@@ -116,6 +116,24 @@ if (settings.includes('__TT_VERSION__')) {
 }
 out('settings/settings.generated.mts', settings);
 
+// config.ts runs as-is: it has no imports, only window.localStorage, which the
+// harness provides. Lifted rather than stubbed because the defect it carried was
+// in the BOOTSTRAP -- what happens when the stored blob parses to something that
+// is not a config -- and a stub of it cannot express that.
+const configSrc = readRepo('mods', 'config.ts');
+if (/^\s*import\s/m.test(configSrc)) {
+    fail('config.ts has grown an import; the harness copy is no longer the real thing');
+}
+for (const landmark of [
+    'function readStoredConfig',
+    'export function configRead',
+    'export function configWrite',
+]) {
+    if (!configSrc.includes(landmark))
+        fail(`config.ts no longer contains "${landmark}"; fix test/refresh.mjs`);
+}
+out('config/mod.generated.mts', configSrc);
+
 // startupError.ts runs for real.
 out('settings/startupError.generated.mts', readRepo('mods', 'ui', 'startupError.ts'));
 

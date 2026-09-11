@@ -129,14 +129,55 @@ export interface ConfigChangeDetail {
 
 type ConfigChangeListener = (event: { type: string; detail: ConfigChangeDetail }) => void;
 
-let localConfig: Config;
-
-try {
-    localConfig = JSON.parse(window.localStorage[CONFIG_KEY]);
-} catch (err) {
-    console.warn('Config read failed:', err);
-    localConfig = defaultConfig;
+/**
+ * The stored settings, or the defaults when what is stored cannot be used.
+ *
+ * JSON.parse SUCCEEDING IS NOT THE SAME AS IT RETURNING A CONFIG, and that gap
+ * was a total failure of the mod rather than a bad setting. `null`, a number and
+ * a string all parse without throwing, and the first configRead then does
+ * `localConfig[key]` on them: reading a key off null throws, and assigning the
+ * repaired default onto a number or a string throws too, because the bundle is
+ * an ES module and therefore strict. configRead runs at MODULE SCOPE in several
+ * files -- clock.ts ends with toggleClock(configRead('enableClock')) -- and a
+ * throw there aborts every module imported after it. One unusable value in
+ * localStorage took the whole mod down, leaving plain YouTube with no ad
+ * blocking and no way to tell why. It is the same failure the who's-watching
+ * harness exists for.
+ *
+ * An array is the quieter version: it parses, it indexes, every read returns a
+ * default, and configWrite stringifies it back as `[]` -- so settings appear to
+ * save and are gone on the next launch.
+ *
+ * A COPY OF THE DEFAULTS, not the defaults themselves. Nothing observable
+ * depends on that today, and the comment that used to claim otherwise was wrong:
+ * the only other reader of defaultConfig is isConfigKey, which asks hasOwn and
+ * never a value, and configRead's repair cannot fire on a config that IS the
+ * defaults because every key is present. The copy is here so that stays true by
+ * construction rather than by audit.
+ *
+ * It is shallow, so the array-valued defaults are still shared by reference --
+ * by the repair path too, which assigns defaultConfig[key] straight across.
+ * Nothing may mutate what configRead returns; the one list-editing helper,
+ * tileMenu's addEntry, rebuilds with filter/concat for exactly this reason.
+ */
+function readStoredConfig(): Config {
+    let stored: unknown;
+    try {
+        stored = JSON.parse(window.localStorage[CONFIG_KEY]);
+    } catch (err) {
+        // The ordinary path for a fresh install: no key, so JSON.parse is handed
+        // the string "undefined".
+        console.warn('Config read failed:', err);
+        return { ...defaultConfig };
+    }
+    if (!stored || typeof stored !== 'object' || Array.isArray(stored)) {
+        console.warn('Stored config is not an object; using defaults instead:', stored);
+        return { ...defaultConfig };
+    }
+    return stored as Config;
 }
+
+const localConfig: Config = readStoredConfig();
 
 /** True when `key` names a real setting. Use before writing anything that came
  *  from outside the mod, such as a command payload. */

@@ -1,6 +1,6 @@
 # Harnesses
 
-Fifty regression harnesses. They exist because the things that break TizenTube
+Fifty-one regression harnesses. They exist because the things that break TizenTube
 mostly cannot be caught by a typechecker or by reading a diff: a renderer shape
 that only appears at runtime, a focus trap you only find with a D-pad, a
 stylesheet that works until CSP is enforced, a script that behaves differently
@@ -67,6 +67,7 @@ here (no browser, no built bundle) report as *skipped*, not passed.
 | `aislist/test.mjs` | Parsing and matching the AiSList channel lists against a real slice of the published file, including the trap its own format header does not mention: 498 of the handles are percent-encoded or non-ASCII, and a tile's subtitle carries the decoded form. |
 | `aislist/refresh.mjs` | The fetch-and-cache half, driven with a fake fetch and a fake clock — the questions `parseList` cannot answer: that a warnlist 404 does not discard the blocklist that just downloaded, that each list's freshness is its own, and that a captive portal answering `200` with a login page cannot empty a working list or cache the emptiness. |
 | `aislist/toggle.mjs` | *When* the fetch is kicked off — the module's side effects are the whole of it, which is why nothing covered it. The gate used to run once at import, so ticking the box left the row reading ON and the feature hiding nothing until the app was relaunched. |
+| `config/test.mjs` | The settings bootstrap, over the blobs `localStorage` can really hold. `JSON.parse` succeeding is not the same as it returning a config: `null`, a number, a string, `true` and an array all parse, and the old bootstrap handed each straight to `configRead` — where reading a key off `null`, or assigning a repaired default onto a number or a string, throws, because the bundle is a strict-mode module. `configRead` runs at *module scope* in several files, so one of those throws took every module imported after it and left plain YouTube behind. The array is the quiet one: it parses, it indexes, every read returns a default, and then `configWrite` stringifies it back as `[]` with the settings dropped — which is why a write is followed here all the way into storage and out again. |
 | `css-nesting/test.mjs` | Declarations Chromium M120 quietly *reorders*. CSS nesting works there, but `CSSNestedDeclarations` only shipped in Chrome 130 — so a bare declaration placed *after* a nested rule is hoisted above it instead of keeping its source position. Measured against real Chrome 120: it still applies, but it loses to any nested rule setting the same property, which a modern Chromium resolves the other way. One block, two colours, depending on the engine. Carries its own positive controls, because a scanner nobody has seen fail is indistinguishable from one that returns nothing. |
 | `docs/test.mjs` | That the counts this document and `docs/BUILDING.md` quote are the counts `run.mjs` actually has, and that the table above has a row per harness. Prose is not executed, so every feature added a harness and left every number here quietly wrong. |
 
