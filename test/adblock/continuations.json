@@ -1,0 +1,22 @@
+{
+    "_comment": [
+        "Every *Continuation renderer name the YouTube TV app registers in its own",
+        "renderer table, taken verbatim from the shipped kabuki bundle (main.js,",
+        "the `new _.S(\"...\")` declarations). Captured rather than invented: the",
+        "whole point is that this list is the app's, not ours.",
+        "",
+        "A continuation that carries shelves or tiles has to be routed through",
+        "processShelves, or everything the mod does to a tile silently stops",
+        "applying to content that arrives that way."
+    ],
+    "names": [
+        "sectionListContinuation",
+        "horizontalListContinuation",
+        "gridContinuation",
+        "tvSurfaceContentContinuation",
+        "itemSectionContinuation",
+        "reloadContinuation",
+        "nextContinuation",
+        "genericPromoContinuation"
+    ]
+}

@@ -15,6 +15,7 @@ const HARNESSES = [
     { name: 'startup breadcrumb', dir: 'settings', file: 'crumb.mjs', types: true },
     { name: "who's-watching storage", dir: 'whos-watching', file: 'test.mjs', types: true },
     { name: 'adblock JSON patch', dir: 'adblock', file: 'test.mjs' },
+    { name: 'continuation coverage', dir: 'adblock', file: 'continuations.mjs' },
     { name: 'command executor', dir: 'command-executor', file: 'test.mjs', types: true },
     { name: 'settings toggle dispatch', dir: 'settings-toggle', file: 'test.mjs', types: true },
     { name: 'stylesheet under CSP', dir: 'stylesheet', file: 'run.mjs', browser: true },

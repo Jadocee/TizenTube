@@ -208,6 +208,32 @@ function processResponse(r: any, sourceText?: unknown): any {
             processShelves(r.continuationContents.sectionListContinuation.contents);
         }
 
+        // THE HOME SURFACE'S OWN REFRESH, which is a different shape from the
+        // sectionListContinuation above and was not handled at all. The app
+        // reads it as `_.B(d.continuationContents, tvSurfaceContentContinuation)`
+        // and, when the reply carries `isImplicitRefresh`, splices the new
+        // sectionList's contents into the shelves already on screen:
+        //
+        //     var h = _.B(b.props.data.content, sectionListRenderer),
+        //         k = _.B(e, sectionListRenderer);
+        //     if (d.isImplicitRefresh && h && k) { ... h.contents = ... }
+        //
+        // So every shelf arriving by that route skipped processShelves, and with
+        // it hideVideo, the inline previews, the long-press menu, DeArrow and the
+        // compact-shelf flag. Ads were still stripped -- AD_RULES prunes the whole
+        // payload regardless of shape -- which is exactly why this was invisible:
+        // the one feature that would have been obvious by its absence was the one
+        // feature that kept working.
+        if (
+            r?.continuationContents?.tvSurfaceContentContinuation?.content?.sectionListRenderer
+                ?.contents
+        ) {
+            processShelves(
+                r.continuationContents.tvSurfaceContentContinuation.content.sectionListRenderer
+                    .contents,
+            );
+        }
+
         if (r?.continuationContents?.horizontalListContinuation?.items) {
             r.continuationContents.horizontalListContinuation.items = dropHidden(
                 r.continuationContents.horizontalListContinuation.items,
