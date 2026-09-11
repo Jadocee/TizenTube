@@ -1,0 +1,2278 @@
+[
+    {
+        "surface": "FEtopics_live",
+        "shelves": [
+            {
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "surface": "FEtopics_music",
+        "shelves": [
+            {
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "gridButtonRenderer": {}
+                            },
+                            {
+                                "gridButtonRenderer": {}
+                            }
+                        ]
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "surface": "FEtopics_news",
+        "shelves": [
+            {
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "gridButtonRenderer": {}
+                            },
+                            {
+                                "gridButtonRenderer": {}
+                            }
+                        ]
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "surface": "FEtopics_sports",
+        "shelves": [
+            {
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "surface": "gaming",
+        "shelves": [
+            {
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_GAME"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_GAME"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_GAME"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_GAME"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_GAME"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_GAME"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_GAME"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_GAME"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_GAME"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_GAME"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_GAME"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_GAME"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "gridButtonRenderer": {}
+                            },
+                            {
+                                "gridButtonRenderer": {}
+                            }
+                        ]
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "surface": "n_9bZkp7q19f0",
+        "shelves": [
+            {
+                "tvhtml5ShelfRendererType": "TVHTML5_SHELF_RENDERER_TYPE_GRID",
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "tvhtml5ShelfRendererType": "TVHTML5_SHELF_RENDERER_TYPE_GRID",
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "tvhtml5ShelfRendererType": "TVHTML5_SHELF_RENDERER_TYPE_GRID",
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "tvhtml5ShelfRendererType": "TVHTML5_SHELF_RENDERER_TYPE_GRID",
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "tvhtml5ShelfRendererType": "TVHTML5_SHELF_RENDERER_TYPE_GRID",
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "tvhtml5ShelfRendererType": "TVHTML5_SHELF_RENDERER_TYPE_GRID",
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "tvhtml5ShelfRendererType": "TVHTML5_SHELF_RENDERER_TYPE_GRID",
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "tvhtml5ShelfRendererType": "TVHTML5_SHELF_RENDERER_TYPE_GRID",
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "tvhtml5ShelfRendererType": "TVHTML5_SHELF_RENDERER_TYPE_GRID",
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "tvhtml5ShelfRendererType": "TVHTML5_SHELF_RENDERER_TYPE_GRID",
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "surface": "n_dQw4w9WgXcQ",
+        "shelves": [
+            {
+                "tvhtml5ShelfRendererType": "TVHTML5_SHELF_RENDERER_TYPE_GRID",
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "tvhtml5ShelfRendererType": "TVHTML5_SHELF_RENDERER_TYPE_GRID",
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "tvhtml5ShelfRendererType": "TVHTML5_SHELF_RENDERER_TYPE_GRID",
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "tvhtml5ShelfRendererType": "TVHTML5_SHELF_RENDERER_TYPE_GRID",
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "tvhtml5ShelfRendererType": "TVHTML5_SHELF_RENDERER_TYPE_GRID",
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "tvhtml5ShelfRendererType": "TVHTML5_SHELF_RENDERER_TYPE_GRID",
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "tvhtml5ShelfRendererType": "TVHTML5_SHELF_RENDERER_TYPE_GRID",
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "tvhtml5ShelfRendererType": "TVHTML5_SHELF_RENDERER_TYPE_GRID",
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "tvhtml5ShelfRendererType": "TVHTML5_SHELF_RENDERER_TYPE_GRID",
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "tvhtml5ShelfRendererType": "TVHTML5_SHELF_RENDERER_TYPE_GRID",
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "surface": "n_jNQXAC9IVRw",
+        "shelves": [
+            {
+                "tvhtml5ShelfRendererType": "TVHTML5_SHELF_RENDERER_TYPE_GRID",
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "tvhtml5ShelfRendererType": "TVHTML5_SHELF_RENDERER_TYPE_GRID",
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "tvhtml5ShelfRendererType": "TVHTML5_SHELF_RENDERER_TYPE_GRID",
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "tvhtml5ShelfRendererType": "TVHTML5_SHELF_RENDERER_TYPE_GRID",
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "tvhtml5ShelfRendererType": "TVHTML5_SHELF_RENDERER_TYPE_GRID",
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "tvhtml5ShelfRendererType": "TVHTML5_SHELF_RENDERER_TYPE_GRID",
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "tvhtml5ShelfRendererType": "TVHTML5_SHELF_RENDERER_TYPE_GRID",
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "tvhtml5ShelfRendererType": "TVHTML5_SHELF_RENDERER_TYPE_GRID",
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "tvhtml5ShelfRendererType": "TVHTML5_SHELF_RENDERER_TYPE_GRID",
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "tvhtml5ShelfRendererType": "TVHTML5_SHELF_RENDERER_TYPE_GRID",
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "surface": "search",
+        "shelves": [
+            {
+                "tvhtml5Style": {
+                    "style": "TV_SHELF_STYLE_DEFAULT",
+                    "sizeStrategy": "TV_SHELF_SIZE_STRATEGY_FIXED"
+                },
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "lockupViewModel": {}
+                            },
+                            {
+                                "lockupViewModel": {}
+                            },
+                            {
+                                "lockupViewModel": {}
+                            },
+                            {
+                                "lockupViewModel": {}
+                            },
+                            {
+                                "lockupViewModel": {}
+                            },
+                            {
+                                "lockupViewModel": {}
+                            },
+                            {
+                                "lockupViewModel": {}
+                            },
+                            {
+                                "lockupViewModel": {}
+                            },
+                            {
+                                "lockupViewModel": {}
+                            },
+                            {
+                                "lockupViewModel": {}
+                            },
+                            {
+                                "lockupViewModel": {}
+                            },
+                            {
+                                "lockupViewModel": {}
+                            },
+                            {
+                                "lockupViewModel": {}
+                            },
+                            {
+                                "lockupViewModel": {}
+                            },
+                            {
+                                "lockupViewModel": {}
+                            },
+                            {
+                                "lockupViewModel": {}
+                            },
+                            {
+                                "lockupViewModel": {}
+                            },
+                            {
+                                "lockupViewModel": {}
+                            },
+                            {
+                                "lockupViewModel": {}
+                            },
+                            {
+                                "lockupViewModel": {}
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "tvhtml5Style": {
+                    "style": "TV_SHELF_STYLE_DEFAULT",
+                    "sizeStrategy": "TV_SHELF_SIZE_STRATEGY_FIXED"
+                },
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "lockupViewModel": {}
+                            },
+                            {
+                                "lockupViewModel": {}
+                            },
+                            {
+                                "lockupViewModel": {}
+                            },
+                            {
+                                "lockupViewModel": {}
+                            },
+                            {
+                                "lockupViewModel": {}
+                            },
+                            {
+                                "lockupViewModel": {}
+                            },
+                            {
+                                "lockupViewModel": {}
+                            },
+                            {
+                                "lockupViewModel": {}
+                            },
+                            {
+                                "lockupViewModel": {}
+                            },
+                            {
+                                "lockupViewModel": {}
+                            },
+                            {
+                                "lockupViewModel": {}
+                            },
+                            {
+                                "lockupViewModel": {}
+                            },
+                            {
+                                "lockupViewModel": {}
+                            },
+                            {
+                                "lockupViewModel": {}
+                            },
+                            {
+                                "lockupViewModel": {}
+                            },
+                            {
+                                "lockupViewModel": {}
+                            },
+                            {
+                                "lockupViewModel": {}
+                            },
+                            {
+                                "lockupViewModel": {}
+                            },
+                            {
+                                "lockupViewModel": {}
+                            }
+                        ]
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "surface": "t_FEtopics_gaming",
+        "shelves": [
+            {
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_GAME"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_GAME"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_GAME"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_GAME"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_GAME"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_GAME"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_GAME"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_GAME"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_GAME"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_GAME"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_GAME"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_GAME"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "gridButtonRenderer": {}
+                            },
+                            {
+                                "gridButtonRenderer": {}
+                            }
+                        ]
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "surface": "t_FEtopics_live",
+        "shelves": [
+            {
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "surface": "t_FEtopics_movies",
+        "shelves": [
+            {
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "gridButtonRenderer": {}
+                            },
+                            {
+                                "gridButtonRenderer": {}
+                            }
+                        ]
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "surface": "t_FEtopics_music",
+        "shelves": [
+            {
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "gridButtonRenderer": {}
+                            },
+                            {
+                                "gridButtonRenderer": {}
+                            }
+                        ]
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "surface": "t_FEtopics_news",
+        "shelves": [
+            {
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "gridButtonRenderer": {}
+                            },
+                            {
+                                "gridButtonRenderer": {}
+                            }
+                        ]
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "surface": "t_FEtopics_sports",
+        "shelves": [
+            {
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "content": {
+                    "horizontalListRenderer": {
+                        "items": [
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            },
+                            {
+                                "tileRenderer": {
+                                    "style": "TILE_STYLE_YTLR_DEFAULT"
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        ]
+    }
+]

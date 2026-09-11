@@ -254,9 +254,28 @@ export function shelfCanShrink(shelf: any): boolean {
     if (!shelf || typeof shelf !== 'object') return false;
     // Never fight the app's own enlarge mode; it is asking for the opposite.
     if (shelf.tvhtml5Style?.effects?.enlarge) return false;
-    // A typed shelf can shrink its row without shrinking its cards, because the
-    // tile-sizing path short-circuits on several of those types before it
-    // reaches the shrink branch. Untyped is the ordinary browse shelf.
+    // EVERY TYPED SHELF IS DECLINED, and the reason is not the one an earlier
+    // version of this comment gave. It claimed a typed shelf "can shrink its row
+    // without shrinking its cards". Measured against the live app, the truth is
+    // worse and more specific:
+    //
+    //   - The tile size resolver keys a table on the shelf type FIRST and
+    //     returns that entry before it ever reads isShrunk. So for a type in
+    //     that table -- GRID, GRID_XL, SHORTS_GRID, SHORTS,
+    //     IMMERSIVE_CAROUSEL_TOP_CHANNELS -- the flag cannot change the card at
+    //     all. Forcing it on changes nothing: verified by setting shrink on
+    //     every shelf of a real signed-in home capture and measuring geometry
+    //     byte-identical to the control.
+    //   - The ROW-height function has its own per-type early returns, and its
+    //     list is NOT the same list. Plain GRID is in the size table but not in
+    //     the row list, so flagging a GRID shelf shortens the row while each
+    //     card keeps its full height -- which slices the bottom off every card
+    //     in it.
+    //
+    // So the two lists disagree, and their difference is exactly where cards get
+    // clipped. Declining anything typed is the only rule that is safe against
+    // both, and it costs nothing: on a typed shelf the flag was never going to
+    // do anything anyway. Untyped is the ordinary browse shelf.
     const type = shelf.tvhtml5ShelfRendererType;
     if (type && type !== 'TVHTML5_SHELF_RENDERER_TYPE_UNKNOWN') return false;
 
