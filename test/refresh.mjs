@@ -244,6 +244,7 @@ for (const [file, dir, landmarks] of [
             'export function pageNameFromHash',
             'export function shelfIsEmpty',
             'export function shelfCanShrink',
+            'export function deArrowableTile',
             'export function shrinkShelf',
             'SHRINKABLE_TILE_STYLES',
             'export function hasMembersOnlyBadge',

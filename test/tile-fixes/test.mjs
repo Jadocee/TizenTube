@@ -3,7 +3,7 @@
 // These used to be inline conditions spread through adblock.ts, reachable only
 // by parsing a whole InnerTube payload, so none of them was covered. They are
 // pure functions now and this runs the shipping module verbatim.
-import { checker } from '../lib/repo.mjs';
+import { checker, readRepo } from '../lib/repo.mjs';
 import {
     bestThumbnail,
     previewableTile,
@@ -14,6 +14,7 @@ import {
     MEMBERS_ONLY_BADGE,
     DEFAULT_PREVIEW_DURATION_MS,
     shelfCanShrink,
+    deArrowableTile,
     shrinkShelf,
     SHRINKABLE_TILE_STYLES,
 } from './tileFixes.generated.mts';
@@ -360,5 +361,113 @@ const withStyle = shelf([tile()], { tvhtml5Style: { somethingElse: 1 } });
 shrinkShelf(withStyle);
 check('  ...and other tvhtml5Style fields', withStyle.tvhtml5Style.somethingElse, 1);
 check('junk does not throw', shrinkShelf(null) ?? 'no throw', 'no throw');
+
+// --- who DeArrow can be asked about -----------------------------------------
+// One request per tile goes out to a third party, so every tile that cannot
+// have branding is a question nobody asked, sent from a television. And the
+// thumbnail path overwrites the tile's ONLY thumbnail, so a tile whose
+// contentId is not a video id would get a URL built from a channel or playlist
+// id -- nonsense that cannot load.
+const video = (extra = {}) => ({
+    tileRenderer: {
+        contentId: 'dQw4w9WgXcQ',
+        onSelectCommand: { watchEndpoint: { videoId: 'dQw4w9WgXcQ' } },
+        ...extra,
+    },
+});
+check('an ordinary video tile can be asked about', deArrowableTile(video()), true);
+check(
+    'a channel tile cannot',
+    deArrowableTile({
+        tileRenderer: {
+            contentId: 'UCuAXFkgsw1L7xaCfnd5JJOw',
+            onSelectCommand: { browseEndpoint: {} },
+        },
+    }),
+    false,
+);
+check(
+    '  ...nor a playlist tile',
+    deArrowableTile({
+        tileRenderer: {
+            contentId: 'PLrAXtmRdnEQy6nuLMfO6uKk',
+            onSelectCommand: { watchPlaylistEndpoint: {} },
+        },
+    }),
+    false,
+);
+check('  ...nor a shelf button', deArrowableTile({ gridButtonRenderer: {} }), false);
+check(
+    '  ...nor a reel',
+    deArrowableTile(video({ onSelectCommand: { watchEndpoint: {}, reelWatchEndpoint: {} } })),
+    false,
+);
+check(
+    '  ...nor a Shorts-typed tile',
+    deArrowableTile(video({ tvhtml5ShelfRendererType: 'TVHTML5_TILE_RENDERER_TYPE_SHORTS' })),
+    false,
+);
+// The id has to be an id. A contentId carrying a channel or playlist id on a
+// tile that somehow has a watchEndpoint would build a URL for a video that does
+// not exist.
+check(
+    'a contentId that is not a video id is refused',
+    deArrowableTile({
+        tileRenderer: {
+            contentId: 'UCuAXFkgsw1L7xaCfnd5JJOw',
+            onSelectCommand: { watchEndpoint: {} },
+        },
+    }),
+    false,
+);
+check(
+    '  ...as is a missing one',
+    deArrowableTile({ tileRenderer: { onSelectCommand: { watchEndpoint: {} } } }),
+    false,
+);
+// A tile whose contentId LOOKS like a video id but which does not select a
+// video -- the id check alone would wave this through, so this is the case that
+// makes the watchEndpoint test load-bearing rather than decorative.
+check(
+    'an eleven-character id without a watchEndpoint is refused',
+    deArrowableTile({
+        tileRenderer: { contentId: 'dQw4w9WgXcQ', onSelectCommand: { browseEndpoint: {} } },
+    }),
+    false,
+);
+check(
+    '  ...and one with no select command at all',
+    deArrowableTile({ tileRenderer: { contentId: 'dQw4w9WgXcQ' } }),
+    false,
+);
+check('junk does not throw', deArrowableTile(null), false);
+
+// --- the substitution must stay behind a load check -------------------------
+// This is the ONLY path in the mod that can leave a tile with no image at all:
+// it replaces the single thumbnail a real TV payload carries, and the generator
+// answers 204-with-no-body for a frame it has not made yet. Asserted as source
+// shape because the failure is a network reply, not a value.
+const adblockSrc = readRepo('mods', 'features', 'adblock.ts');
+const adblockCode = adblockSrc
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .split('\n')
+    .filter((line) => !line.trim().startsWith('//'))
+    .join('\n');
+check(
+    'the DeArrow thumbnail is probed before it is used',
+    /new Image\(\)/.test(adblockCode) && /naturalWidth/.test(adblockCode),
+    true,
+);
+check(
+    '  ...and the swap happens only inside the load handler',
+    /onload\s*=[\s\S]{0,400}?thumb\.thumbnails\s*=/.test(adblockCode),
+    true,
+);
+check('  ...with the original kept until then', /probe\.onerror\s*=/.test(adblockCode), true);
+check(
+    '  ...and only video tiles are asked about',
+    adblockCode.includes('deArrowableTile(item)'),
+    true,
+);
 
 done();
