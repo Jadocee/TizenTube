@@ -477,10 +477,28 @@ check(
 // assertion was asking the code to agree with the same assumption that built it.
 //
 // shelves.captured.json holds the shelfRenderers out of fifteen real TV browse
-// responses -- home, topics, search, subscriptions, watch-next -- reduced to the
-// fields this predicate reads (tvhtml5ShelfRendererType, tvhtml5Style, and each
-// item's renderer kind plus a tileRenderer's style and styling). Reduced, not
-// synthesised: every value below came off the wire.
+// responses -- six topic surfaces, gaming, search, and three watch-next replies
+// -- reduced to the fields this predicate reads (tvhtml5ShelfRendererType,
+// tvhtml5Style, and each item's renderer kind plus a tileRenderer's style and
+// styling). Reduced, not synthesised: every value below came off the wire.
+//
+// WHAT IS NOT IN IT, because an earlier version of this comment claimed it was:
+// there is no home capture and no subscriptions capture. The only typed shelves
+// here are GRID, from the watch-next replies; GRID_XL, SHORTS and EDU -- the
+// types the surrounding commits say a signed-in home is built from -- appear
+// nowhere. So the typed-shelf assertion below is real but it is policing
+// watch-next, and the home claim that scopes this feature in the settings panel
+// rests on the live-app measurement recorded in the commit, NOT on this corpus.
+// Capturing a signed-in home needs an account; until one is captured, that claim
+// has no fixture behind it and this comment should not imply otherwise.
+//
+// NOR DOES THIS CORPUS CARRY THE MUTATION LOAD ON ITS OWN. Measured, after the
+// commit message overstated it: truncating this file to the hand-written
+// fixtures alone still catches accepting typed shelves (1 failure), rejecting
+// everything (6) and letting a lockupViewModel through (2). Adding the captured
+// shelves takes those to 2, 8 and 2. The gain is real but marginal; the reason
+// to keep them is that they are the app's shapes rather than ours, so they will
+// catch a drift in what YouTube sends that no hand-written object can.
 const captured = JSON.parse(readRepo('test', 'tile-fixes', 'shelves.captured.json'));
 const shelfType = (shelf) =>
     (shelf.tvhtml5ShelfRendererType || 'UNTYPED').replace('TVHTML5_SHELF_RENDERER_TYPE_', '');

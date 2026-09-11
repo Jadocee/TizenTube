@@ -7,7 +7,14 @@
         "",
         "A continuation that carries shelves or tiles has to be routed through",
         "processShelves, or everything the mod does to a tile silently stops",
-        "applying to content that arrives that way."
+        "applying to content that arrives that way.",
+        "",
+        "`payloads` holds one real response envelope per content-carrying",
+        "continuation, reduced to the shape the routing reads. They exist so the",
+        "harness can EVALUATE the expression adblock.ts passes to processShelves and",
+        "the per-item passes, rather than only checking that the call is written: a",
+        "route can be present and inert, and the name-level checks above cannot tell",
+        "the difference."
     ],
     "names": [
         "sectionListContinuation",
@@ -18,5 +25,126 @@
         "reloadContinuation",
         "nextContinuation",
         "genericPromoContinuation"
-    ]
+    ],
+    "payloads": {
+        "sectionListContinuation": {
+            "continuationContents": {
+                "sectionListContinuation": {
+                    "contents": [
+                        {
+                            "shelfRenderer": {
+                                "content": {
+                                    "horizontalListRenderer": {
+                                        "items": [
+                                            {
+                                                "tileRenderer": {
+                                                    "contentId": "dQw4w9WgXcQ",
+                                                    "onSelectCommand": {
+                                                        "watchEndpoint": {
+                                                            "videoId": "dQw4w9WgXcQ"
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        "tvSurfaceContentContinuation": {
+            "continuationContents": {
+                "tvSurfaceContentContinuation": {
+                    "isImplicitRefresh": true,
+                    "content": {
+                        "sectionListRenderer": {
+                            "contents": [
+                                {
+                                    "shelfRenderer": {
+                                        "content": {
+                                            "horizontalListRenderer": {
+                                                "items": [
+                                                    {
+                                                        "tileRenderer": {
+                                                            "contentId": "dQw4w9WgXcQ",
+                                                            "onSelectCommand": {
+                                                                "watchEndpoint": {
+                                                                    "videoId": "dQw4w9WgXcQ"
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "tvSurfaceContentContinuation.grid": {
+            "continuationContents": {
+                "tvSurfaceContentContinuation": {
+                    "content": {
+                        "gridRenderer": {
+                            "items": [
+                                {
+                                    "tileRenderer": {
+                                        "contentId": "jNQXAC9IVRw",
+                                        "onSelectCommand": {
+                                            "watchEndpoint": {
+                                                "videoId": "jNQXAC9IVRw"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "horizontalListContinuation": {
+            "continuationContents": {
+                "horizontalListContinuation": {
+                    "items": [
+                        {
+                            "tileRenderer": {
+                                "contentId": "jNQXAC9IVRw",
+                                "onSelectCommand": {
+                                    "watchEndpoint": {
+                                        "videoId": "jNQXAC9IVRw"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        "gridContinuation": {
+            "continuationContents": {
+                "gridContinuation": {
+                    "items": [
+                        {
+                            "tileRenderer": {
+                                "contentId": "jNQXAC9IVRw",
+                                "onSelectCommand": {
+                                    "watchEndpoint": {
+                                        "videoId": "jNQXAC9IVRw"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+    }
 }

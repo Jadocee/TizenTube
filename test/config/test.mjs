@@ -2,10 +2,10 @@
 //
 // JSON.parse SUCCEEDING IS NOT THE SAME AS IT RETURNING AN OBJECT. `null`, a
 // number, a string, `true` and an array all parse without throwing, and the old
-// bootstrap handed each of them straight to configRead as `localConfig`. Three
-// of those then threw on the FIRST READ -- reading a key off null, or assigning
-// the repaired default onto a number or a string, which is a TypeError because
-// the bundle is an ES module and therefore strict.
+// bootstrap handed each of them straight to configRead as `localConfig`. FOUR of
+// those five then threw on the FIRST READ -- reading a key off null, or
+// assigning the repaired default onto a number, a string or a boolean, which is
+// a TypeError because the bundle is an ES module and therefore strict.
 //
 // That is why this harness reads through a try/catch and reports the throw as a
 // failure rather than letting it kill the process: configRead runs at MODULE
@@ -149,6 +149,55 @@ for (const [label, raw] of Object.entries(unusable)) {
 {
     const { mod } = await boot(JSON.stringify({ launchToOnStartup: null }));
     check('a null setting repairs to its default', mod.configRead('launchToOnStartup'), '');
+}
+
+// --- the defaults must not be reachable from what configRead returns --------
+// resolveCommand.ts's `arrayValue` branch backs every multi-select row in the
+// settings panel and does, verbatim:
+//
+//     const arr = configRead(item);
+//     if (arr.includes(value)) arr.splice(arr.indexOf(value), 1);
+//     else arr.push(value);
+//     configWrite(item, arr);
+//
+// -- an in-place edit of the array configRead just handed out. Under a shallow
+// `{...defaultConfig}` that array IS defaultConfig's own, so unticking one
+// SponsorBlock category rewrote the module's declared default. Eight settings
+// reach that branch.
+//
+// THE configWrite(key, null) BELOW IS CONTRIVED AND IS SAID SO PLAINLY. The
+// pollution has no other observable: defaultConfig is not exported, a second
+// module instance has its own copy of it, and within one instance a key is
+// repaired only once -- so asking for that default a SECOND time is the only
+// way to see whether the first caller damaged it. Nulling the key is how you
+// ask. That makes this a structural assertion, not a user-facing one, and the
+// structure is what matters: the invariant is closed by construction here, and
+// the previous attempt to close it by auditing the callers got the audit wrong.
+//
+// Both paths that can hand out a default are covered, because they are separate
+// code: readStoredConfig's fallback, and configRead's repair for a key a stored
+// config lacks -- which is every array setting ever added by an upgrade.
+{
+    // The repair path: a stored config that predates the setting.
+    const { mod } = await boot(JSON.stringify({ enableAdBlock: true }));
+    const repaired = mod.configRead('hiddenChannels');
+    check('the repair path hands out the empty default', repaired, []);
+    repaired.push('UCabc Polluted'); // what the settings panel does to it
+    mod.configWrite('hiddenChannels', null);
+    check('  ...and an in-place edit of it does not stick', mod.configRead('hiddenChannels'), []);
+}
+{
+    // The fallback path: nothing stored at all.
+    const { mod } = await boot(undefined);
+    const skips = mod.configRead('sponsorBlockManualSkips');
+    check('the fallback hands out the real default', skips, ['intro', 'outro', 'filler']);
+    skips.splice(skips.indexOf('intro'), 1); // unticking "Intro"
+    mod.configWrite('sponsorBlockManualSkips', null);
+    check('  ...and that edit does not stick either', mod.configRead('sponsorBlockManualSkips'), [
+        'intro',
+        'outro',
+        'filler',
+    ]);
 }
 
 // --- the key list the assertions above are measured against -----------------

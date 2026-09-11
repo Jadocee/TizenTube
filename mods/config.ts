@@ -129,36 +129,63 @@ export interface ConfigChangeDetail {
 
 type ConfigChangeListener = (event: { type: string; detail: ConfigChangeDetail }) => void;
 
+/** One default, with its array copied so a caller editing what configRead
+ *  returned cannot reach the declared default. See readStoredConfig. */
+function defaultValue<K extends ConfigKey>(key: K): Config[K] {
+    const value = defaultConfig[key];
+    return (Array.isArray(value) ? [...value] : value) as Config[K];
+}
+
+/** Every default, same guarantee. */
+function freshDefaults(): Config {
+    const copy = { ...defaultConfig } as Record<string, unknown>;
+    for (const key of Object.keys(copy)) {
+        const value = copy[key];
+        if (Array.isArray(value)) copy[key] = [...value];
+    }
+    return copy as Config;
+}
+
 /**
  * The stored settings, or the defaults when what is stored cannot be used.
  *
  * JSON.parse SUCCEEDING IS NOT THE SAME AS IT RETURNING A CONFIG, and that gap
- * was a total failure of the mod rather than a bad setting. `null`, a number and
- * a string all parse without throwing, and the first configRead then does
- * `localConfig[key]` on them: reading a key off null throws, and assigning the
- * repaired default onto a number or a string throws too, because the bundle is
- * an ES module and therefore strict. configRead runs at MODULE SCOPE in several
- * files -- clock.ts ends with toggleClock(configRead('enableClock')) -- and a
- * throw there aborts every module imported after it. One unusable value in
- * localStorage took the whole mod down, leaving plain YouTube with no ad
- * blocking and no way to tell why. It is the same failure the who's-watching
- * harness exists for.
+ * was a total failure of the mod rather than a bad setting. `null`, a number, a
+ * string and `true` all parse without throwing, and the first configRead then
+ * does `localConfig[key]` on them: reading a key off null throws, and assigning
+ * the repaired default onto a number, a string or a boolean throws too, because
+ * the bundle is an ES module and therefore strict.
+ *
+ * THE BLAST RADIUS IS NOT WHAT AN EARLIER VERSION OF THIS COMMENT CLAIMED, and
+ * the difference is worth having right. There are four module-scope configRead
+ * calls -- previewIndicator.ts, disableWhosWatching.ts, clock.ts,
+ * aisListRefresh.ts -- and resolving userScript.ts's import graph puts the first
+ * of them at position 70 of 95. settings.ts (47), adblock.ts (56) and
+ * sponsorblock.ts (63) have all evaluated by then, so their hooks ARE installed:
+ * the failure is not a clean abort but a mod that is half-wired and then throws
+ * from inside configRead on every payload it was hooked to handle, while
+ * everything from position 70 on never evaluates at all. Either way the set
+ * shows plain YouTube and says nothing about why. It is the same failure the
+ * who's-watching harness exists for.
  *
  * An array is the quieter version: it parses, it indexes, every read returns a
  * default, and configWrite stringifies it back as `[]` -- so settings appear to
  * save and are gone on the next launch.
  *
- * A COPY OF THE DEFAULTS, not the defaults themselves. Nothing observable
- * depends on that today, and the comment that used to claim otherwise was wrong:
- * the only other reader of defaultConfig is isConfigKey, which asks hasOwn and
- * never a value, and configRead's repair cannot fire on a config that IS the
- * defaults because every key is present. The copy is here so that stays true by
- * construction rather than by audit.
+ * A COPY OF THE DEFAULTS, AND THE ARRAYS INSIDE THEM TOO. A shallow spread is
+ * not enough, and the audit that said it was is the reason this is spelled out:
+ * resolveCommand.ts's `arrayValue` branch -- which backs every multi-select row
+ * in the settings panel, eight settings including sponsorBlockManualSkips and
+ * hiddenChannels -- does `const arr = configRead(item); arr.splice(...)` and
+ * edits the array configRead handed it, in place. With a shallow copy that array
+ * IS defaultConfig's, so unticking "Intro" once would delete it from the
+ * declared default for the rest of the session. (tileMenu's addEntry does
+ * rebuild with filter/concat, but it covers only the two tile-menu commands.)
  *
- * It is shallow, so the array-valued defaults are still shared by reference --
- * by the repair path too, which assigns defaultConfig[key] straight across.
- * Nothing may mutate what configRead returns; the one list-editing helper,
- * tileMenu's addEntry, rebuilds with filter/concat for exactly this reason.
+ * So the arrays are copied here, and configRead's repair copies too -- see
+ * defaultValue. Reachability of defaultConfig from a caller's hands is now
+ * closed by construction, which is the only way it stays closed: the previous
+ * comment tried to close it by auditing the callers, and got the audit wrong.
  */
 function readStoredConfig(): Config {
     let stored: unknown;
@@ -168,11 +195,11 @@ function readStoredConfig(): Config {
         // The ordinary path for a fresh install: no key, so JSON.parse is handed
         // the string "undefined".
         console.warn('Config read failed:', err);
-        return { ...defaultConfig };
+        return freshDefaults();
     }
     if (!stored || typeof stored !== 'object' || Array.isArray(stored)) {
         console.warn('Stored config is not an object; using defaults instead:', stored);
-        return { ...defaultConfig };
+        return freshDefaults();
     }
     return stored as Config;
 }
@@ -192,7 +219,7 @@ export function configRead<K extends ConfigKey>(key: K): Config[K] {
     // only `undefined` handed that back typed as a non-nullable string forever.
     if (localConfig[key] === undefined || localConfig[key] === null) {
         console.warn('Populating key', key, 'with default value', defaultConfig[key]);
-        localConfig[key] = defaultConfig[key];
+        localConfig[key] = defaultValue(key);
     }
 
     return localConfig[key];
