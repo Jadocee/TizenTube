@@ -51,6 +51,7 @@
                     "fixUI": "UI の修正",
                     "hqThumbnails": "高画質なサムネイルを有効化する",
                     "compactShelves": "動画カードを小さく",
+                    "compactShelvesSubtitle": "トピックと登録チャンネルの棚のみ。ホーム画面は YouTube のサイズのままです",
                     "longPress": "長押し時のアクションを有効化する",
                     "shorts": "ショートを有効化する",
                     "videoPreviews": "動画のプレビューを有効化する",

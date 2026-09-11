@@ -51,6 +51,7 @@
                     "fixUI": "Felhasználói felület javítása",
                     "hqThumbnails": "Magas minőségű indexképek bekapcsolása",
                     "compactShelves": "Kisebb videokártyák",
+                    "compactShelvesSubtitle": "Csak a témák és feliratkozások polcai; a kezdőlap megtartja a YouTube méreteit",
                     "longPress": "Hosszan lenyomva tartott funkciók",
                     "shorts": "Short-ok bekapcsolása",
                     "videoPreviews": "Videó előnézet kapcsolása",
