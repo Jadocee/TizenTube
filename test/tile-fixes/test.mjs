@@ -470,4 +470,76 @@ check(
     true,
 );
 
+// --- the predicate against REAL captured shelves ----------------------------
+// It shipped having only ever been run against objects written by hand in this
+// file to match somebody's understanding of the shape. That is how a feature
+// reaches a television and does nothing: every assertion passed, because every
+// assertion was asking the code to agree with the same assumption that built it.
+//
+// shelves.captured.json holds the shelfRenderers out of fifteen real TV browse
+// responses -- six topic surfaces, gaming, search, and three watch-next replies
+// -- reduced to the fields this predicate reads (tvhtml5ShelfRendererType,
+// tvhtml5Style, and each item's renderer kind plus a tileRenderer's style and
+// styling). Reduced, not synthesised: every value below came off the wire.
+//
+// WHAT IS NOT IN IT, because an earlier version of this comment claimed it was:
+// there is no home capture and no subscriptions capture. The only typed shelves
+// here are GRID, from the watch-next replies; GRID_XL, SHORTS and EDU -- the
+// types the surrounding commits say a signed-in home is built from -- appear
+// nowhere. So the typed-shelf assertion below is real but it is policing
+// watch-next, and the home claim that scopes this feature in the settings panel
+// rests on the live-app measurement recorded in the commit, NOT on this corpus.
+// Capturing a signed-in home needs an account; until one is captured, that claim
+// has no fixture behind it and this comment should not imply otherwise.
+//
+// NOR DOES THIS CORPUS CARRY THE MUTATION LOAD ON ITS OWN. Measured, after the
+// commit message overstated it: truncating this file to the hand-written
+// fixtures alone still catches accepting typed shelves (1 failure), rejecting
+// everything (6) and letting a lockupViewModel through (2). Adding the captured
+// shelves takes those to 2, 8 and 2. The gain is real but marginal; the reason
+// to keep them is that they are the app's shapes rather than ours, so they will
+// catch a drift in what YouTube sends that no hand-written object can.
+const captured = JSON.parse(readRepo('test', 'tile-fixes', 'shelves.captured.json'));
+const shelfType = (shelf) =>
+    (shelf.tvhtml5ShelfRendererType || 'UNTYPED').replace('TVHTML5_SHELF_RENDERER_TYPE_', '');
+
+check('there are captured surfaces to check', captured.length > 0, true);
+const allShelves = captured.flatMap((s) => s.shelves);
+check('  ...with shelves in them', allShelves.length > 10, true);
+
+// THE FEATURE IS NOT DEAD. If a future edit makes the predicate reject
+// everything, it becomes a silent no-op everywhere rather than only on the
+// surfaces it cannot reach -- and nothing else here would notice.
+const accepted = allShelves.filter((sh) => shelfCanShrink(sh));
+check('the predicate accepts real shelves', accepted.length > 0, true);
+const topicSurfaces = captured.filter((s) => s.surface.includes('FEtopics'));
+const topicAccepted = topicSurfaces.flatMap((s) => s.shelves).filter((sh) => shelfCanShrink(sh));
+check('  ...including most topic-surface shelves', topicAccepted.length >= 8, true);
+
+// AND IT NEVER ACCEPTS A TYPED ONE. This is the clipping guard, and it is the
+// assertion that matters: the app keys its tile-size table on the shelf type and
+// returns before it reads the shrink flag, while its row-height function has a
+// DIFFERENT per-type list -- so a typed shelf that slipped through could shorten
+// the row while every card keeps its height.
+const typedAccepted = allShelves.filter((sh) => sh.tvhtml5ShelfRendererType && shelfCanShrink(sh));
+check('  ...and never a typed shelf', typedAccepted.map(shelfType), []);
+// Likewise anything whose items are not all plain tiles.
+const mixedAccepted = allShelves.filter(
+    (sh) =>
+        shelfCanShrink(sh) &&
+        (sh.content?.horizontalListRenderer?.items || []).some((it) => !it?.tileRenderer),
+);
+check('  ...nor one carrying a non-tile item', mixedAccepted.length, 0);
+
+// Search is entirely lockupViewModel today and must stay refused: the row would
+// shrink and the lockups would not.
+const search = captured.find((s) => s.surface === 'search');
+if (search) {
+    check(
+        'search shelves are refused',
+        search.shelves.filter((sh) => shelfCanShrink(sh)).length,
+        0,
+    );
+}
+
 done();

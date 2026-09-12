@@ -15,6 +15,7 @@ const HARNESSES = [
     { name: 'startup breadcrumb', dir: 'settings', file: 'crumb.mjs', types: true },
     { name: "who's-watching storage", dir: 'whos-watching', file: 'test.mjs', types: true },
     { name: 'adblock JSON patch', dir: 'adblock', file: 'test.mjs' },
+    { name: 'continuation coverage', dir: 'adblock', file: 'continuations.mjs' },
     { name: 'command executor', dir: 'command-executor', file: 'test.mjs', types: true },
     { name: 'settings toggle dispatch', dir: 'settings-toggle', file: 'test.mjs', types: true },
     { name: 'stylesheet under CSP', dir: 'stylesheet', file: 'run.mjs', browser: true },
@@ -79,6 +80,7 @@ const HARNESSES = [
     { name: 'aislist parsing', dir: 'aislist', file: 'test.mjs', types: true },
     { name: 'aislist refresh', dir: 'aislist', file: 'refresh.mjs', types: true },
     { name: 'aislist fetch gate', dir: 'aislist', file: 'toggle.mjs', types: true },
+    { name: 'config bootstrap', dir: 'config', file: 'test.mjs', types: true },
     { name: 'css nesting on M120', dir: 'css-nesting', file: 'test.mjs' },
     { name: 'docs match the suite', dir: 'docs', file: 'test.mjs' },
 ];
@@ -128,7 +130,7 @@ console.log(`${passed} passed, ${failed} failed, ${skipped} skipped`);
 
 // A skipped harness is not a passing one. Skipping is the right default on a
 // developer's machine -- no Chromium is not a defect in the code under test --
-// but in CI it is a hole: if the browser install fails, five harnesses skip and
+// but in CI it is a hole: if the browser install fails, six harnesses skip and
 // the run still goes green, reporting coverage that never ran. TT_STRICT_SKIP
 // makes CI refuse that.
 const strictSkip = process.env.TT_STRICT_SKIP === '1';

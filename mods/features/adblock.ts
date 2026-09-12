@@ -208,6 +208,63 @@ function processResponse(r: any, sourceText?: unknown): any {
             processShelves(r.continuationContents.sectionListContinuation.contents);
         }
 
+        // THE HOME SURFACE'S OWN REFRESH, which is a different shape from the
+        // sectionListContinuation above and was not handled at all. The app
+        // reads it as `_.B(d.continuationContents, tvSurfaceContentContinuation)`
+        // and, when the reply carries `isImplicitRefresh`, splices the new
+        // sectionList's contents into the shelves already on screen:
+        //
+        //     var h = _.B(b.props.data.content, sectionListRenderer),
+        //         k = _.B(e, sectionListRenderer);
+        //     if (d.isImplicitRefresh && h && k) { ... h.contents = ... }
+        //
+        // So every shelf arriving by that route skipped processShelves, and with
+        // it hideVideo, the inline previews, the long-press menu and DeArrow. Ads
+        // were still stripped -- AD_RULES prunes the whole payload regardless of
+        // shape -- which is exactly why this was invisible: the one feature that
+        // would have been obvious by its absence was the one feature that kept
+        // working. (The compact-shelf flag is NOT in that list, though an earlier
+        // version of this comment put it there. It is set by processShelves, but
+        // features/tileFixes.ts declines every shelf carrying a
+        // tvhtml5ShelfRendererType and a real home's shelves are all typed, so it
+        // would have done nothing on these payloads either way.)
+        //
+        // BOTH CONTENT SHAPES, because tvSurfaceContent carries either one. The
+        // first-load handler above already branches sectionListRenderer against
+        // gridRenderer for exactly this surface -- a channel's videos, a playlist,
+        // a topic page come back as a grid -- and the continuation of a surface
+        // has the content shape the surface had. Routing only the sectionList half
+        // would have left the grid half with the same bypass this block exists to
+        // close, on the surfaces that page the most.
+        //
+        // The paths are written out in full rather than through a local, because
+        // test/adblock/continuations.mjs lifts the expression each route hands to
+        // processShelves and evaluates it against a real response envelope. That
+        // is what catches a route that is present but inert, and it can only do
+        // it while the expression is a self-contained path from `r`.
+        if (
+            r?.continuationContents?.tvSurfaceContentContinuation?.content?.sectionListRenderer
+                ?.contents
+        ) {
+            processShelves(
+                r.continuationContents.tvSurfaceContentContinuation.content.sectionListRenderer
+                    .contents,
+            );
+        }
+        if (r?.continuationContents?.tvSurfaceContentContinuation?.content?.gridRenderer?.items) {
+            const grid = r.continuationContents.tvSurfaceContentContinuation.content.gridRenderer;
+            grid.items = dropHidden(
+                r.continuationContents.tvSurfaceContentContinuation.content.gridRenderer.items,
+            );
+            deArrowify(grid.items);
+            hqify(grid.items);
+            addLongPress(grid.items);
+            addPreviews(
+                r.continuationContents.tvSurfaceContentContinuation.content.gridRenderer.items,
+            );
+            grid.items = hideVideo(grid.items);
+        }
+
         if (r?.continuationContents?.horizontalListContinuation?.items) {
             r.continuationContents.horizontalListContinuation.items = dropHidden(
                 r.continuationContents.horizontalListContinuation.items,

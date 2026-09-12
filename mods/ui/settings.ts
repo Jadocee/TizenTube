@@ -634,6 +634,14 @@ export default function modernUI(update?: boolean, parameters?: number[]): void 
                 },
                 {
                     name: t('settings.options.misc.options.compactShelves'),
+                    // The scope is in the row, not only in the code. This sets
+                    // YouTube's own compact-shelf flag, and the app ignores that
+                    // flag on any shelf it has already sized itself -- which on
+                    // a real signed-in home is every shelf. Measured: forcing
+                    // the flag onto all of them changes nothing. A setting whose
+                    // label promises the surface the user looks at most, and
+                    // then does nothing there, reads as broken.
+                    subtitle: t('settings.options.misc.options.compactShelvesSubtitle'),
                     icon: 'VIDEO_QUALITY',
                     value: 'enableCompactShelves',
                 },
