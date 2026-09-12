@@ -16,7 +16,8 @@
             "!test/tile-menu/fixtures.json",
             "!test/guide-filter/guide.json",
             "!test/**/old.html",
-            "!test/stylesheet/page.template.html"
+            "!test/stylesheet/page.template.html",
+            "!test/watch-backdrop/app-rules.captured.css"
         ]
     },
     "formatter": {

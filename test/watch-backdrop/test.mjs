@@ -1,95 +1,179 @@
-// That the user's background colour never covers the video.
+// Whether anything the mod does puts a box over the video.
 //
-// THE BUG THIS EXISTS FOR. theme.ts paints #container with the user's chosen
-// Main Content Colour and marks it !important. YouTube ships
-// `.WEB_PAGE_TYPE_WATCH #container { background: none }` precisely so the video
-// plane shows through on the watch page, and it ALSO writes
-// `#container.style.backgroundColor = 'transparent'` inline when the player
-// opens. An unscoped !important beats both of those -- a plain inline style
-// loses to any important declaration -- so the container stayed an opaque fill
-// over the video, and the picture vanished behind black whenever the player
-// chrome came up.
+// THIS HARNESS WAS REWRITTEN BECAUSE THE ONE BEFORE IT COULD NOT FAIL. It built
+// `<body class="..."><div id="container"></div></body>` -- no video, no player,
+// no second element of any kind -- and asserted getComputedStyle(#container)
+// .backgroundColor. That measures which colour WINS THE CASCADE. The question is
+// whether a colour COVERS THE VIDEO, and those are different questions. It was
+// green before the fix it was written for, green after, and would have been green
+// under any diagnosis at all. It is what let a commit ship claiming to have fixed
+// a black screen that it had not touched.
 //
-// IT IS RUN IN A REAL BROWSER, against YouTube's own rules copied verbatim,
-// because it is a cascade bug and nothing else can see it. Reading the source
-// tells you the rule exists; only resolving it against the app's stylesheet and
-// its inline write tells you who wins. A source-shape assertion here would have
-// been green for the whole life of the defect.
+// The correction it was written for was itself wrong, and that is recorded below
+// as an assertion rather than as a story: an opaque #container CANNOT occlude the
+// player, because #container is the player's ancestor and an ancestor's background
+// paints behind its descendants. Measured here so nobody re-fixes it.
+//
+// SO: RENDER IT AND LOOK AT THE PIXEL. Real Chromium, the app's own rules from
+// app-rules.captured.css, the player subtree built the way main.js's idom template
+// builds it, a <video> painted a colour nothing else in the page uses, a
+// screenshot, and the centre pixel read back. A positive control proves the pixel
+// test can see occlusion at all -- without it, "the video is visible" is
+// indistinguishable from a broken measurement.
 import { chromium, chromiumExecutable, checker, skip, readRepo } from '../lib/repo.mjs';
 
 const launcher = await chromium();
 if (!launcher) skip('Playwright with Chromium is not installed.');
 
-// YouTube's own #container rules, verbatim from the live main.css.
-const APP_RULES = `
-#container{background-color:#0f0f0f;position:absolute;height:45rem;width:80rem;
-  top:0;bottom:0;left:0;right:0;overflow:hidden;margin:auto}
-.WEB_PAGE_TYPE_WATCH #container{background:none}
-.WEB_PAGE_TYPE_ACCOUNT_SELECTOR #container{background-color:#0f0f0f}`;
+const APP_RULES = readRepo('test', 'watch-backdrop', 'app-rules.captured.css');
 
-// The mod's block, extracted from theme.ts rather than retyped, so a change
-// there is a change here. The template holds one interpolation; the colour it
-// reads is the default.
+// The mod's own blocks, read from source so a change there is a change here.
 const themeSrc = readRepo('mods', 'ui', 'theme.ts');
-const block = themeSrc.match(/setStyleBlock\(\s*'theme',\s*`([\s\S]*?)`,?\s*\)/);
-if (!block) throw new Error('cannot find the theme style block in theme.ts');
-const THEME_RULES = block[1].replace(/\$\{[^}]*\}/g, '#0f0f0f');
+const themeBlock = themeSrc.match(/setStyleBlock\(\s*'theme',\s*`([\s\S]*?)`,?\s*\)/);
+if (!themeBlock) throw new Error('cannot find the theme style block in theme.ts');
+const MOD_RULES = [
+    themeBlock[1].replace(/\$\{[^}]*\}/g, '#0f0f0f'),
+    readRepo('mods', 'ui', 'bubbles.css'),
+    readRepo('mods', 'ui', 'clock.css'),
+    readRepo('mods', 'ui', 'skipNotice.css'),
+    readRepo('mods', 'ui', 'previewIndicator.css'),
+].join('\n');
 
+const VIDEO = 'rgb(0, 255, 0)'; // a colour nothing in either stylesheet uses
 const browser = await launcher.launch({ executablePath: chromiumExecutable() });
-const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
+const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
 const { check, done } = checker();
 
-/** Resolve #container's background on one page type, before and after the
- *  app's own inline write. */
-async function resolve(bodyClass) {
+/**
+ * Build a watch page and report the colour at the centre of the video.
+ *
+ * The subtree is main.js's, not ours: template `alb` renders ytlr-player with
+ * `e[c]=f, e.Vdm04=f, e.g511Kb=f` where f is true only when a scrim style is set
+ * AND loadedPlaybackConfig.mode is 2 or 3 -- mode 2 being background playback,
+ * which a home-page preview puts the player into. `scrim` below is that state.
+ */
+async function centrePixel({ appQualityRoot = true, scrim = false, mod = true, extra = '' }) {
+    const body = [
+        'WEB_PAGE_TYPE_WATCH',
+        'landscape',
+        'full-animation',
+        appQualityRoot ? 'app-quality-root' : '',
+    ]
+        .filter(Boolean)
+        .join(' ');
+    const playerClasses = [
+        's3u3Oc',
+        'iLKnN',
+        'ExC9Fb',
+        ...(scrim ? ['Vdm04', 'YW4uOd', 'g511Kb'] : []),
+    ];
     await page.setContent(
-        `<style>html{font-size:24px}${APP_RULES}\n${THEME_RULES}</style>` +
-            `<body class="${bodyClass}"><div id="container"></div></body>`,
+        `<style>html{font-size:16px}${APP_RULES}${mod ? `\n${MOD_RULES}` : ''}</style>` +
+            `<body class="${body}">` +
+            '<div id="app-background"></div>' +
+            '<div id="container">' +
+            '<ytlr-player-container class="Gy3ftf">' +
+            `<ytlr-player class="${playerClasses.join(' ')}">` +
+            '<div class="aeeFdf"><div id="ytlr-player__player-container">' +
+            `<video class="video-stream" style="width:100%;height:100%;background:${VIDEO}"></video>` +
+            '</div></div></ytlr-player></ytlr-player-container></div>' +
+            extra +
+            '</body>',
     );
-    return page.evaluate(() => {
-        const c = document.getElementById('container');
-        const fromStylesheet = getComputedStyle(c).backgroundColor;
-        // Exactly what the app does when the player opens.
-        c.style.backgroundColor = 'transparent';
-        return { fromStylesheet, afterInlineWrite: getComputedStyle(c).backgroundColor };
-    });
+    const shot = await page.screenshot({ clip: { x: 636, y: 356, width: 8, height: 8 } });
+    return page.evaluate(async (b64) => {
+        const img = new Image();
+        img.src = `data:image/png;base64,${b64}`;
+        await img.decode();
+        const c = document.createElement('canvas');
+        c.width = img.width;
+        c.height = img.height;
+        const ctx = c.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        const d = ctx.getImageData(4, 4, 1, 1).data;
+        return `rgb(${d[0]}, ${d[1]}, ${d[2]})`;
+    }, shot.toString('base64'));
 }
 
-const TRANSPARENT = 'rgba(0, 0, 0, 0)';
-const THEMED = 'rgb(15, 15, 15)';
-
-// --- the watch page: the video must show through ----------------------------
-const watch = await resolve('WEB_PAGE_TYPE_WATCH landscape');
-check('the watch page leaves the container transparent', watch.fromStylesheet, TRANSPARENT);
-// The one that actually mattered. The app's inline write is a plain style and
-// loses to any !important declaration, so if the mod's rule applies here at all
-// the app cannot get its own transparency back.
+// --- the control, first -----------------------------------------------------
+// An opaque div appended last, over everything. If this does not read as covered
+// the measurement is broken and every pass below is meaningless.
 check(
-    "  ...and the app's own inline transparency is not overridden",
-    watch.afterInlineWrite,
-    TRANSPARENT,
+    'the pixel test can see an occluding element',
+    await centrePixel({
+        extra: '<div style="position:fixed;inset:0;z-index:99;background:#111"></div>',
+    }),
+    'rgb(17, 17, 17)',
 );
 
-// --- everywhere else: the setting still works -------------------------------
-// The point of the !important is to beat that same inline write on the surfaces
-// where the user's colour SHOULD win. Removing it to fix the watch page would
-// trade one bug for another, so both halves are asserted.
-for (const surface of [
-    'WEB_PAGE_TYPE_BROWSE landscape',
-    'WEB_PAGE_TYPE_SEARCH landscape',
-    'WEB_PAGE_TYPE_ACCOUNT_SELECTOR',
-    'WEB_PAGE_TYPE_SHORTS landscape',
-]) {
-    const r = await resolve(surface);
-    check(`${surface.split(' ')[0]} still takes the theme colour`, r.fromStylesheet, THEMED);
-    check('  ...and keeps it against the inline write', r.afterInlineWrite, THEMED);
-}
+// --- the regression: app-quality-root ---------------------------------------
+// ui.ts used to run a MutationObserver stripping this class off <body> on every
+// attribute change. It reads as a cosmetic flag and is not one: the app uses it
+// to turn OFF its own legacy scrim fills, including
+// `.Vdm04.YW4uOd:before{background:#030303;height:100%;width:100%}` at z-index 1
+// on ytlr-player -- over the video, under the chrome.
+check(
+    'with the class, a scrimmed player shows the video',
+    await centrePixel({ scrim: true }),
+    VIDEO,
+);
+check(
+    '  ...without it, the scrim covers the video',
+    await centrePixel({ scrim: true, appQualityRoot: false }),
+    'rgb(3, 3, 3)',
+);
+check(
+    '  ...and with no scrim the class makes no difference',
+    await centrePixel({ scrim: false, appQualityRoot: false }),
+    VIDEO,
+);
 
-// Before the app has said where it is, <body> carries no class at all. The
-// negative gate matches, which is correct: the container should be themed until
-// something says otherwise, and #container is display:none during boot anyway.
-const booting = await resolve('');
-check('an unclassed body is themed', booting.fromStylesheet, THEMED);
+// The assertion that actually guards the fix. The rendering above explains WHY
+// this matters; this is what fails if anyone reinstates the observer.
+const uiSrc = readRepo('mods', 'ui', 'ui.ts');
+const stripped = uiSrc
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .split('\n')
+    .filter((l) => !/^\s*\/\//.test(l))
+    .join('\n');
+check(
+    'the mod never removes app-quality-root',
+    /remove\(\s*['"]app-quality-root['"]\s*\)/.test(stripped),
+    false,
+);
+check('  ...by any spelling', /app-quality-root/.test(stripped.replace(/classList/g, '')), false);
+
+// --- the correction: #container was never the culprit -----------------------
+// A previous commit scoped theme.ts's fill away from the watch page to fix this
+// symptom. The fill cannot produce it: #container is the player's ancestor, so
+// its background paints behind everything inside it. Asserted so the next person
+// to see a black screen does not spend the day there again.
+const opaqueContainer = await page.evaluate(() => {
+    const c = document.getElementById('container');
+    c.style.setProperty('background-color', '#0f0f0f', 'important');
+    return getComputedStyle(c).backgroundColor;
+});
+check('an opaque #container really is opaque', opaqueContainer, 'rgb(15, 15, 15)');
+const shotAfter = await page.screenshot({ clip: { x: 636, y: 356, width: 8, height: 8 } });
+const pixelAfter = await page.evaluate(async (b64) => {
+    const img = new Image();
+    img.src = `data:image/png;base64,${b64}`;
+    await img.decode();
+    const c = document.createElement('canvas');
+    c.width = img.width;
+    c.height = img.height;
+    const ctx = c.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    const d = ctx.getImageData(4, 4, 1, 1).data;
+    return `rgb(${d[0]}, ${d[1]}, ${d[2]})`;
+}, shotAfter.toString('base64'));
+check('  ...and still does not cover the video', pixelAfter, VIDEO);
+
+// --- the mod's own stylesheets ----------------------------------------------
+// All six are scoped to the mod's own elements or to WEB_PAGE_TYPE_BROWSE. This
+// is the measured version of that claim rather than the read-the-source version.
+check('the mod adds nothing over the video', await centrePixel({ mod: true }), VIDEO);
+check('  ...same as without it', await centrePixel({ mod: false }), VIDEO);
 
 await browser.close();
 done();
