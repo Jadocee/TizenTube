@@ -1,28 +1,35 @@
-/* Captured verbatim from the shipped YouTube TV stylesheet (main.css, the one the
-   set loads). Reduced, not synthesised: every declaration below was copied out of
-   that file, and nothing was retyped or adjusted.
+/* Captured verbatim from the shipped YouTube TV stylesheet (main.css). Reduced,
+   not synthesised: every declaration below was copied out of that file.
 
-   THE REDUCTION IS THE RULES THAT CAN OCCLUDE. Extracted by splitting the minified
-   sheet into rules and keeping any whose selector mentions the player subtree, the
-   scrim classes, app-quality-root, #container or #app-background, and whose body
-   sets a background, a z-index, or geometry. Everything else in the 302KB sheet --
-   colours of buttons, type, spacing -- cannot put a box over the video and is left
-   out so this file stays readable.
+   THE REDUCTION IS TWO SETS. First, every rule whose selector mentions the player
+   subtree, the scrim classes, app-quality-root, #container or #app-background and
+   whose body sets a background, a z-index or geometry. Second -- and this is what
+   an earlier version of this file lacked -- the BASE rules for every selector
+   app-quality-root clears a fill on, so the harness can work out what each of
+   those elements looks like WITHOUT the class.
 
-   The whole sheet is not vendored here on purpose: it is Google's, it is large, and
-   a harness that needs all of it to make its point is a harness nobody will
-   maintain. The cost is real and worth naming: if YouTube adds a scrim style whose
-   selector matches none of the names above, this fixture will not know about it and
-   the harness will pass while the app gains a new way to paint over the video.
-   Re-run the extractor in test/watch-backdrop/README.md against a fresh capture when
-   the app updates. */
+   That second set is the whole point. Judging a suppression by the declaration
+   that clears it says only "something was turned off"; judging it by the base
+   rule says WHAT was turned off. The app turns off two very different things
+   through one class: flat opaque full-coverage fills that hide video, and
+   gradient scrims that keep text legible over artwork. Clearing the first is the
+   fix; clearing the second put unreadable text on a television. Only the base
+   rule tells them apart.
+
+   The whole 302KB sheet is not vendored: it is Google's, and a harness that needs
+   all of it is one nobody maintains. The cost is real -- a scrim style whose
+   selector matches none of the names above would not be here, and the harness
+   would pass while the app gained a new way to paint over the video. Re-run the
+   extractor in README.md against a fresh capture when the app updates. */
 
 .app-quality-root .UMztjd.CgA6bd{background-color:#373737}
 .app-quality-root .UMztjd.CgA6bd:hover{background-color:#606060}
 .app-quality-root .UMztjd.MYPwTc{background-color:#373737}
 .app-quality-root .nfSScb.CgA6bd:hover{background-color:#606060}
+.IipoN{background-color:#060606;display:block;height:100%;width:100%}
 .app-quality-root .IipoN{background-color:transparent}
 .app-quality-root .g26zvf{background-color:#000;border-radius:10%}
+.J3QAHd{background-color:#060606;display:block;height:100%;width:100%}
 .app-quality-root .J3QAHd{background-color:transparent}
 .app-quality-root .J3QAHd .Rrkhbd{background-color:#000;border-radius:10%}
 .app-quality-root .MSsyr{background:transparent}
@@ -32,6 +39,8 @@
 .app-quality-root .sjENQb{opacity:1;visibility:inherit}
 .app-quality-root .y8NKlf.uWeSeb .sjENQb{opacity:1;visibility:hidden}
 .app-quality-root .FLcyBb{opacity:1;display:none}
+.jWEEC:before{bottom:0;content:"";left:0;position:absolute;right:0;top:auto;
+  /*! rtl:ignore */background-image:-webkit-gradient(linear,left top,left bottom,from(transparent),color-stop(#030303),to(#0f0f0f));background-image:-webkit-linear-gradient(top,transparent,#030303,#0f0f0f);background-image:linear-gradient(to bottom,transparent,#030303,#0f0f0f);height:8rem;width:100%}
 .app-quality-root .jWEEC:before{background-image:none;background-color:#0f0f0f;height:5.5rem}
 .app-quality-root .TskSrf{height:29rem}
 .app-quality-root .TskSrf .DJCEDe{border-radius:.75rem;height:25.625rem;width:100%}
@@ -41,16 +50,16 @@
 .app-quality-root .TskSrf .iVZFtd{margin-left:2rem}
 .app-quality-root .TskSrf .ENdQAb{width:26rem}
 .app-quality-root .SLhhw .tDEZ3b{bottom:2.25rem}
+.Y4ss9b{background-color:#060606;display:block;height:100%;position:relative;width:100%}
 .app-quality-root .Y4ss9b{background-color:transparent}
 .app-quality-root .r4Pyib{background:transparent}
 .app-quality-root .r4Pyib .wmHfFc{border-radius:10%;background-color:black}
 .app-quality-root .n8TrWc .j1hAdd{background-color:#0f0f0f}
 .app-quality-root .n8TrWc.F5qief .j1hAdd{background-color:#f1f1f1;color:#212121}
+.P21kJ{background-color:#060606;display:block;height:100%;position:relative;width:100%}
 .app-quality-root .P21kJ{background-color:transparent}
-.CPUvYc{font-family:Roboto,Noto Sans CJK ZH-HK,Noto Sans Thai,Arial,Helvetica,sans-serif;font-size:1rem;font-weight:500;line-height:1.375rem;background-color:#0f0f0f;bottom:0;color:#aaa;position:absolute;right:0}
 .CPUvYc:before{background:-webkit-gradient(linear,left top,right top,from(transparent),to(#0f0f0f));background:-webkit-linear-gradient(left,transparent,#0f0f0f);background:linear-gradient(to right,transparent,#0f0f0f);bottom:0;content:"";left:-1.5rem;pointer-events:none;position:absolute;top:0;width:1.5rem}
 .app-quality-root .CPUvYc:before{background:none}
-.uY17wd.DWG8qf .CPUvYc{background-color:#f1f1f1}
 .uY17wd.DWG8qf .CPUvYc:before{background:-webkit-gradient(linear,left top,right top,from(transparent),to(#f1f1f1));background:-webkit-linear-gradient(left,transparent,#f1f1f1);background:linear-gradient(to right,transparent,#f1f1f1)}
 .app-quality-root .uY17wd.DWG8qf .CPUvYc:before{background:none}
 .app-quality-root .h3b7fd .RRJiYc{background-color:#000;display:inline}
@@ -60,9 +69,14 @@
 .app-quality-root .aq3Nz .JJh6de{padding-right:12.5rem}
 .app-quality-root .UTm86 .JJh6de{padding-right:11.25rem}
 .app-quality-root .DEvC2 .JJh6de{background-color:#0f0f0f;bottom:0;left:0;padding:1.25rem;padding-right:8.75rem}
+.Eaookd.SmWZef .mA8rAf{border-radius:50%;content:"";display:inline-block;height:100%;width:100%}
 .app-quality-root .Eaookd.SmWZef .mA8rAf{background:none}
+.Eaookd.SmWZef .mA8rAf{
+  /*! rtl:ignore */background-image:-webkit-gradient(linear,left top,left bottom,color-stop(50%,transparent),to(#0b0b0b));background-image:-webkit-linear-gradient(top,transparent 50%,#0b0b0b 100%);background-image:linear-gradient(to bottom,transparent 50%,#0b0b0b 100%)}
 .app-quality-root .Eaookd.SmWZef.ptYQ6c .mA8rAf{background-image:none;overflow:hidden;position:relative}
 .app-quality-root .Eaookd.SmWZef.ptYQ6c .mA8rAf:before{background:#0f0f0f;bottom:0;content:"";height:20%;left:0;position:absolute;right:0}
+.bel0Db{
+  /*! rtl:ignore */background-image:-webkit-gradient(linear,left top,left bottom,color-stop(50%,transparent),to(#0b0b0b));background-image:-webkit-linear-gradient(top,transparent 50%,#0b0b0b 100%);background-image:linear-gradient(to bottom,transparent 50%,#0b0b0b 100%)}
 .app-quality-root .bel0Db{background-image:none}
 .app-quality-root .bel0Db .JJh6de{background-color:#0f0f0f;bottom:0;left:0;padding:.75rem}
 .app-quality-root .vNzz8b .JJh6de{background-color:#0f0f0f;bottom:0;left:0;padding:1rem .5rem}
@@ -77,6 +91,7 @@
 .WEB_PAGE_TYPE_SHORTS.landscape .iLKnN .video-stream{position:static}
 .iLKnN .video-stream,.iLKnN .webgl{position:absolute}
 .iLKnN .html5-video-info-panel{background-color:#030303;color:#f1f1f1;display:block;position:absolute;z-index:1}
+.iLKnN .html5-video-info-panel .html5-video-info-panel-content>div>div{display:inline-block;font-weight:700;padding:0 .5rem;text-align:right;width:10rem}
 .iLKnN .html5-video-info-panel .ytp-horizonchart{display:inline-block;margin:2px;position:relative;vertical-align:bottom}
 .iLKnN .html5-video-info-panel .ytp-horizonchart>span{display:inline-block;position:absolute}
 .vr .iLKnN{background:none!important}
@@ -173,6 +188,7 @@
 .app-quality-root .KE1hab{opacity:1;display:block}
 .app-quality-root .j5rY4b .rHhQP:after{background:#0f0f0f;content:"";height:100%;left:-1.5rem;padding-right:3rem;padding-bottom:3rem;position:absolute;top:-1.5rem;width:100%;z-index:-1}
 .app-quality-root .qXJ6ne{background-color:#212121;padding-left:1.5rem}
+.leUgff{background-image:-webkit-gradient(linear,left top,left bottom,color-stop(76.16%,transparent),to(#0f0f0f)),-webkit-gradient(linear,right top,left top,color-stop(38.14%,transparent),color-stop(53.75%,#030303),color-stop(90%,#000),to(#0f0f0f));background-image:-webkit-linear-gradient(top,transparent 76.16%,#0f0f0f 100%),-webkit-linear-gradient(right,transparent 38.14%,#030303 53.75%,#000 90%,#0f0f0f 100%);background-image:linear-gradient(180deg,transparent 76.16%,#0f0f0f 100%),linear-gradient(270deg,transparent 38.14%,#030303 53.75%,#000 90%,#0f0f0f 100%);display:block;height:28.875rem;position:relative}
 .app-quality-root .leUgff{background-image:none}
 .app-quality-root .OS2Vc{background-color:#373737}
 .app-quality-root .OS2Vc:hover{background-color:#909090}

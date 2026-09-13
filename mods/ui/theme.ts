@@ -23,10 +23,18 @@ function updateStyle(): void {
        computes rgb(15, 15, 15) and stays there even after the app's own inline
        write; scoped, it computes rgba(0, 0, 0, 0).
 
-       The !important itself has to stay. It is not there to beat YouTube's
-       stylesheet -- this block is inserted after it, so order would already
-       decide -- but to beat that same inline write on the surfaces where the
-       user's colour SHOULD win.
+       The !important itself has to stay, and the reason given here used to be
+       wrong in a way worth correcting rather than deleting: it said this block is
+       inserted AFTER YouTube's stylesheet, so order would already settle a tie
+       and the !important was only for the inline write. The order is the other
+       way round. tv.html ships no stylesheet at all -- base.js registers
+       _F_installCss, whose installer appends a style element to the end of HEAD
+       at runtime, after base.js has network-loaded -- while this block's style
+       element is created at body-ready, before that. So the app's sheet lands
+       after ours and wins every tie, and !important is what beats YouTube's
+       stylesheet as well as the inline write. Anything the mod adds at equal
+       specificity without it simply loses: ui/qualityScrims.css shipped that way
+       once and did nothing at all on a television.
 
        A NEGATIVE GATE, deliberately, which is the opposite of what bubbles.css
        argues and does not contradict it. There the question was where a
