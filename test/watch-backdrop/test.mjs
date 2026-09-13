@@ -164,11 +164,27 @@ for (const m of stripComments(APP_RULES).matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
     expected.push(branches.map((b) => b.slice('.app-quality-root '.length)).join(','));
 }
 check('the captured sheet yields suppressions to check', expected.length > 20, true);
+
+// Both the extraction above and the generator that wrote qualityScrims.css assume
+// the class always appears as a LEADING `.app-quality-root ` with a descendant
+// combinator after it. A compound form (`.app-quality-root.X`) or the class in a
+// later position would be skipped by both, silently -- the tripwire would agree
+// the list is complete because it built its expectations the same wrong way. So
+// the assumption is asserted rather than relied on.
+const odd = [...stripComments(APP_RULES).matchAll(/([^{}]+)\{[^{}]*\}/g)]
+    .flatMap((m) => m[1].split(','))
+    .map((b) => b.trim())
+    .filter((b) => b.includes('app-quality-root') && !b.startsWith('.app-quality-root '));
+check('  ...and every one is a leading descendant selector', odd, []);
 // Compared as parsed selectors, not as substrings of the file. Stripping all
 // whitespace to match would conflate `.a .b` with `.a.b` -- a descendant
 // combinator and a compound selector -- and could report a missing suppression
 // as present because some unrelated rule happened to spell it the other way.
-const norm = (sel) => sel.trim().replace(/\s*,\s*/g, ',').replace(/\s+/g, ' ');
+const norm = (sel) =>
+    sel
+        .trim()
+        .replace(/\s*,\s*/g, ',')
+        .replace(/\s+/g, ' ');
 const ours = new Set(
     [...stripComments(SCRIMS).matchAll(/([^{}]+)\{[^{}]*\}/g)].map((m) => norm(m[1])),
 );
