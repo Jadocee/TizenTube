@@ -39,6 +39,9 @@ const MOD_RULES = [
     readRepo('mods', 'ui', 'previewIndicator.css'),
 ].join('\n');
 
+// Applied separately: whether it is present is the question two assertions ask.
+const SCRIMS = readRepo('mods', 'ui', 'qualityScrims.css');
+
 const VIDEO = 'rgb(0, 255, 0)'; // a colour nothing in either stylesheet uses
 const browser = await launcher.launch({ executablePath: chromiumExecutable() });
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
@@ -52,7 +55,13 @@ const { check, done } = checker();
  * AND loadedPlaybackConfig.mode is 2 or 3 -- mode 2 being background playback,
  * which a home-page preview puts the player into. `scrim` below is that state.
  */
-async function centrePixel({ appQualityRoot = true, scrim = false, mod = true, extra = '' }) {
+async function centrePixel({
+    appQualityRoot = true,
+    scrim = false,
+    mod = true,
+    scrims = false,
+    extra = '',
+}) {
     const body = [
         'WEB_PAGE_TYPE_WATCH',
         'landscape',
@@ -68,7 +77,8 @@ async function centrePixel({ appQualityRoot = true, scrim = false, mod = true, e
         ...(scrim ? ['Vdm04', 'YW4uOd', 'g511Kb'] : []),
     ];
     await page.setContent(
-        `<style>html{font-size:16px}${APP_RULES}${mod ? `\n${MOD_RULES}` : ''}</style>` +
+        `<style>html{font-size:16px}${APP_RULES}${mod ? `\n${MOD_RULES}` : ''}` +
+            `${scrims ? `\n${SCRIMS}` : ''}</style>` +
             `<body class="${body}">` +
             '<div id="app-background"></div>' +
             '<div id="container">' +
@@ -118,9 +128,14 @@ check(
     VIDEO,
 );
 check(
-    '  ...without it, the scrim covers the video',
+    '  ...removing it alone covers the video',
     await centrePixel({ scrim: true, appQualityRoot: false }),
     'rgb(3, 3, 3)',
+);
+check(
+    '  ...which is what qualityScrims.css exists to prevent',
+    await centrePixel({ scrim: true, appQualityRoot: false, scrims: true }),
+    VIDEO,
 );
 check(
     '  ...and with no scrim the class makes no difference',
@@ -128,20 +143,73 @@ check(
     VIDEO,
 );
 
-// The assertion that actually guards the fix. The rendering above explains WHY
-// this matters; this is what fails if anyone reinstates the observer.
+// --- the tripwire: the suppression list must not go stale -------------------
+// qualityScrims.css is a restatement of what app-quality-root turns off. If the
+// app gains a scrim style and the captured stylesheet is refreshed, this fails
+// until the new suppression is carried across -- which is the only thing between
+// a new scrim and a black picture on a television.
+const stripComments = (t) => t.replace(/\/\*[\s\S]*?\*\//g, '');
+const REMOVER = /^(background|background-image)\s*:\s*none$|^background-color\s*:\s*transparent$/i;
+const expected = [];
+for (const m of stripComments(APP_RULES).matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    const selector = m[1].trim();
+    if (!selector.includes('.app-quality-root')) continue;
+    const branches = selector.split(',').map((b) => b.trim());
+    if (!branches.every((b) => b.startsWith('.app-quality-root '))) continue;
+    const kept = m[2]
+        .split(';')
+        .map((d) => d.trim())
+        .filter((d) => d && REMOVER.test(d));
+    if (!kept.length) continue;
+    expected.push(branches.map((b) => b.slice('.app-quality-root '.length)).join(','));
+}
+check('the captured sheet yields suppressions to check', expected.length > 20, true);
+// Compared as parsed selectors, not as substrings of the file. Stripping all
+// whitespace to match would conflate `.a .b` with `.a.b` -- a descendant
+// combinator and a compound selector -- and could report a missing suppression
+// as present because some unrelated rule happened to spell it the other way.
+const norm = (sel) => sel.trim().replace(/\s*,\s*/g, ',').replace(/\s+/g, ' ');
+const ours = new Set(
+    [...stripComments(SCRIMS).matchAll(/([^{}]+)\{[^{}]*\}/g)].map((m) => norm(m[1])),
+);
+const missing = [...new Set(expected.map(norm))].filter((sel) => !ours.has(sel));
+check('  ...and qualityScrims.css carries every one', missing, []);
+
+// Subtractive only. A rule here that PAINTS would be the bug this file exists to
+// prevent, reintroduced by the fix for it.
+const paints = [...stripComments(SCRIMS).matchAll(/\{([^{}]*)\}/g)]
+    .flatMap((m) => m[1].split(';'))
+    .map((d) => d.trim())
+    .filter((d) => d && !REMOVER.test(d));
+check('  ...and nothing in it paints', paints, []);
+
+// --- the removal stays, because the buttons need it -------------------------
+// Putting the class back turns the transport controls either side of play/pause
+// near-black and unselectable. That is why the fix is a suppression block and not
+// simply leaving the class alone.
 const uiSrc = readRepo('mods', 'ui', 'ui.ts');
-const stripped = uiSrc
+const uiCode = uiSrc
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .split('\n')
     .filter((l) => !/^\s*\/\//.test(l))
     .join('\n');
 check(
-    'the mod never removes app-quality-root',
-    /remove\(\s*['"]app-quality-root['"]\s*\)/.test(stripped),
-    false,
+    'the mod still removes app-quality-root',
+    /remove\(\s*['"]app-quality-root['"]\s*\)/.test(uiCode),
+    true,
 );
-check('  ...by any spelling', /app-quality-root/.test(stripped.replace(/classList/g, '')), false);
+check(
+    '  ...and injects the suppressions when it does',
+    /setStyleBlock\(\s*'quality-scrims'/.test(uiCode),
+    true,
+);
+// Order matters: a frame with the class gone and the block not yet applied is a
+// frame of black video.
+check(
+    '  ...before it starts removing',
+    uiCode.indexOf("setStyleBlock('quality-scrims'") < uiCode.indexOf('MutationObserver'),
+    true,
+);
 
 // --- the correction: #container was never the culprit -----------------------
 // A previous commit scoped theme.ts's fill away from the watch page to fix this

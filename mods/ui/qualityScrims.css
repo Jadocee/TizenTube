@@ -1,0 +1,120 @@
+/* The fills YouTube's own `app-quality-root` class turns off, re-stated so the
+   mod can go on removing that class without re-arming them.
+
+   WHY THE CLASS IS REMOVED AT ALL. ui.ts strips `app-quality-root` off <body>.
+   It is inherited, and for a long time nobody here could say what it was for --
+   so it was taken out, and the video went black behind the player chrome. It was
+   put back, and the transport buttons went black and stopped being selectable.
+   Both are true and both are that one class: the app uses it BOTH to restyle
+   controls for a low-end device AND to disable its own legacy scrim fills. The
+   mod wants the first undone and the second left alone, and those cannot be
+   separated by toggling one class -- only by removing it and restoring the half
+   that matters.
+
+   SUBTRACTIVE ONLY. Every declaration below turns a fill OFF: `background:none`,
+   `background-image:none`, `background-color:transparent`. Nothing here can put
+   a pixel on screen, so the worst a mistake in this file can do is fail to
+   suppress something -- never paint something new. The cosmetic half of
+   app-quality-root (button colours, box-shadows, text-overflow, the
+   opacity/display pairs that replace fades with hard cuts) is deliberately NOT
+   reproduced: undoing it is the whole point of removing the class.
+
+   VERBATIM, and derived rather than typed. Each selector is an app-quality-root
+   rule from the shipped stylesheet with the `.app-quality-root ` ancestor
+   removed, keeping only its fill-clearing declarations. Same specificity as the
+   rule it has to beat, and this block is injected after YouTube's stylesheet, so
+   order decides it. No !important: these cannot lose to an inline style because
+   a pseudo-element cannot carry one.
+
+   IT CAN GO STALE, so test/watch-backdrop re-derives this list from the captured
+   stylesheet and fails if the app has a suppression this file does not. That is
+   the tripwire; without it a new scrim style would reach a television as a black
+   picture and nothing here would have complained. */
+
+.IipoN {
+    background-color: transparent;
+}
+.J3QAHd {
+    background-color: transparent;
+}
+.jWEEC:before {
+    background-image: none;
+}
+.Y4ss9b {
+    background-color: transparent;
+}
+.P21kJ {
+    background-color: transparent;
+}
+.CPUvYc:before {
+    background: none;
+}
+.uY17wd.DWG8qf .CPUvYc:before {
+    background: none;
+}
+.Eaookd.SmWZef .mA8rAf {
+    background: none;
+}
+.Eaookd.SmWZef.ptYQ6c .mA8rAf {
+    background-image: none;
+}
+.bel0Db {
+    background-image: none;
+}
+.Vdm04.YW4uOd:before {
+    background: none;
+}
+.Vdm04.gGYUTe:before {
+    background: none;
+}
+.Vdm04.awrNff:before {
+    background: none;
+}
+.Vdm04.awrNff:after {
+    background: none;
+}
+.Vdm04.Xo9vGf:before {
+    background: none;
+}
+.Vdm04.Xo9vGf:after {
+    background: none;
+}
+.Vdm04.CGTfzb:before {
+    background: none;
+}
+.Vdm04.aHsoBd:before {
+    background: none;
+}
+.Vdm04.z279Wd:before {
+    background: none;
+}
+.Vdm04.Yg7Od:before {
+    background: none;
+}
+.Vdm04.Ry3Ro:before {
+    background: none;
+}
+.Vdm04.K0BWPd:before {
+    background: none;
+}
+.Vdm04.m4Gtyf {
+    background: none;
+}
+.Vdm04.IFZMkd:before {
+    background: none;
+}
+.Vdm04.IFZMkd:after {
+    background: none;
+}
+.Vdm04.izle0c:before {
+    background: none;
+}
+.Vdm04.izle0c:after {
+    background: none;
+}
+.Vdm04.qjAaSb:before {
+    background: none;
+}
+.leUgff {
+    background-image: none;
+}
