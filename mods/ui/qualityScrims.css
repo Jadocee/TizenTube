@@ -1,0 +1,42 @@
+/* The flat opaque fills YouTube's own `app-quality-root` class turns off,
+   restated so the mod can go on removing that class without re-arming them.
+
+   WHY THE CLASS IS REMOVED AT ALL. ui.ts strips `app-quality-root` off <body>.
+   It is inherited, and nobody here could say what for -- so it was taken out,
+   and the video went black behind the player chrome. It was put back, and the
+   transport buttons went near-black and unselectable. Both are that one class:
+   the app uses it BOTH to restyle controls for a device it judged low-end AND to
+   disable its own legacy fills. Toggling one class cannot separate them, so the
+   class goes and the half that matters is restated here.
+
+   ONLY FLAT OPAQUE FULL-COVERAGE FILLS, and that qualification is the whole of
+   it. app-quality-root clears two very different things. One is a #030303 or
+   #060606 block at height:100%;width:100% -- the thing that hid the video. The
+   other is a family of GRADIENT scrims that keep titles legible over artwork.
+   An earlier version of this file cleared both, on the reasoning that any rule
+   which only removes a fill must be safe. It is not: removing a gradient scrim
+   left promo text sitting on bare artwork at 1.04:1 contrast, worse than either
+   state YouTube ships. Judge a rule by what its element looks like WITHOUT the
+   class, never by the declaration that clears it.
+
+   !important, WHICH THE FIRST VERSION OF THIS FILE LACKED AND NEEDED. The
+   assumption was that the mod's stylesheet is injected after YouTube's, so equal
+   specificity would be settled by order. That is backwards. tv.html ships no
+   stylesheet at all: base.js registers `_F_installCss`, and the installer does
+   `document.getElementsByTagName("HEAD")[0].appendChild(style)` at RUNTIME,
+   after base.js has network-loaded. The mod's <style> is created at body-ready,
+   before that, so the app's sheet lands AFTER ours and wins every tie. Measured:
+   in the real order these rules computed rgb(3, 3, 3) over the video without
+   !important and the video's own colour with it.
+
+   IT CAN GO STALE, so test/watch-backdrop re-derives this set from the captured
+   stylesheet -- classifying each candidate by its base rule the same way -- and
+   fails if this file has one too many or one too few. */
+
+.IipoN { background-color: transparent !important; }
+.J3QAHd { background-color: transparent !important; }
+.Y4ss9b { background-color: transparent !important; }
+.P21kJ { background-color: transparent !important; }
+.Vdm04.YW4uOd:before { background: none !important; }
+.Vdm04.K0BWPd:before { background: none !important; }
+.Vdm04.m4Gtyf { background: none !important; }

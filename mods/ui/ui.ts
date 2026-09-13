@@ -8,6 +8,7 @@ import '../spatial-navigation-polyfill.js';
 // navigation natively, and an unguarded throw here would abort the bundle.
 if (window.__spatialNavigation__) window.__spatialNavigation__.keyMode = 'NONE';
 import css from './ui.css';
+import qualityScrimsCss from './qualityScrims.css';
 import { configChangeEmitter, configRead, configWrite } from '../config.js';
 import updateStyle from './theme.js';
 import { showToast } from './ytUI.js';
@@ -525,41 +526,40 @@ function execute_once_dom_loaded(): void {
         commandExecutor.executeFunction(new commandExecutor.commandFunction('reloadGuideAction'));
     }
 
-    // THE app-quality-root OBSERVER IS GONE, and this is the note it left.
+    // THAT ONE CLASS DOES TWO JOBS, AND THE MOD WANTS OPPOSITE THINGS FROM THEM.
     //
-    // It watched <body> and stripped the class `app-quality-root` every time the
-    // app put it back. Inherited, with the comment "Fix UI issues, again. Love,
-    // Googol." and no statement of which issue -- the visible effect is that
-    // YouTube's buttons get their box-shadows back and long titles end in an
-    // ellipsis instead of being clipped.
+    // `app-quality-root` is how the app restyles controls for a device it has
+    // judged low-end -- flat buttons, clipped titles, hard cuts instead of fades.
+    // Removing it is inherited behaviour ("Fix UI issues, again. Love, Googol.")
+    // and it is wanted: with the class on, the transport buttons either side of
+    // play/pause render near-black and read as unselectable.
     //
-    // THAT CLASS IS NOT A COSMETIC FLAG. It is how the app turns OFF its own
-    // legacy scrim fills. main.css carries the pair
+    // It is ALSO how the app turns off its own legacy scrim fills, among them
     //
-    //     .Vdm04.YW4uOd:before { background:#030303; position:absolute;
-    //                            content:""; height:100%; width:100% }
+    //     .Vdm04.YW4uOd:before { background:#030303; height:100%; width:100% }
     //     .app-quality-root .Vdm04.YW4uOd:before { background:none }
     //
-    // and eighteen more `.app-quality-root ... :before/:after { background:none }`
-    // rules doing the same for the other scrim styles. Removing the class re-arms
-    // every one of them: a full-viewport near-black fill at z-index 1 on
-    // ytlr-player itself, which is over the <video> and under the watch chrome.
+    // at z-index 1 on ytlr-player -- over the video, under the chrome. Removing
+    // the class re-arms twenty-nine of those.
     //
-    // MEASURED, not argued. test/watch-backdrop drives the real main.css over the
-    // player subtree built from main.js's own idom template, screenshots it and
-    // reads the centre pixel: with the class present the video's colour survives,
-    // with it removed the pixel is rgb(3, 3, 3). One class on <body> is the only
-    // difference between the two.
+    // BOTH HALVES WERE LEARNED THE EXPENSIVE WAY, one shipped regression each:
+    // removing the class blacked out the video, and putting it back blacked out
+    // the buttons. They cannot be separated by toggling the class, because it is
+    // one class. So the class goes, and ui/qualityScrims.css restores only the
+    // fill-clearing half -- subtractive rules that cannot paint anything.
     //
-    // The fill only paints while the player carries a scrim class, which template
-    // `alb` applies when scrimStyle is set AND loadedPlaybackConfig.mode is 2 or
-    // 3 -- mode 2 being background playback, which is what a home-page preview
-    // puts the player into. So it needs previews, which this mod turns on, and it
-    // needs this class removed, which this mod used to do. Neither half does it
-    // alone, and that is why the symptom only appeared with the mod installed.
-    //
-    // Restoring the shadows and the ellipsis is worth doing properly if anyone
-    // wants them: an injected block naming those rules, which cannot re-arm
-    // anything. Removing the class to get them is trading a black picture for an
-    // ellipsis. 231 rules hang off it; the mod wanted maybe a dozen.
+    // The stylesheet is injected BEFORE the observer starts, so there is no frame
+    // in which the class is gone and the suppressions are not yet applied.
+    if (configRead('enableFixedUI')) {
+        setStyleBlock('quality-scrims', qualityScrimsCss);
+        try {
+            const observer = new MutationObserver(() => {
+                const body = document.body;
+                if (body.classList.contains('app-quality-root')) {
+                    body.classList.remove('app-quality-root');
+                }
+            });
+            observer.observe(document.body, { attributes: true, childList: false, subtree: false });
+        } catch (_e) {}
+    }
 }
