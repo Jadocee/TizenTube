@@ -206,7 +206,11 @@ check('the captured sheet yields suppressions to classify', candidates.length > 
 // "not a flat fill" and the expected set would be empty -- which would make the
 // comparison below pass against an empty file. That is the failure this guards.
 check('  ...and the fixture carries their base rules', expected.length > 0, true);
-check('  ...most of which are gradient scrims, left alone', candidates.length - expected.length > 10, true);
+check(
+    '  ...most of which are gradient scrims, left alone',
+    candidates.length - expected.length > 10,
+    true,
+);
 
 // Both the extraction above and the generator that wrote qualityScrims.css assume
 // the class always appears as a LEADING `.app-quality-root ` with a descendant
@@ -219,7 +223,11 @@ const odd = appRules
     .filter((b) => b.includes('app-quality-root') && !b.startsWith('.app-quality-root '));
 check('  ...and every one is a leading descendant selector', odd, []);
 
-const norm = (sel) => sel.trim().replace(/\s*,\s*/g, ',').replace(/\s+/g, ' ');
+const norm = (sel) =>
+    sel
+        .trim()
+        .replace(/\s*,\s*/g, ',')
+        .replace(/\s+/g, ' ');
 const ourRules = [...stripComments(SCRIMS).matchAll(/([^{}]+)\{([^{}]*)\}/g)];
 const ours = new Set(ourRules.map((m) => norm(m[1])));
 const want = new Set(expected.map(norm));
@@ -236,7 +244,10 @@ check(
 
 // Subtractive only, still: a rule here that PAINTS would be the original bug
 // reintroduced by its own fix.
-const decls = ourRules.flatMap((m) => m[1] === '' ? [] : m[2].split(';')).map((d) => d.trim()).filter(Boolean);
+const decls = ourRules
+    .flatMap((m) => (m[1] === '' ? [] : m[2].split(';')))
+    .map((d) => d.trim())
+    .filter(Boolean);
 check(
     '  ...and every declaration only clears a fill',
     decls.filter((d) => !REMOVER.test(d.replace(/\s*!important$/, ''))),

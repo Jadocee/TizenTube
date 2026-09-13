@@ -31,12 +31,32 @@
 
    IT CAN GO STALE, so test/watch-backdrop re-derives this set from the captured
    stylesheet -- classifying each candidate by its base rule the same way -- and
-   fails if this file has one too many or one too few. */
+   fails if this file has one too many or one too few.
 
-.IipoN { background-color: transparent !important; }
-.J3QAHd { background-color: transparent !important; }
-.Y4ss9b { background-color: transparent !important; }
-.P21kJ { background-color: transparent !important; }
-.Vdm04.YW4uOd:before { background: none !important; }
-.Vdm04.K0BWPd:before { background: none !important; }
-.Vdm04.m4Gtyf { background: none !important; }
+   DERIVED, THEN FORMATTED. The rules are generated from the captured stylesheet
+   and Biome formats them afterwards, so regenerating this file means running
+   `pnpm exec biome check --write` on it before committing. Skipping that is how
+   it reached CI unformatted once: a regeneration silently undid the formatting
+   pass that had already been run on the version before it. */
+
+.IipoN {
+    background-color: transparent !important;
+}
+.J3QAHd {
+    background-color: transparent !important;
+}
+.Y4ss9b {
+    background-color: transparent !important;
+}
+.P21kJ {
+    background-color: transparent !important;
+}
+.Vdm04.YW4uOd:before {
+    background: none !important;
+}
+.Vdm04.K0BWPd:before {
+    background: none !important;
+}
+.Vdm04.m4Gtyf {
+    background: none !important;
+}
