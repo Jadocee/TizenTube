@@ -76,8 +76,15 @@ async function centrePixel({
         'ExC9Fb',
         ...(scrim ? ['Vdm04', 'YW4uOd', 'g511Kb'] : []),
     ];
+    // THE STYLESHEET ORDER IS THE APP'S, NOT THE CONVENIENT ONE. tv.html ships no
+    // stylesheet: base.js registers _F_installCss, whose installer appends a
+    // <style> to the END of <head> at runtime, after base.js has network-loaded.
+    // The mod's element is created at body-ready, before that. So the mod's rules
+    // come FIRST and lose every tie. An earlier version of this harness put them
+    // in one <style> with the app's rules ahead of them -- the opposite of
+    // reality -- and passed a fix that did nothing on a television.
     await page.setContent(
-        `<style>html{font-size:16px}${APP_RULES}${mod ? `\n${MOD_RULES}` : ''}` +
+        `<style id="tt-mod">html{font-size:16px}${mod ? MOD_RULES : ''}` +
             `${scrims ? `\n${SCRIMS}` : ''}</style>` +
             `<body class="${body}">` +
             '<div id="app-background"></div>' +
@@ -90,6 +97,13 @@ async function centrePixel({
             extra +
             '</body>',
     );
+    // Exactly what _F_installCss does: append to the end of <head>, at runtime.
+    await page.evaluate((css) => {
+        const el = document.createElement('style');
+        el.textContent = css;
+        document.getElementsByTagName('HEAD')[0].appendChild(el);
+    }, APP_RULES);
+
     const shot = await page.screenshot({ clip: { x: 636, y: 356, width: 8, height: 8 } });
     return page.evaluate(async (b64) => {
         const img = new Image();
@@ -143,61 +157,98 @@ check(
     VIDEO,
 );
 
-// --- the tripwire: the suppression list must not go stale -------------------
-// qualityScrims.css is a restatement of what app-quality-root turns off. If the
-// app gains a scrim style and the captured stylesheet is refreshed, this fails
-// until the new suppression is carried across -- which is the only thing between
-// a new scrim and a black picture on a television.
+// --- the tripwire: the suppression list must be exactly right ---------------
+// qualityScrims.css restates the fills app-quality-root turns off. Which ones it
+// may restate is the question that has now been got wrong twice, so it is
+// derived here from the captured sheet rather than trusted.
+//
+// THE CRITERION IS THE BASE RULE, NOT THE DECLARATION THAT CLEARS IT. The class
+// clears two different things. A flat #030303 or #060606 at height:100%;
+// width:100% is the fill that hid the video, and restating it is the fix. A
+// GRADIENT is a scrim that keeps titles legible over artwork, and restating that
+// one put promo text on bare artwork at 1.04:1 contrast -- worse than either
+// state YouTube ships. "It only removes a fill, so it must be safe" is exactly
+// the reasoning that shipped that, and it is why this compares both directions:
+// a missing rule blacks out video, an extra one strips a scrim.
 const stripComments = (t) => t.replace(/\/\*[\s\S]*?\*\//g, '');
 const REMOVER = /^(background|background-image)\s*:\s*none$|^background-color\s*:\s*transparent$/i;
-const expected = [];
-for (const m of stripComments(APP_RULES).matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
-    const selector = m[1].trim();
-    if (!selector.includes('.app-quality-root')) continue;
-    const branches = selector.split(',').map((b) => b.trim());
-    if (!branches.every((b) => b.startsWith('.app-quality-root '))) continue;
-    const kept = m[2]
-        .split(';')
-        .map((d) => d.trim())
-        .filter((d) => d && REMOVER.test(d));
-    if (!kept.length) continue;
-    expected.push(branches.map((b) => b.slice('.app-quality-root '.length)).join(','));
+const FLAT_FILL = /background(-color)?\s*:\s*#[0-9a-f]{3,6}/i;
+const appRules = [...stripComments(APP_RULES).matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => [
+    m[1].trim(),
+    m[2],
+]);
+
+// Every rule the same selector has without the class, so we can see what it is.
+const baseOf = new Map();
+for (const [sel, body] of appRules) {
+    if (sel.startsWith('.app-quality-root ')) continue;
+    baseOf.set(sel, `${baseOf.get(sel) || ''} ; ${body}`);
 }
-check('the captured sheet yields suppressions to check', expected.length > 20, true);
+
+const candidates = [];
+const expected = [];
+for (const [sel, body] of appRules) {
+    if (!sel.startsWith('.app-quality-root ')) continue;
+    if (!body.split(';').some((d) => REMOVER.test(d.trim()))) continue;
+    const target = sel.slice('.app-quality-root '.length);
+    candidates.push(target);
+    const base = baseOf.get(target) || '';
+    const flatOpaque =
+        FLAT_FILL.test(base) &&
+        !base.includes('gradient') &&
+        /height\s*:\s*100%/.test(base) &&
+        /width\s*:\s*100%/.test(base);
+    if (flatOpaque) expected.push(target);
+}
+
+check('the captured sheet yields suppressions to classify', candidates.length > 20, true);
+// If the base rules were missing from the fixture, everything would classify as
+// "not a flat fill" and the expected set would be empty -- which would make the
+// comparison below pass against an empty file. That is the failure this guards.
+check('  ...and the fixture carries their base rules', expected.length > 0, true);
+check('  ...most of which are gradient scrims, left alone', candidates.length - expected.length > 10, true);
 
 // Both the extraction above and the generator that wrote qualityScrims.css assume
 // the class always appears as a LEADING `.app-quality-root ` with a descendant
-// combinator after it. A compound form (`.app-quality-root.X`) or the class in a
-// later position would be skipped by both, silently -- the tripwire would agree
-// the list is complete because it built its expectations the same wrong way. So
-// the assumption is asserted rather than relied on.
-const odd = [...stripComments(APP_RULES).matchAll(/([^{}]+)\{[^{}]*\}/g)]
-    .flatMap((m) => m[1].split(','))
+// combinator. A compound form or a later position would be skipped by both,
+// silently -- the tripwire would agree the list is complete because it had been
+// wrong the same way. So the assumption is asserted, not relied on.
+const odd = appRules
+    .flatMap(([sel]) => sel.split(','))
     .map((b) => b.trim())
     .filter((b) => b.includes('app-quality-root') && !b.startsWith('.app-quality-root '));
 check('  ...and every one is a leading descendant selector', odd, []);
-// Compared as parsed selectors, not as substrings of the file. Stripping all
-// whitespace to match would conflate `.a .b` with `.a.b` -- a descendant
-// combinator and a compound selector -- and could report a missing suppression
-// as present because some unrelated rule happened to spell it the other way.
-const norm = (sel) =>
-    sel
-        .trim()
-        .replace(/\s*,\s*/g, ',')
-        .replace(/\s+/g, ' ');
-const ours = new Set(
-    [...stripComments(SCRIMS).matchAll(/([^{}]+)\{[^{}]*\}/g)].map((m) => norm(m[1])),
-);
-const missing = [...new Set(expected.map(norm))].filter((sel) => !ours.has(sel));
-check('  ...and qualityScrims.css carries every one', missing, []);
 
-// Subtractive only. A rule here that PAINTS would be the bug this file exists to
-// prevent, reintroduced by the fix for it.
-const paints = [...stripComments(SCRIMS).matchAll(/\{([^{}]*)\}/g)]
-    .flatMap((m) => m[1].split(';'))
-    .map((d) => d.trim())
-    .filter((d) => d && !REMOVER.test(d));
-check('  ...and nothing in it paints', paints, []);
+const norm = (sel) => sel.trim().replace(/\s*,\s*/g, ',').replace(/\s+/g, ' ');
+const ourRules = [...stripComments(SCRIMS).matchAll(/([^{}]+)\{([^{}]*)\}/g)];
+const ours = new Set(ourRules.map((m) => norm(m[1])));
+const want = new Set(expected.map(norm));
+check(
+    'qualityScrims.css restates every flat fill',
+    [...want].filter((s) => !ours.has(s)),
+    [],
+);
+check(
+    '  ...and nothing else',
+    [...ours].filter((s) => !want.has(s)),
+    [],
+);
+
+// Subtractive only, still: a rule here that PAINTS would be the original bug
+// reintroduced by its own fix.
+const decls = ourRules.flatMap((m) => m[1] === '' ? [] : m[2].split(';')).map((d) => d.trim()).filter(Boolean);
+check(
+    '  ...and every declaration only clears a fill',
+    decls.filter((d) => !REMOVER.test(d.replace(/\s*!important$/, ''))),
+    [],
+);
+// !important is load-bearing, not decoration: the app's sheet is appended to
+// <head> at runtime, after the mod's, so equal specificity loses without it.
+check(
+    '  ...and carries !important, which order requires',
+    decls.filter((d) => !/!important$/.test(d)),
+    [],
+);
 
 // --- the removal stays, because the buttons need it -------------------------
 // Putting the class back turns the transport controls either side of play/pause
