@@ -99,7 +99,8 @@
                     "afrPauseDuration": {
                         "title": "自動フレームレート時の一時停止の長さ",
                         "subtitle": "フレームレートの調整時で動画再生を一時停止する時間 (秒単位) を設定します"
-                    }
+                    },
+                    "chapters": "Chapters"
                 }
             },
             "uiSettings": {
@@ -160,6 +161,32 @@
                     "checkForUpdates": "更新を確認する",
                     "checkForUpdatesOnStartup": "起動時に更新を確認する"
                 }
+            },
+            "ads": {
+                "title": "Ads & Promotions"
+            },
+            "home": {
+                "title": "Home & Recommendations",
+                "options": {
+                    "previews": {
+                        "title": "Video Previews"
+                    }
+                }
+            },
+            "hiding": {
+                "title": "Hidden Content"
+            },
+            "sidebar": {
+                "title": "Sidebar"
+            },
+            "appearance": {
+                "title": "Appearance"
+            },
+            "startup": {
+                "title": "Startup"
+            },
+            "about": {
+                "title": "About & Support"
             }
         },
         "ttSettings": {

@@ -96,7 +96,8 @@
                     "afrPauseDuration": {
                         "title": "Durasi Jeda Frame Rate Otomatis",
                         "subtitle": "Atur durasi (dalam detik) untuk menjeda pemutaran video saat menyesuaikan frame rate"
-                    }
+                    },
+                    "chapters": "Chapters"
                 }
             },
             "uiSettings": {
@@ -147,6 +148,32 @@
                     "checkForUpdates": "Periksa pembaruan",
                     "checkForUpdatesOnStartup": "Periksa pembaruan saat startup"
                 }
+            },
+            "ads": {
+                "title": "Ads & Promotions"
+            },
+            "home": {
+                "title": "Home & Recommendations",
+                "options": {
+                    "previews": {
+                        "title": "Video Previews"
+                    }
+                }
+            },
+            "hiding": {
+                "title": "Hidden Content"
+            },
+            "sidebar": {
+                "title": "Sidebar"
+            },
+            "appearance": {
+                "title": "Appearance"
+            },
+            "startup": {
+                "title": "Startup"
+            },
+            "about": {
+                "title": "About & Support"
             }
         },
         "ttSettings": {

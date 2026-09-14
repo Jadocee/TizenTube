@@ -96,7 +96,8 @@
                     "afrPauseDuration": {
                         "title": "Duração da pausa da taxa de fotogramas automática",
                         "subtitle": "Define a duração (em segundos) da pausa do vídeo ao ajustar a taxa de fotogramas"
-                    }
+                    },
+                    "chapters": "Chapters"
                 }
             },
             "uiSettings": {
@@ -147,6 +148,32 @@
                     "checkForUpdates": "Verificar atualizações",
                     "checkForUpdatesOnStartup": "Verificar atualizações ao iniciar"
                 }
+            },
+            "ads": {
+                "title": "Ads & Promotions"
+            },
+            "home": {
+                "title": "Home & Recommendations",
+                "options": {
+                    "previews": {
+                        "title": "Video Previews"
+                    }
+                }
+            },
+            "hiding": {
+                "title": "Hidden Content"
+            },
+            "sidebar": {
+                "title": "Sidebar"
+            },
+            "appearance": {
+                "title": "Appearance"
+            },
+            "startup": {
+                "title": "Startup"
+            },
+            "about": {
+                "title": "About & Support"
             }
         },
         "ttSettings": {

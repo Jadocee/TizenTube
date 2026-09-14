@@ -13,6 +13,7 @@ const HARNESSES = [
     { name: 'settings tree walk', dir: 'settings', file: 'drive.mjs', types: true },
     { name: 'menu scenarios', dir: 'settings', file: 'stale.mjs', types: true },
     { name: 'startup breadcrumb', dir: 'settings', file: 'crumb.mjs', types: true },
+    { name: 'settings reachability', dir: 'settings', file: 'reachable.mjs', types: true },
     { name: "who's-watching storage", dir: 'whos-watching', file: 'test.mjs', types: true },
     { name: 'adblock JSON patch', dir: 'adblock', file: 'test.mjs' },
     { name: 'continuation coverage', dir: 'adblock', file: 'continuations.mjs' },

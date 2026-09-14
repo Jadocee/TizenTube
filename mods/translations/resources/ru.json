@@ -99,7 +99,8 @@
                     "afrPauseDuration": {
                         "title": "Длительность паузы Auto Frame Rate",
                         "subtitle": "Установите длительность (в секундах) паузы воспроизведения при изменении частоты кадров"
-                    }
+                    },
+                    "chapters": "Chapters"
                 }
             },
             "uiSettings": {
@@ -160,6 +161,32 @@
                     "checkForUpdates": "Проверить обновления",
                     "checkForUpdatesOnStartup": "Проверять обновления при запуске"
                 }
+            },
+            "ads": {
+                "title": "Ads & Promotions"
+            },
+            "home": {
+                "title": "Home & Recommendations",
+                "options": {
+                    "previews": {
+                        "title": "Video Previews"
+                    }
+                }
+            },
+            "hiding": {
+                "title": "Hidden Content"
+            },
+            "sidebar": {
+                "title": "Sidebar"
+            },
+            "appearance": {
+                "title": "Appearance"
+            },
+            "startup": {
+                "title": "Startup"
+            },
+            "about": {
+                "title": "About & Support"
             }
         },
         "ttSettings": {

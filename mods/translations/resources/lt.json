@@ -96,7 +96,8 @@
                     "afrPauseDuration": {
                         "title": "Automatinio kadrų dažnio pauzės trukmė",
                         "subtitle": "Nustatykite trukmę (sekundėmis), kuriai vaizdo įrašo atkūrimas bus pristabdytas, kai keičiate kadrų dažnį"
-                    }
+                    },
+                    "chapters": "Chapters"
                 }
             },
             "uiSettings": {
@@ -147,6 +148,32 @@
                     "checkForUpdates": "Tikrinti ar yra naujinimų",
                     "checkForUpdatesOnStartup": "Tikrinti naujinimus paleidžiant"
                 }
+            },
+            "ads": {
+                "title": "Ads & Promotions"
+            },
+            "home": {
+                "title": "Home & Recommendations",
+                "options": {
+                    "previews": {
+                        "title": "Video Previews"
+                    }
+                }
+            },
+            "hiding": {
+                "title": "Hidden Content"
+            },
+            "sidebar": {
+                "title": "Sidebar"
+            },
+            "appearance": {
+                "title": "Appearance"
+            },
+            "startup": {
+                "title": "Startup"
+            },
+            "about": {
+                "title": "About & Support"
             }
         },
         "ttSettings": {

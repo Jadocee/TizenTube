@@ -315,100 +315,32 @@ export default function modernUI(update?: boolean, parameters?: number[]): void 
               }
             : null,
         {
-            name: t('settings.supportTT.title'),
-            icon: 'MONEY_HEART',
+            name: t('settings.options.ads.title'),
+            icon: 'DOLLAR_SIGN',
             value: null,
-            menuId: 'tt-support',
-            options: {
-                title: t('settings.supportTT.title'),
-                subtitle: t('settings.supportTT.subtitle'),
-                content: scrollPaneRenderer([
-                    overlayMessageRenderer(t('settings.supportTT.content.1')),
-                    overlayMessageRenderer(t('settings.supportTT.content.2')),
-                    overlayMessageRenderer(t('settings.supportTT.content.3')),
-                ]),
-            },
-        },
-        {
-            name: t('settings.options.socialMedia.title'),
-            icon: 'PRIVACY_UNLISTED',
-            value: null,
-            menuId: 'tt-social-media',
+            menuId: 'tt-ads',
             menuHeader: {
-                title: t('settings.options.socialMedia.title'),
+                title: t('settings.options.ads.title'),
                 subtitle: t('settings.ttSettings.title'),
             },
             options: [
                 {
-                    name: 'GitHub',
-                    link: 'https://github.com/Jadocee/TizenTube',
+                    name: t('settings.options.adBlock'),
+                    icon: 'DOLLAR_SIGN',
+                    value: 'enableAdBlock',
                 },
                 {
-                    name: 'YouTube',
-                    link: 'https://www.youtube.com/@tizenbrew',
+                    name: t('settings.options.misc.options.paidPromoOverlay'),
+                    icon: 'MONEY_HAND',
+                    value: 'enablePaidPromotionOverlay',
                 },
                 {
-                    name: 'Discord',
-                    link: 'https://discord.gg/m2P7v8Y2qR',
-                },
-                {
-                    name: `Telegram (${t('settings.options.socialMedia.group')})`,
-                    link: 'https://t.me/tizentubeofficial',
-                },
-                {
-                    name: t('settings.options.socialMedia.website'),
-                    link: 'https://tizentube.6513006.xyz',
-                },
-            ].map((option): SubmenuRow => {
-                if (!qrcodes[option.name]) {
-                    const qr = qrcode.qrcode(6, 'H');
-                    qr.addData(option.link);
-                    qr.make();
+                    name: t('settings.options.misc.options.endScreenCards'),
 
-                    const qrDataImgTag = qr.createImgTag(8, 8);
-                    const qrDataUrl = qrDataImgTag.match(/src="([^"]+)"/)![1];
-                    qrcodes[option.name] = qrDataUrl;
-                }
-                return {
-                    name: option.name,
-                    icon: 'OPEN_IN_NEW',
-                    value: null,
-                    menuId: `tt-social-${option.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
-                    options: {
-                        title: option.name,
-                        subtitle: option.link,
-                        content: overlayPanelItemListRenderer([
-                            overlayMessageRenderer(
-                                t('settings.options.socialMedia.qrCodeScanMessage', {
-                                    name: option.name,
-                                }),
-                            ),
-                            QrCodeRenderer(qrcodes[option.name]),
-                        ]),
-                    },
-                };
-            }),
-        },
-        {
-            name: t('settings.options.shortcuts.title'),
-            icon: 'INFO',
-            value: null,
-            menuId: 'tt-shortcuts',
-            options: {
-                title: t('settings.options.shortcuts.title'),
-                subtitle: t('settings.options.shortcuts.subtitle'),
-                content: scrollPaneRenderer([
-                    overlayMessageRenderer(t('settings.options.shortcuts.content.1')),
-                    overlayMessageRenderer(t('settings.options.shortcuts.content.2')),
-                    overlayMessageRenderer(t('settings.options.shortcuts.content.3')),
-                    overlayMessageRenderer(t('settings.options.shortcuts.content.4')),
-                ]),
-            },
-        },
-        {
-            name: t('settings.options.adBlock'),
-            icon: 'DOLLAR_SIGN',
-            value: 'enableAdBlock',
+                    icon: 'VISIBILITY_OFF',
+                    value: 'enableHideEndScreenCards',
+                },
+            ],
         },
         {
             name: t('settings.options.sponsorblock.title'),
@@ -547,7 +479,7 @@ export default function modernUI(update?: boolean, parameters?: number[]): void 
         },
         {
             name: t('settings.options.dearrow.title'),
-            icon: 'VISIBILITY_OFF',
+            icon: 'SPARK',
             value: null,
             menuId: 'tt-dearrow-settings',
             menuHeader: {
@@ -569,207 +501,100 @@ export default function modernUI(update?: boolean, parameters?: number[]): void 
             ],
         },
         {
-            name: t('settings.options.misc.title'),
-            icon: 'SETTINGS',
+            name: t('settings.options.videoPlayer.title'),
+            icon: 'VIDEO_YOUTUBE',
             value: null,
-            menuId: 'tt-misc-settings',
+            menuId: 'tt-video-settings',
             menuHeader: {
-                title: t('settings.options.misc.title'),
+                title: t('settings.options.videoPlayer.title'),
                 subtitle: t('settings.ttSettings.title'),
             },
             options: [
                 {
-                    name: t('settings.options.misc.options.endScreenCards'),
-
-                    icon: 'VISIBILITY_OFF',
-                    value: 'enableHideEndScreenCards',
+                    name: t('settings.options.videoPlayer.options.preferredVideoQuality.title'),
+                    icon: 'VIDEO_QUALITY',
+                    value: null,
+                    menuId: 'tt-preferred-video-quality',
+                    menuHeader: {
+                        title: t(
+                            'settings.options.videoPlayer.options.preferredVideoQuality.title',
+                        ),
+                        subtitle: t(
+                            'settings.options.videoPlayer.options.preferredVideoQuality.subtitle',
+                        ),
+                    },
+                    options: [
+                        'Auto',
+                        '2160p',
+                        '1440p',
+                        '1080p',
+                        '720p',
+                        '480p',
+                        '360p',
+                        '240p',
+                        '144p',
+                    ].map((quality): ChoiceRow => {
+                        return {
+                            name:
+                                quality === 'Auto'
+                                    ? t('settings.options.videoPlayer.options.qualityAuto')
+                                    : quality,
+                            key: 'preferredVideoQuality',
+                            value: quality.toLowerCase(),
+                        };
+                    }),
+                },
+                {
+                    name: t('settings.options.videoPlayer.options.preferredVideoCodec.title'),
+                    icon: 'VIDEO_QUALITY',
+                    value: null,
+                    menuId: 'tt-preferred-video-codec',
+                    menuHeader: {
+                        title: t('settings.options.videoPlayer.options.preferredVideoCodec.title'),
+                        subtitle: t(
+                            'settings.options.videoPlayer.options.preferredVideoCodec.subtitle',
+                        ),
+                    },
+                    options: ['any', 'vp9', 'av01', 'avc1'].map((codec): ChoiceRow => {
+                        return {
+                            name:
+                                codec === 'any'
+                                    ? t('settings.options.videoPlayer.options.codecAny')
+                                    : codec.toUpperCase(),
+                            key: 'videoPreferredCodec',
+                            value: codec,
+                        };
+                    }),
+                },
+                {
+                    name: t('settings.options.videoPlayer.options.speedSettings.title'),
+                    icon: 'SLOW_MOTION_VIDEO',
+                    value: null,
+                    menuId: 'tt-speed-settings-increments',
+                    menuHeader: {
+                        title: t('settings.options.videoPlayer.options.speedSettings.title'),
+                        subtitle: t('settings.options.videoPlayer.options.speedSettings.subtitle'),
+                    },
+                    options: [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5].map(
+                        (increment): ChoiceRow => {
+                            return {
+                                name: `${increment}x`,
+                                key: 'speedSettingsIncrement',
+                                value: increment,
+                            };
+                        },
+                    ),
+                },
+                {
+                    name: t('settings.options.videoPlayer.options.chapters'),
+                    icon: 'BOOKMARK_BORDER',
+                    value: 'enableChapters',
                 },
                 {
                     name: t('settings.options.misc.options.youThereRenderer'),
                     icon: 'HELP',
                     value: 'enableYouThereRenderer',
                 },
-                {
-                    name: t('settings.options.misc.options.paidPromoOverlay'),
-                    icon: 'MONEY_HAND',
-                    value: 'enablePaidPromotionOverlay',
-                },
-                {
-                    name: t('settings.options.misc.options.whosWatching.title'),
-                    icon: 'ACCOUNT_CIRCLE',
-                    menuId: 'tt-whos-watching-menu-settings',
-                    value: null,
-                    menuHeader: {
-                        title: t('settings.options.misc.options.whosWatching.title'),
-                        subtitle: t('settings.options.misc.title'),
-                    },
-                    options: [
-                        {
-                            name: t('settings.options.misc.options.whosWatching.options.enableWW'),
-                            value: 'enableWhoIsWatchingMenu',
-                        },
-                        {
-                            name: t(
-                                'settings.options.misc.options.whosWatching.options.permaEnableWW',
-                            ),
-                            value: 'permanentlyEnableWhoIsWatchingMenu',
-                        },
-                        {
-                            name: t(
-                                'settings.options.misc.options.whosWatching.options.enableWWOnExit',
-                            ),
-                            value: 'enableWhosWatchingMenuOnAppExit',
-                        },
-                    ],
-                },
-                {
-                    name: t('settings.options.misc.options.fixUI'),
-                    icon: 'STAR',
-                    value: 'enableFixedUI',
-                },
-                {
-                    name: t('settings.options.misc.options.hqThumbnails'),
-                    icon: 'VIDEO_QUALITY',
-                    value: 'enableHqThumbnails',
-                },
-                {
-                    name: t('settings.options.misc.options.compactShelves'),
-                    // The scope is in the row, not only in the code. This sets
-                    // YouTube's own compact-shelf flag, and the app ignores that
-                    // flag on any shelf it has already sized itself -- which on
-                    // a real signed-in home is every shelf. Measured: forcing
-                    // the flag onto all of them changes nothing. A setting whose
-                    // label promises the surface the user looks at most, and
-                    // then does nothing there, reads as broken.
-                    subtitle: t('settings.options.misc.options.compactShelvesSubtitle'),
-                    icon: 'VIDEO_QUALITY',
-                    value: 'enableCompactShelves',
-                },
-                /*{
-                    name: 'Chapters',
-                    icon: 'BOOKMARK_BORDER',
-                    value: 'enableChapters'
-                },*/
-                {
-                    name: t('settings.options.misc.options.longPress'),
-                    value: 'enableLongPress',
-                },
-                {
-                    name: t('settings.options.misc.options.hideRecommendations'),
-                    value: 'enableHideRecommendations',
-                },
-                {
-                    name: t('settings.options.misc.options.hidden.channels'),
-                    subtitle: hiddenSubtitle('hiddenChannels'),
-                    value: null,
-                    arrayToEdit: 'hiddenChannels',
-                    menuId: 'tt-hidden-channels',
-                    menuHeader: {
-                        title: t('settings.options.misc.options.hidden.channels'),
-                        subtitle: t('settings.options.misc.options.hidden.subtitle'),
-                    },
-                    options: hiddenOptions('hiddenChannels'),
-                },
-                {
-                    name: t('settings.options.misc.options.hidden.videos'),
-                    subtitle: hiddenSubtitle('hiddenVideos'),
-                    value: null,
-                    arrayToEdit: 'hiddenVideos',
-                    menuId: 'tt-hidden-videos',
-                    menuHeader: {
-                        title: t('settings.options.misc.options.hidden.videos'),
-                        subtitle: t('settings.options.misc.options.hidden.subtitle'),
-                    },
-                    options: hiddenOptions('hiddenVideos'),
-                },
-                {
-                    name: t('settings.options.misc.options.hideMembersOnly'),
-                    value: 'hideMembersOnlyVideos',
-                },
-                {
-                    name: t('settings.options.aislist.title'),
-                    icon: 'STAR',
-                    value: null,
-                    menuId: 'tt-aislist',
-                    menuHeader: {
-                        title: t('settings.options.aislist.title'),
-                        subtitle: t('settings.options.aislist.attribution'),
-                    },
-                    options: [
-                        {
-                            name: t('settings.options.aislist.enable'),
-                            subtitle: aisListSubtitle(),
-                            value: 'enableAiSList',
-                        },
-                        {
-                            name: t('settings.options.aislist.warnlist'),
-                            subtitle: t('settings.options.aislist.warnlistSubtitle'),
-                            value: 'aisListIncludeWarnlist',
-                        },
-                    ],
-                },
-                {
-                    name: t('settings.options.misc.options.shorts'),
-                    icon: 'YOUTUBE_SHORTS_FILL_24',
-                    value: 'enableShorts',
-                },
-                {
-                    name: t('settings.options.misc.options.videoPreviews'),
-                    value: 'enablePreviews',
-                },
-                {
-                    name: t('settings.options.misc.options.previewIndicator'),
-                    icon: 'PLAY_ARROW',
-                    value: 'enablePreviewIndicator',
-                },
-                {
-                    name: t('settings.options.misc.options.mutePreviews'),
-                    value: 'mutePreviews',
-                },
-                {
-                    name: t('settings.options.misc.options.ttWelcomeMsg'),
-                    value: 'showWelcomeToast',
-                },
-                {
-                    name: t('settings.options.misc.options.guestSignInReminder'),
-                    value: 'enableSigninReminder',
-                },
-                {
-                    name: t('settings.options.misc.options.reloadHomeOnStartup'),
-                    value: 'reloadHomeOnStartup',
-                },
-            ],
-        },
-        {
-            name: t('settings.options.subtitles.title'),
-            icon: 'TRANSLATE',
-            value: null,
-            menuId: 'tt-subtitle-settings',
-            menuHeader: {
-                title: t('settings.options.subtitles.title'),
-                subtitle: t('settings.ttSettings.title'),
-            },
-            options: [
-                {
-                    name: t('settings.options.subtitles.options.showLocalSubtitle'),
-                    value: 'enableShowUserLanguage',
-                },
-                {
-                    name: t('settings.options.subtitles.options.showHiddenSubtitles'),
-                    value: 'enableShowOtherLanguages',
-                },
-            ],
-        },
-        {
-            name: t('settings.options.videoPlayer.title'),
-            icon: 'VIDEO_YOUTUBE',
-            value: null,
-            menuId: 'tt-video-player-settings',
-            menuHeader: {
-                title: t('settings.options.videoPlayer.title'),
-                subtitle: t('settings.options.videoPlayer.subtitle'),
-            },
-            options: [
                 {
                     name: t('settings.options.videoPlayer.options.patching.title'),
                     icon: 'SETTINGS',
@@ -831,81 +656,6 @@ export default function modernUI(update?: boolean, parameters?: number[]): void 
                         },
                     ],
                 },
-                {
-                    name: t('settings.options.videoPlayer.options.preferredVideoQuality.title'),
-                    icon: 'VIDEO_QUALITY',
-                    value: null,
-                    menuId: 'tt-preferred-video-quality',
-                    menuHeader: {
-                        title: t(
-                            'settings.options.videoPlayer.options.preferredVideoQuality.title',
-                        ),
-                        subtitle: t(
-                            'settings.options.videoPlayer.options.preferredVideoQuality.subtitle',
-                        ),
-                    },
-                    options: [
-                        'Auto',
-                        '2160p',
-                        '1440p',
-                        '1080p',
-                        '720p',
-                        '480p',
-                        '360p',
-                        '240p',
-                        '144p',
-                    ].map((quality): ChoiceRow => {
-                        return {
-                            name:
-                                quality === 'Auto'
-                                    ? t('settings.options.videoPlayer.options.qualityAuto')
-                                    : quality,
-                            key: 'preferredVideoQuality',
-                            value: quality.toLowerCase(),
-                        };
-                    }),
-                },
-                {
-                    name: t('settings.options.videoPlayer.options.speedSettings.title'),
-                    icon: 'SLOW_MOTION_VIDEO',
-                    value: null,
-                    menuId: 'tt-speed-settings-increments',
-                    menuHeader: {
-                        title: t('settings.options.videoPlayer.options.speedSettings.title'),
-                        subtitle: t('settings.options.videoPlayer.options.speedSettings.subtitle'),
-                    },
-                    options: [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5].map(
-                        (increment): ChoiceRow => {
-                            return {
-                                name: `${increment}x`,
-                                key: 'speedSettingsIncrement',
-                                value: increment,
-                            };
-                        },
-                    ),
-                },
-                {
-                    name: t('settings.options.videoPlayer.options.preferredVideoCodec.title'),
-                    icon: 'VIDEO_QUALITY',
-                    value: null,
-                    menuId: 'tt-preferred-video-codec',
-                    menuHeader: {
-                        title: t('settings.options.videoPlayer.options.preferredVideoCodec.title'),
-                        subtitle: t(
-                            'settings.options.videoPlayer.options.preferredVideoCodec.subtitle',
-                        ),
-                    },
-                    options: ['any', 'vp9', 'av01', 'avc1'].map((codec): ChoiceRow => {
-                        return {
-                            name:
-                                codec === 'any'
-                                    ? t('settings.options.videoPlayer.options.codecAny')
-                                    : codec.toUpperCase(),
-                            key: 'videoPreferredCodec',
-                            value: codec,
-                        };
-                    }),
-                },
                 window.h5vcc && window.h5vcc.tizentube && window.h5vcc.tizentube.SetFrameRate
                     ? {
                           name: t('settings.options.videoPlayer.options.afr'),
@@ -946,15 +696,202 @@ export default function modernUI(update?: boolean, parameters?: number[]): void 
             ],
         },
         {
-            name: t('settings.options.uiSettings.title'),
-            icon: 'SETTINGS',
+            name: t('settings.options.subtitles.title'),
+            icon: 'CAPTIONS',
             value: null,
-            menuId: 'tt-ui-settings',
+            menuId: 'tt-subtitles-settings',
             menuHeader: {
-                title: t('settings.options.uiSettings.title'),
-                subtitle: t('settings.options.uiSettings.subtitle'),
+                title: t('settings.options.subtitles.title'),
+                subtitle: t('settings.ttSettings.title'),
             },
             options: [
+                {
+                    name: t('settings.options.captions.title'),
+                    icon: 'CAPTIONS',
+                    value: null,
+                    menuId: 'tt-caption-settings',
+                    menuHeader: {
+                        title: t('settings.options.captions.title'),
+                        subtitle: t('settings.ttSettings.title'),
+                    },
+                    options: [
+                        {
+                            name: t('settings.options.captions.default'),
+                            subtitle: t('settings.options.captions.defaultSubtitle'),
+                            value: null,
+                            menuId: 'tt-captions-default',
+                            menuHeader: {
+                                title: t('settings.options.captions.default'),
+                                subtitle: t('settings.options.captions.defaultSubtitle'),
+                            },
+                            options: [
+                                {
+                                    name: t('settings.options.captions.leave'),
+                                    key: 'captionsDefault',
+                                    value: 'leave',
+                                },
+                                {
+                                    name: t('settings.options.captions.on'),
+                                    key: 'captionsDefault',
+                                    value: 'on',
+                                },
+                                {
+                                    name: t('settings.options.captions.off'),
+                                    key: 'captionsDefault',
+                                    value: 'off',
+                                },
+                            ],
+                        },
+                        ...(captionChannelOptions('captionsOnChannels').length
+                            ? [
+                                  {
+                                      name: t('settings.options.captions.alwaysOn'),
+                                      icon: 'ACCOUNT_CIRCLE',
+                                      value: null,
+                                      arrayToEdit: 'captionsOnChannels' as const,
+                                      menuId: 'tt-captions-on-channels',
+                                      menuHeader: {
+                                          title: t('settings.options.captions.alwaysOn'),
+                                          subtitle: t('settings.options.captions.title'),
+                                      },
+                                      options: captionChannelOptions('captionsOnChannels'),
+                                  },
+                              ]
+                            : []),
+                        ...(captionChannelOptions('captionsOffChannels').length
+                            ? [
+                                  {
+                                      name: t('settings.options.captions.alwaysOff'),
+                                      icon: 'ACCOUNT_CIRCLE',
+                                      value: null,
+                                      arrayToEdit: 'captionsOffChannels' as const,
+                                      menuId: 'tt-captions-off-channels',
+                                      menuHeader: {
+                                          title: t('settings.options.captions.alwaysOff'),
+                                          subtitle: t('settings.options.captions.title'),
+                                      },
+                                      options: captionChannelOptions('captionsOffChannels'),
+                                  },
+                              ]
+                            : []),
+                    ],
+                },
+                {
+                    name: t('settings.options.subtitles.options.showLocalSubtitle'),
+                    value: 'enableShowUserLanguage',
+                },
+                {
+                    name: t('settings.options.subtitles.options.showHiddenSubtitles'),
+                    value: 'enableShowOtherLanguages',
+                },
+            ],
+        },
+        {
+            name: t('settings.options.home.title'),
+            icon: 'WHAT_TO_WATCH',
+            value: null,
+            menuId: 'tt-home',
+            menuHeader: {
+                title: t('settings.options.home.title'),
+                subtitle: t('settings.ttSettings.title'),
+            },
+            options: [
+                {
+                    name: t('settings.options.misc.options.shorts'),
+                    icon: 'YOUTUBE_SHORTS_FILL_24',
+                    value: 'enableShorts',
+                },
+                {
+                    name: t('settings.options.misc.options.compactShelves'),
+                    // The scope is in the row, not only in the code. This sets
+                    // YouTube's own compact-shelf flag, and the app ignores that
+                    // flag on any shelf it has already sized itself -- which on
+                    // a real signed-in home is every shelf. Measured: forcing
+                    // the flag onto all of them changes nothing. A setting whose
+                    // label promises the surface the user looks at most, and
+                    // then does nothing there, reads as broken.
+                    subtitle: t('settings.options.misc.options.compactShelvesSubtitle'),
+                    icon: 'VIDEO_QUALITY',
+                    value: 'enableCompactShelves',
+                },
+                {
+                    name: t('settings.options.misc.options.hqThumbnails'),
+                    icon: 'VIDEO_QUALITY',
+                    value: 'enableHqThumbnails',
+                },
+                {
+                    name: t('settings.options.misc.options.longPress'),
+                    value: 'enableLongPress',
+                },
+                {
+                    name: t('settings.options.home.options.previews.title'),
+                    icon: 'PLAY_CIRCLE',
+                    value: null,
+                    menuId: 'tt-home-previews',
+                    menuHeader: {
+                        title: t('settings.options.home.options.previews.title'),
+                        subtitle: t('settings.options.home.title'),
+                    },
+                    options: [
+                        {
+                            name: t('settings.options.misc.options.videoPreviews'),
+                            value: 'enablePreviews',
+                        },
+                        {
+                            name: t('settings.options.misc.options.previewIndicator'),
+                            icon: 'PLAY_ARROW',
+                            value: 'enablePreviewIndicator',
+                        },
+                        {
+                            name: t('settings.options.misc.options.mutePreviews'),
+                            value: 'mutePreviews',
+                        },
+                    ],
+                },
+            ],
+        },
+        {
+            name: t('settings.options.hiding.title'),
+            icon: 'VISIBILITY_OFF',
+            value: null,
+            menuId: 'tt-hidden',
+            menuHeader: {
+                title: t('settings.options.hiding.title'),
+                subtitle: t('settings.ttSettings.title'),
+            },
+            options: [
+                {
+                    name: t('settings.options.misc.options.hideRecommendations'),
+                    value: 'enableHideRecommendations',
+                },
+                {
+                    name: t('settings.options.misc.options.hidden.videos'),
+                    subtitle: hiddenSubtitle('hiddenVideos'),
+                    value: null,
+                    arrayToEdit: 'hiddenVideos',
+                    menuId: 'tt-hidden-videos',
+                    menuHeader: {
+                        title: t('settings.options.misc.options.hidden.videos'),
+                        subtitle: t('settings.options.misc.options.hidden.subtitle'),
+                    },
+                    options: hiddenOptions('hiddenVideos'),
+                },
+                {
+                    name: t('settings.options.misc.options.hidden.channels'),
+                    subtitle: hiddenSubtitle('hiddenChannels'),
+                    value: null,
+                    arrayToEdit: 'hiddenChannels',
+                    menuId: 'tt-hidden-channels',
+                    menuHeader: {
+                        title: t('settings.options.misc.options.hidden.channels'),
+                        subtitle: t('settings.options.misc.options.hidden.subtitle'),
+                    },
+                    options: hiddenOptions('hiddenChannels'),
+                },
+                {
+                    name: t('settings.options.misc.options.hideMembersOnly'),
+                    value: 'hideMembersOnlyVideos',
+                },
                 {
                     name: t('settings.options.uiSettings.options.hideWatchedVideos.title'),
                     icon: 'VISIBILITY_OFF',
@@ -1053,83 +990,39 @@ export default function modernUI(update?: boolean, parameters?: number[]): void 
                     ],
                 },
                 {
-                    name: t('settings.options.uiSettings.options.screenDimming.title'),
-                    icon: 'EYE_OFF',
+                    name: t('settings.options.aislist.title'),
+                    icon: 'STAR',
                     value: null,
-                    menuId: 'tt-screen-dimming-settings',
+                    menuId: 'tt-aislist',
                     menuHeader: {
-                        title: t('settings.options.uiSettings.options.screenDimming.title'),
-                        subtitle: t('settings.options.uiSettings.title'),
+                        title: t('settings.options.aislist.title'),
+                        subtitle: t('settings.options.aislist.attribution'),
                     },
                     options: [
                         {
-                            name: t(
-                                'settings.options.uiSettings.options.screenDimming.options.enableScreenDimming',
-                            ),
-                            icon: 'EYE_OFF',
-                            value: 'enableScreenDimming',
+                            name: t('settings.options.aislist.enable'),
+                            subtitle: aisListSubtitle(),
+                            value: 'enableAiSList',
                         },
                         {
-                            name: t(
-                                'settings.options.uiSettings.options.screenDimming.options.dimmingTimeout.title',
-                            ),
-                            icon: 'TIMER',
-                            value: null,
-                            menuId: 'tt-dimming-timeout',
-                            menuHeader: {
-                                title: t(
-                                    'settings.options.uiSettings.options.screenDimming.options.dimmingTimeout.title',
-                                ),
-                                subtitle: t(
-                                    'settings.options.uiSettings.options.screenDimming.options.dimmingTimeout.subtitle',
-                                ),
-                            },
-                            options: [10, 20, 30, 60, 120, 180, 240, 300].map(
-                                (seconds): ChoiceRow => {
-                                    const title =
-                                        seconds >= 60
-                                            ? t(
-                                                  `settings.options.time.minute${seconds / 60 > 1 ? 's' : ''}`,
-                                                  { count: seconds / 60 },
-                                              )
-                                            : t('settings.options.time.seconds', {
-                                                  count: seconds,
-                                              });
-                                    return {
-                                        name: title,
-                                        key: 'dimmingTimeout',
-                                        value: seconds,
-                                    };
-                                },
-                            ),
-                        },
-                        {
-                            name: t(
-                                'settings.options.uiSettings.options.screenDimming.options.dimmingOpacity.title',
-                            ),
-                            icon: 'LENS_BLUE',
-                            value: null,
-                            menuId: 'tt-dimming-opacity',
-                            menuHeader: {
-                                title: t(
-                                    'settings.options.uiSettings.options.screenDimming.options.dimmingOpacity.title',
-                                ),
-                                subtitle: t(
-                                    'settings.options.uiSettings.options.screenDimming.options.dimmingOpacity.subtitle',
-                                ),
-                            },
-                            options: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0].map(
-                                (opacity): ChoiceRow => {
-                                    return {
-                                        name: `${Math.round(opacity * 100)}%`,
-                                        key: 'dimmingOpacity',
-                                        value: opacity,
-                                    };
-                                },
-                            ),
+                            name: t('settings.options.aislist.warnlist'),
+                            subtitle: t('settings.options.aislist.warnlistSubtitle'),
+                            value: 'aisListIncludeWarnlist',
                         },
                     ],
                 },
+            ],
+        },
+        {
+            name: t('settings.options.sidebar.title'),
+            icon: 'TAB_MORE',
+            value: null,
+            menuId: 'tt-sidebar',
+            menuHeader: {
+                title: t('settings.options.sidebar.title'),
+                subtitle: t('settings.ttSettings.title'),
+            },
+            options: [
                 {
                     name: t('settings.options.uiSettings.options.disableSidebarContents.title'),
                     icon: 'MENU',
@@ -1212,6 +1105,222 @@ export default function modernUI(update?: boolean, parameters?: number[]): void 
                         },
                     ],
                 },
+                {
+                    name: t('settings.options.uiSettings.options.sortSubscriptionsByAlphabet'),
+                    icon: 'SUBSCRIPTIONS',
+                    value: 'sortSubscriptionsByAlphabet',
+                },
+                {
+                    name: t('settings.options.uiSettings.options.disableChannelsOnSidebar'),
+                    value: 'disableChannelsOnSidebar',
+                },
+                {
+                    name: t('settings.options.uiSettings.options.hideWatchLater'),
+                    value: 'hideWatchLaterInSidebar',
+                },
+                {
+                    name: t('settings.options.uiSettings.options.refreshOnReselect'),
+                    value: 'refreshOnReselect',
+                },
+            ],
+        },
+        {
+            name: t('settings.options.appearance.title'),
+            icon: 'LENS_BLUE',
+            value: null,
+            menuId: 'tt-appearance',
+            menuHeader: {
+                title: t('settings.options.appearance.title'),
+                subtitle: t('settings.ttSettings.title'),
+            },
+            options: [
+                {
+                    name: t('settings.options.uiSettings.options.theme.title'),
+                    value: null,
+                    icon: 'LENS_BLUE',
+                    menuId: 'tt-theme-settings',
+                    menuHeader: {
+                        title: t('settings.options.uiSettings.options.theme.title'),
+                        subtitle: t('settings.options.uiSettings.options.theme.subtitle'),
+                    },
+                    options: [
+                        {
+                            name: t('settings.options.uiSettings.options.theme.barColor'),
+                            icon: 'LENS_BLUE',
+                            value: null,
+                            menuId: 'tt-theme-bar-color',
+                            menuHeader: {
+                                title: t('settings.options.uiSettings.options.theme.barColor'),
+                                subtitle: t('settings.options.uiSettings.options.theme.subtitle'),
+                            },
+                            options: themeColorOptions('focusContainerColor'),
+                        },
+                        {
+                            name: t('settings.options.uiSettings.options.theme.routeColor'),
+                            icon: 'LENS_BLUE',
+                            value: null,
+                            menuId: 'tt-theme-route-color',
+                            menuHeader: {
+                                title: t('settings.options.uiSettings.options.theme.routeColor'),
+                                subtitle: t('settings.options.uiSettings.options.theme.subtitle'),
+                            },
+                            options: themeColorOptions('routeColor'),
+                        },
+                    ],
+                },
+                {
+                    name: t('settings.options.uiSettings.options.clock.title'),
+                    value: null,
+                    icon: 'TIMER',
+                    menuId: 'tt-clock-settings',
+                    menuHeader: {
+                        title: t('settings.options.uiSettings.options.clock.title'),
+                        subtitle: t('settings.options.uiSettings.options.clock.subtitle'),
+                    },
+                    options: [
+                        {
+                            name: t(
+                                'settings.options.uiSettings.options.clock.options.enableClock',
+                            ),
+                            icon: 'TIMER',
+                            value: 'enableClock',
+                        },
+                        {
+                            name: t(
+                                'settings.options.uiSettings.options.clock.options.isClock12HourFormat',
+                            ),
+                            icon: 'TIMER',
+                            value: 'isClock12HourFormat',
+                        },
+                        {
+                            name: t(
+                                'settings.options.uiSettings.options.clock.options.clockShowSeconds',
+                            ),
+                            icon: 'TIMER',
+                            value: 'clockShowSeconds',
+                        },
+                        {
+                            name: t(
+                                'settings.options.uiSettings.options.clock.options.clockPosition.title',
+                            ),
+                            icon: 'TIMER',
+                            value: null,
+                            menuId: 'tt-clock-position',
+                            menuHeader: {
+                                title: t(
+                                    'settings.options.uiSettings.options.clock.options.clockPosition.title',
+                                ),
+                                subtitle: t(
+                                    'settings.options.uiSettings.options.clock.options.clockPosition.subtitle',
+                                ),
+                            },
+                            options: CLOCK_POSITIONS.map((position): ChoiceRow => {
+                                return {
+                                    name: t(
+                                        `settings.options.uiSettings.options.clock.options.clockPosition.options.${position}`,
+                                    ),
+                                    key: 'clockPosition',
+                                    value: position,
+                                };
+                            }),
+                        },
+                    ],
+                },
+                {
+                    name: t('settings.options.uiSettings.options.screenDimming.title'),
+                    icon: 'EYE_OFF',
+                    value: null,
+                    menuId: 'tt-screen-dimming-settings',
+                    menuHeader: {
+                        title: t('settings.options.uiSettings.options.screenDimming.title'),
+                        subtitle: t('settings.options.uiSettings.title'),
+                    },
+                    options: [
+                        {
+                            name: t(
+                                'settings.options.uiSettings.options.screenDimming.options.enableScreenDimming',
+                            ),
+                            icon: 'EYE_OFF',
+                            value: 'enableScreenDimming',
+                        },
+                        {
+                            name: t(
+                                'settings.options.uiSettings.options.screenDimming.options.dimmingTimeout.title',
+                            ),
+                            icon: 'TIMER',
+                            value: null,
+                            menuId: 'tt-dimming-timeout',
+                            menuHeader: {
+                                title: t(
+                                    'settings.options.uiSettings.options.screenDimming.options.dimmingTimeout.title',
+                                ),
+                                subtitle: t(
+                                    'settings.options.uiSettings.options.screenDimming.options.dimmingTimeout.subtitle',
+                                ),
+                            },
+                            options: [10, 20, 30, 60, 120, 180, 240, 300].map(
+                                (seconds): ChoiceRow => {
+                                    const title =
+                                        seconds >= 60
+                                            ? t(
+                                                  `settings.options.time.minute${seconds / 60 > 1 ? 's' : ''}`,
+                                                  { count: seconds / 60 },
+                                              )
+                                            : t('settings.options.time.seconds', {
+                                                  count: seconds,
+                                              });
+                                    return {
+                                        name: title,
+                                        key: 'dimmingTimeout',
+                                        value: seconds,
+                                    };
+                                },
+                            ),
+                        },
+                        {
+                            name: t(
+                                'settings.options.uiSettings.options.screenDimming.options.dimmingOpacity.title',
+                            ),
+                            icon: 'LENS_BLUE',
+                            value: null,
+                            menuId: 'tt-dimming-opacity',
+                            menuHeader: {
+                                title: t(
+                                    'settings.options.uiSettings.options.screenDimming.options.dimmingOpacity.title',
+                                ),
+                                subtitle: t(
+                                    'settings.options.uiSettings.options.screenDimming.options.dimmingOpacity.subtitle',
+                                ),
+                            },
+                            options: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0].map(
+                                (opacity): ChoiceRow => {
+                                    return {
+                                        name: `${Math.round(opacity * 100)}%`,
+                                        key: 'dimmingOpacity',
+                                        value: opacity,
+                                    };
+                                },
+                            ),
+                        },
+                    ],
+                },
+                {
+                    name: t('settings.options.misc.options.fixUI'),
+                    icon: 'STAR',
+                    value: 'enableFixedUI',
+                },
+            ],
+        },
+        {
+            name: t('settings.options.startup.title'),
+            icon: 'PLAY_ARROW',
+            value: null,
+            menuId: 'tt-startup',
+            menuHeader: {
+                title: t('settings.options.startup.title'),
+                subtitle: t('settings.ttSettings.title'),
+            },
+            options: [
                 {
                     name: t('settings.options.uiSettings.options.launchToOnStartup.title'),
                     icon: 'TV',
@@ -1330,184 +1439,44 @@ export default function modernUI(update?: boolean, parameters?: number[]): void 
                     ],
                 },
                 {
-                    name: t('settings.options.uiSettings.options.sortSubscriptionsByAlphabet'),
-                    icon: 'SUBSCRIPTIONS',
-                    value: 'sortSubscriptionsByAlphabet',
+                    name: t('settings.options.misc.options.reloadHomeOnStartup'),
+                    value: 'reloadHomeOnStartup',
                 },
                 {
-                    name: t('settings.options.uiSettings.options.disableChannelsOnSidebar'),
-                    value: 'disableChannelsOnSidebar',
+                    name: t('settings.options.misc.options.ttWelcomeMsg'),
+                    value: 'showWelcomeToast',
                 },
                 {
-                    name: t('settings.options.uiSettings.options.hideWatchLater'),
-                    value: 'hideWatchLaterInSidebar',
-                },
-                {
-                    name: t('settings.options.captions.title'),
-                    icon: 'CAPTIONS',
+                    name: t('settings.options.misc.options.whosWatching.title'),
+                    icon: 'ACCOUNT_CIRCLE',
+                    menuId: 'tt-whos-watching-menu-settings',
                     value: null,
-                    menuId: 'tt-caption-settings',
                     menuHeader: {
-                        title: t('settings.options.captions.title'),
-                        subtitle: t('settings.ttSettings.title'),
+                        title: t('settings.options.misc.options.whosWatching.title'),
+                        subtitle: t('settings.options.misc.title'),
                     },
                     options: [
                         {
-                            name: t('settings.options.captions.default'),
-                            subtitle: t('settings.options.captions.defaultSubtitle'),
-                            value: null,
-                            menuId: 'tt-captions-default',
-                            menuHeader: {
-                                title: t('settings.options.captions.default'),
-                                subtitle: t('settings.options.captions.defaultSubtitle'),
-                            },
-                            options: [
-                                {
-                                    name: t('settings.options.captions.leave'),
-                                    key: 'captionsDefault',
-                                    value: 'leave',
-                                },
-                                {
-                                    name: t('settings.options.captions.on'),
-                                    key: 'captionsDefault',
-                                    value: 'on',
-                                },
-                                {
-                                    name: t('settings.options.captions.off'),
-                                    key: 'captionsDefault',
-                                    value: 'off',
-                                },
-                            ],
-                        },
-                        ...(captionChannelOptions('captionsOnChannels').length
-                            ? [
-                                  {
-                                      name: t('settings.options.captions.alwaysOn'),
-                                      icon: 'ACCOUNT_CIRCLE',
-                                      value: null,
-                                      arrayToEdit: 'captionsOnChannels' as const,
-                                      menuId: 'tt-captions-on-channels',
-                                      menuHeader: {
-                                          title: t('settings.options.captions.alwaysOn'),
-                                          subtitle: t('settings.options.captions.title'),
-                                      },
-                                      options: captionChannelOptions('captionsOnChannels'),
-                                  },
-                              ]
-                            : []),
-                        ...(captionChannelOptions('captionsOffChannels').length
-                            ? [
-                                  {
-                                      name: t('settings.options.captions.alwaysOff'),
-                                      icon: 'ACCOUNT_CIRCLE',
-                                      value: null,
-                                      arrayToEdit: 'captionsOffChannels' as const,
-                                      menuId: 'tt-captions-off-channels',
-                                      menuHeader: {
-                                          title: t('settings.options.captions.alwaysOff'),
-                                          subtitle: t('settings.options.captions.title'),
-                                      },
-                                      options: captionChannelOptions('captionsOffChannels'),
-                                  },
-                              ]
-                            : []),
-                    ],
-                },
-                {
-                    name: t('settings.options.uiSettings.options.refreshOnReselect'),
-                    value: 'refreshOnReselect',
-                },
-                {
-                    name: t('settings.options.uiSettings.options.theme.title'),
-                    value: null,
-                    icon: 'LENS_BLUE',
-                    menuId: 'tt-theme-settings',
-                    menuHeader: {
-                        title: t('settings.options.uiSettings.options.theme.title'),
-                        subtitle: t('settings.options.uiSettings.options.theme.subtitle'),
-                    },
-                    options: [
-                        {
-                            name: t('settings.options.uiSettings.options.theme.barColor'),
-                            icon: 'LENS_BLUE',
-                            value: null,
-                            menuId: 'tt-theme-bar-color',
-                            menuHeader: {
-                                title: t('settings.options.uiSettings.options.theme.barColor'),
-                                subtitle: t('settings.options.uiSettings.options.theme.subtitle'),
-                            },
-                            options: themeColorOptions('focusContainerColor'),
+                            name: t('settings.options.misc.options.whosWatching.options.enableWW'),
+                            value: 'enableWhoIsWatchingMenu',
                         },
                         {
-                            name: t('settings.options.uiSettings.options.theme.routeColor'),
-                            icon: 'LENS_BLUE',
-                            value: null,
-                            menuId: 'tt-theme-route-color',
-                            menuHeader: {
-                                title: t('settings.options.uiSettings.options.theme.routeColor'),
-                                subtitle: t('settings.options.uiSettings.options.theme.subtitle'),
-                            },
-                            options: themeColorOptions('routeColor'),
+                            name: t(
+                                'settings.options.misc.options.whosWatching.options.permaEnableWW',
+                            ),
+                            value: 'permanentlyEnableWhoIsWatchingMenu',
+                        },
+                        {
+                            name: t(
+                                'settings.options.misc.options.whosWatching.options.enableWWOnExit',
+                            ),
+                            value: 'enableWhosWatchingMenuOnAppExit',
                         },
                     ],
                 },
                 {
-                    name: t('settings.options.uiSettings.options.clock.title'),
-                    value: null,
-                    icon: 'TIMER',
-                    menuId: 'tt-clock-settings',
-                    menuHeader: {
-                        title: t('settings.options.uiSettings.options.clock.title'),
-                        subtitle: t('settings.options.uiSettings.options.clock.subtitle'),
-                    },
-                    options: [
-                        {
-                            name: t(
-                                'settings.options.uiSettings.options.clock.options.enableClock',
-                            ),
-                            icon: 'TIMER',
-                            value: 'enableClock',
-                        },
-                        {
-                            name: t(
-                                'settings.options.uiSettings.options.clock.options.isClock12HourFormat',
-                            ),
-                            icon: 'TIMER',
-                            value: 'isClock12HourFormat',
-                        },
-                        {
-                            name: t(
-                                'settings.options.uiSettings.options.clock.options.clockShowSeconds',
-                            ),
-                            icon: 'TIMER',
-                            value: 'clockShowSeconds',
-                        },
-                        {
-                            name: t(
-                                'settings.options.uiSettings.options.clock.options.clockPosition.title',
-                            ),
-                            icon: 'TIMER',
-                            value: null,
-                            menuId: 'tt-clock-position',
-                            menuHeader: {
-                                title: t(
-                                    'settings.options.uiSettings.options.clock.options.clockPosition.title',
-                                ),
-                                subtitle: t(
-                                    'settings.options.uiSettings.options.clock.options.clockPosition.subtitle',
-                                ),
-                            },
-                            options: CLOCK_POSITIONS.map((position): ChoiceRow => {
-                                return {
-                                    name: t(
-                                        `settings.options.uiSettings.options.clock.options.clockPosition.options.${position}`,
-                                    ),
-                                    key: 'clockPosition',
-                                    value: position,
-                                };
-                            }),
-                        },
-                    ],
+                    name: t('settings.options.misc.options.guestSignInReminder'),
+                    value: 'enableSigninReminder',
                 },
             ],
         },
@@ -1544,6 +1513,109 @@ export default function modernUI(update?: boolean, parameters?: number[]): void 
                   ],
               }
             : null,
+        {
+            name: t('settings.options.about.title'),
+            icon: 'INFO',
+            value: null,
+            menuId: 'tt-about',
+            menuHeader: {
+                title: t('settings.options.about.title'),
+                subtitle: t('settings.ttSettings.title'),
+            },
+            options: [
+                {
+                    name: t('settings.supportTT.title'),
+                    icon: 'MONEY_HEART',
+                    value: null,
+                    menuId: 'tt-support',
+                    options: {
+                        title: t('settings.supportTT.title'),
+                        subtitle: t('settings.supportTT.subtitle'),
+                        content: scrollPaneRenderer([
+                            overlayMessageRenderer(t('settings.supportTT.content.1')),
+                            overlayMessageRenderer(t('settings.supportTT.content.2')),
+                            overlayMessageRenderer(t('settings.supportTT.content.3')),
+                        ]),
+                    },
+                },
+                {
+                    name: t('settings.options.socialMedia.title'),
+                    icon: 'PRIVACY_UNLISTED',
+                    value: null,
+                    menuId: 'tt-social-media',
+                    menuHeader: {
+                        title: t('settings.options.socialMedia.title'),
+                        subtitle: t('settings.ttSettings.title'),
+                    },
+                    options: [
+                        {
+                            name: 'GitHub',
+                            link: 'https://github.com/Jadocee/TizenTube',
+                        },
+                        {
+                            name: 'YouTube',
+                            link: 'https://www.youtube.com/@tizenbrew',
+                        },
+                        {
+                            name: 'Discord',
+                            link: 'https://discord.gg/m2P7v8Y2qR',
+                        },
+                        {
+                            name: `Telegram (${t('settings.options.socialMedia.group')})`,
+                            link: 'https://t.me/tizentubeofficial',
+                        },
+                        {
+                            name: t('settings.options.socialMedia.website'),
+                            link: 'https://tizentube.6513006.xyz',
+                        },
+                    ].map((option): SubmenuRow => {
+                        if (!qrcodes[option.name]) {
+                            const qr = qrcode.qrcode(6, 'H');
+                            qr.addData(option.link);
+                            qr.make();
+
+                            const qrDataImgTag = qr.createImgTag(8, 8);
+                            const qrDataUrl = qrDataImgTag.match(/src="([^"]+)"/)![1];
+                            qrcodes[option.name] = qrDataUrl;
+                        }
+                        return {
+                            name: option.name,
+                            icon: 'OPEN_IN_NEW',
+                            value: null,
+                            menuId: `tt-social-${option.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+                            options: {
+                                title: option.name,
+                                subtitle: option.link,
+                                content: overlayPanelItemListRenderer([
+                                    overlayMessageRenderer(
+                                        t('settings.options.socialMedia.qrCodeScanMessage', {
+                                            name: option.name,
+                                        }),
+                                    ),
+                                    QrCodeRenderer(qrcodes[option.name]),
+                                ]),
+                            },
+                        };
+                    }),
+                },
+                {
+                    name: t('settings.options.shortcuts.title'),
+                    icon: 'INFO',
+                    value: null,
+                    menuId: 'tt-shortcuts',
+                    options: {
+                        title: t('settings.options.shortcuts.title'),
+                        subtitle: t('settings.options.shortcuts.subtitle'),
+                        content: scrollPaneRenderer([
+                            overlayMessageRenderer(t('settings.options.shortcuts.content.1')),
+                            overlayMessageRenderer(t('settings.options.shortcuts.content.2')),
+                            overlayMessageRenderer(t('settings.options.shortcuts.content.3')),
+                            overlayMessageRenderer(t('settings.options.shortcuts.content.4')),
+                        ]),
+                    },
+                },
+            ],
+        },
     ];
 
     const buttons: CompactLinkRenderer[] = [];

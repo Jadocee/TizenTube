@@ -98,7 +98,8 @@
                     "afrPauseDuration": {
                         "title": "Temps de pause de la fréquence de trame automatique",
                         "subtitle": "Définir le temps de pause (en secondes) pendant l'ajustement de la fréquence de trame"
-                    }
+                    },
+                    "chapters": "Chapters"
                 }
             },
             "uiSettings": {
@@ -150,6 +151,32 @@
                     "checkForUpdates": "Vérifier les mises à jour",
                     "checkForUpdatesOnStartup": "Vérifier les mises à jour au démarrage"
                 }
+            },
+            "ads": {
+                "title": "Ads & Promotions"
+            },
+            "home": {
+                "title": "Home & Recommendations",
+                "options": {
+                    "previews": {
+                        "title": "Video Previews"
+                    }
+                }
+            },
+            "hiding": {
+                "title": "Hidden Content"
+            },
+            "sidebar": {
+                "title": "Sidebar"
+            },
+            "appearance": {
+                "title": "Appearance"
+            },
+            "startup": {
+                "title": "Startup"
+            },
+            "about": {
+                "title": "About & Support"
             }
         },
         "ttSettings": {

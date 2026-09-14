@@ -96,7 +96,8 @@
                     "afrPauseDuration": {
                         "title": "Durata Pausa Frame Rate Automatico",
                         "subtitle": "Imposta la durata (in secondi) della pausa mentre viene corretto il frame rate"
-                    }
+                    },
+                    "chapters": "Chapters"
                 }
             },
             "uiSettings": {
@@ -147,6 +148,32 @@
                     "checkForUpdates": "Controlla aggiornamenti",
                     "checkForUpdatesOnStartup": "Controlla aggiornamenti all'avvio"
                 }
+            },
+            "ads": {
+                "title": "Ads & Promotions"
+            },
+            "home": {
+                "title": "Home & Recommendations",
+                "options": {
+                    "previews": {
+                        "title": "Video Previews"
+                    }
+                }
+            },
+            "hiding": {
+                "title": "Hidden Content"
+            },
+            "sidebar": {
+                "title": "Sidebar"
+            },
+            "appearance": {
+                "title": "Appearance"
+            },
+            "startup": {
+                "title": "Startup"
+            },
+            "about": {
+                "title": "About & Support"
             }
         },
         "ttSettings": {

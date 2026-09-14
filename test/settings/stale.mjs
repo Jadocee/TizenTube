@@ -61,13 +61,17 @@ function check(desc, got, want) {
     );
 }
 
-// --- Scenario: UI Settings > Screen Dimming > Dimming Timeout -------------
+// --- Scenario: Appearance > Screen Dimming > Dimming Timeout --------------
 const root = render(() => modernUI());
-const ui = render(() => {
-    const p = openParams(row(root, 'User Interface Settings'));
+// Screen Dimming lives under Appearance since the settings tree was regrouped;
+// Launch To moved to Startup at the same time. These paths are literal on
+// purpose -- driving the menu the way a person does is the point of this file --
+// so a regrouping is supposed to land here and be updated deliberately.
+const appearance = render(() => {
+    const p = openParams(row(root, 'Appearance'));
     optionShow(p, p.update);
 });
-const dimRow = row(ui, 'Screen Dimming');
+const dimRow = row(appearance, 'Screen Dimming');
 const dim = render(() => {
     const p = openParams(dimRow);
     optionShow(p, p.update);
@@ -132,7 +136,11 @@ check(
 );
 
 // --- Scenario: Launch To on Startup can be cleared again -------------------
-const launchRow = row(ui, 'Launch To on Startup');
+const startup = render(() => {
+    const p = openParams(row(root, 'Startup'));
+    optionShow(p, p.update);
+});
+const launchRow = row(startup, 'Launch To on Startup');
 const launchMenu = render(() => {
     const p = openParams(launchRow);
     optionShow(p, p.update);

@@ -98,7 +98,8 @@
                     "afrPauseDuration": {
                         "title": "Тривалість паузи Auto Frame Rate",
                         "subtitle": "Встановіть тривалість паузи відтворення (у секундах) під час зміни частоти кадрів"
-                    }
+                    },
+                    "chapters": "Chapters"
                 }
             },
             "uiSettings": {
@@ -159,6 +160,32 @@
                     "checkForUpdates": "Перевірити оновлення",
                     "checkForUpdatesOnStartup": "Перевіряти оновлення під час запуску"
                 }
+            },
+            "ads": {
+                "title": "Ads & Promotions"
+            },
+            "home": {
+                "title": "Home & Recommendations",
+                "options": {
+                    "previews": {
+                        "title": "Video Previews"
+                    }
+                }
+            },
+            "hiding": {
+                "title": "Hidden Content"
+            },
+            "sidebar": {
+                "title": "Sidebar"
+            },
+            "appearance": {
+                "title": "Appearance"
+            },
+            "startup": {
+                "title": "Startup"
+            },
+            "about": {
+                "title": "About & Support"
             }
         },
         "ttSettings": {

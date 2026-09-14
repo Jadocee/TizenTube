@@ -104,7 +104,8 @@
                         "subtitle": "Ustaw czas trwania (w sekundach) pauzy odtwarzania wideo podczas dostosowywania liczby klatek na sekundę"
                     },
                     "codecAny": "Dowolny",
-                    "qualityAuto": "Automatyczna"
+                    "qualityAuto": "Automatyczna",
+                    "chapters": "Chapters"
                 }
             },
             "time": {
@@ -212,6 +213,32 @@
                     "title": "Aktualizacja TizenTube 9",
                     "subtitle": "Pobieranie aktualizacji, proszę czekać..."
                 }
+            },
+            "ads": {
+                "title": "Ads & Promotions"
+            },
+            "home": {
+                "title": "Home & Recommendations",
+                "options": {
+                    "previews": {
+                        "title": "Video Previews"
+                    }
+                }
+            },
+            "hiding": {
+                "title": "Hidden Content"
+            },
+            "sidebar": {
+                "title": "Sidebar"
+            },
+            "appearance": {
+                "title": "Appearance"
+            },
+            "startup": {
+                "title": "Startup"
+            },
+            "about": {
+                "title": "About & Support"
             }
         },
         "ttSettings": {

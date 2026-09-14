@@ -96,7 +96,8 @@
                     "afrPauseDuration": {
                         "title": "調整幀率時的暫停時間",
                         "subtitle": "設定調整幀率時，影片暫停的秒數"
-                    }
+                    },
+                    "chapters": "Chapters"
                 }
             },
             "uiSettings": {
@@ -147,6 +148,32 @@
                     "checkForUpdates": "檢查更新",
                     "checkForUpdatesOnStartup": "啟動時檢查更新"
                 }
+            },
+            "ads": {
+                "title": "Ads & Promotions"
+            },
+            "home": {
+                "title": "Home & Recommendations",
+                "options": {
+                    "previews": {
+                        "title": "Video Previews"
+                    }
+                }
+            },
+            "hiding": {
+                "title": "Hidden Content"
+            },
+            "sidebar": {
+                "title": "Sidebar"
+            },
+            "appearance": {
+                "title": "Appearance"
+            },
+            "startup": {
+                "title": "Startup"
+            },
+            "about": {
+                "title": "About & Support"
             }
         },
         "ttSettings": {

@@ -104,7 +104,8 @@
                         "subtitle": "Lege fest, wie lange (in Sekunden) das Video pausiert wird, wenn die Bildrate angepasst wird"
                     },
                     "codecAny": "Beliebig",
-                    "qualityAuto": "Automatisch"
+                    "qualityAuto": "Automatisch",
+                    "chapters": "Chapters"
                 }
             },
             "time": {
@@ -212,6 +213,32 @@
                     "title": "TizenTube 9-Update",
                     "subtitle": "Update wird heruntergeladen, bitte warten..."
                 }
+            },
+            "ads": {
+                "title": "Ads & Promotions"
+            },
+            "home": {
+                "title": "Home & Recommendations",
+                "options": {
+                    "previews": {
+                        "title": "Video Previews"
+                    }
+                }
+            },
+            "hiding": {
+                "title": "Hidden Content"
+            },
+            "sidebar": {
+                "title": "Sidebar"
+            },
+            "appearance": {
+                "title": "Appearance"
+            },
+            "startup": {
+                "title": "Startup"
+            },
+            "about": {
+                "title": "About & Support"
             }
         },
         "ttSettings": {

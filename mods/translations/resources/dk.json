@@ -96,7 +96,8 @@
                     "afrPauseDuration": {
                         "title": "Pausevarighed for Automatisk Billedfrekvens",
                         "subtitle": "Angiv varigheden (i sekunder) for at sætte videoafspilning på pause ved justering af billedfrekvens"
-                    }
+                    },
+                    "chapters": "Chapters"
                 }
             },
             "uiSettings": {
@@ -147,6 +148,32 @@
                     "checkForUpdates": "Søg efter opdateringer",
                     "checkForUpdatesOnStartup": "Søg efter opdateringer ved opstart"
                 }
+            },
+            "ads": {
+                "title": "Ads & Promotions"
+            },
+            "home": {
+                "title": "Home & Recommendations",
+                "options": {
+                    "previews": {
+                        "title": "Video Previews"
+                    }
+                }
+            },
+            "hiding": {
+                "title": "Hidden Content"
+            },
+            "sidebar": {
+                "title": "Sidebar"
+            },
+            "appearance": {
+                "title": "Appearance"
+            },
+            "startup": {
+                "title": "Startup"
+            },
+            "about": {
+                "title": "About & Support"
             }
         },
         "ttSettings": {
