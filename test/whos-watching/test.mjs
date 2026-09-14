@@ -57,6 +57,73 @@ for (const [label, raw] of Object.entries(shapes)) {
 }
 console.log(`\n${throws} of the cases above throw. This function is called at module scope in the`);
 console.log(`bundle, so each of those aborts every module imported after it.`);
+
+// --- and what it actually writes --------------------------------------------
+// Not throwing is half of it. The other half is the DIRECTION of the timestamp,
+// which was wrong: the enabled-but-not-permanent path stamped lastFired with the
+// current time. The app reads that field as `now - lastFired` and suppresses the
+// screen while the result is inside its cooldown, so "show the who's watching
+// menu" was the thing preventing it, and only the permanent path -- which
+// backdates by seven days -- made the screen appear. Nothing here could see it,
+// because everything here asked "did it throw".
+let wrong = 0;
+const DAY = 24 * 60 * 60 * 1000;
+// Older than the two-hour guard, or the guard returns before writing anything --
+// which is what the first draft of this did, reporting the fix as absent.
+function stale() {
+    const o = full();
+    for (const k of Object.keys(o.data.data))
+        o.data.data[k].lastFired = Date.now() - 3 * 60 * 60 * 1000;
+    return o;
+}
+
+function writes(label, { enabled, perma }, expect) {
+    globalThis.localStorage = {};
+    globalThis.localStorage['yt.leanback.default::recurring_actions'] = JSON.stringify(stale());
+    stub.store.permanentlyEnableWhoIsWatchingMenu = perma;
+    disableWhosWatching(enabled);
+    const after = JSON.parse(globalThis.localStorage['yt.leanback.default::recurring_actions']);
+    const written = after.data.data['startup-screen-account-selector-with-guest'].lastFired;
+    const ok = expect(written - Date.now());
+    if (!ok) wrong++;
+    console.log(
+        `${ok ? '  ok  ' : 'FAIL  '}${label.padEnd(52)} lastFired ${Math.round((written - Date.now()) / DAY)}d from now`,
+    );
+}
+
+// Enabled: the screen has to be eligible, so the stamp must be far enough in the
+// PAST to clear the app's cooldown (120 minutes for a signed-in device).
+writes(
+    'enabled backdates so the screen is eligible',
+    { enabled: true, perma: false },
+    (delta) => delta < -2 * 60 * 60 * 1000,
+);
+writes(
+    '  ...and so does enabled+permanent',
+    { enabled: true, perma: true },
+    (delta) => delta < -2 * 60 * 60 * 1000,
+);
+// Disabled: the stamp must be in the FUTURE, which is how the mod suppresses it.
+writes(
+    'disabled postdates so the screen is suppressed',
+    { enabled: false, perma: false },
+    (delta) => delta > 0,
+);
+
+// The two-hour guard: a screen shown minutes ago must be left alone, so YouTube
+// suppresses it exactly as it would without the mod.
+globalThis.localStorage = {};
+const recent = full();
+recent.data.data['startup-screen-account-selector-with-guest'].lastFired = Date.now() - 60_000;
+globalThis.localStorage['yt.leanback.default::recurring_actions'] = JSON.stringify(recent);
+stub.store.permanentlyEnableWhoIsWatchingMenu = false;
+disableWhosWatching(true);
+const untouched = JSON.parse(globalThis.localStorage['yt.leanback.default::recurring_actions']).data
+    .data['startup-screen-account-selector-with-guest'].lastFired;
+const guardHeld = Math.abs(untouched - (Date.now() - 60_000)) < 5_000;
+if (!guardHeld) wrong++;
+console.log(`${guardHeld ? '  ok  ' : 'FAIL  '}a screen shown a minute ago is left alone`);
+
 // Any throw here is a regression: this runs at module scope in the bundle, so
 // one of them aborts every module imported after it.
-process.exit(throws ? 1 : 0);
+process.exit(throws || wrong ? 1 : 0);
