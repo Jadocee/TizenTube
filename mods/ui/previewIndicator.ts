@@ -1,4 +1,10 @@
-// Draws the "this thumbnail is playing" mark, and nothing else.
+// Draws the two things that say a thumbnail is previewing: a badge saying what
+// kind of playing it is, and a progress bar saying how far through.
+//
+// One module because they are driven by one state machine, and two copies of
+// that machine is two chances for them to disagree about whether a preview is
+// running. Two settings because they say different things, and the quietest
+// arrangement -- the bar without the badge -- has to be reachable.
 //
 // Every decision it makes -- when to retire, whether focus has settled, where
 // the mark goes -- lives in features/previewState.ts as pure functions that a
@@ -18,7 +24,9 @@ import { onPreviewStart, onPreviewStop } from '../features/playbackPreview.js';
 import { DEFAULT_PREVIEW_DURATION_MS } from '../features/tileFixes.js';
 import {
     remainingMs,
+    progressFraction,
     formatRemaining,
+    barBox,
     IDLE,
     reduce,
     chipOrigin,
@@ -37,6 +45,7 @@ import css from './previewIndicator.css';
 setStyleBlock('previewIndicator', css);
 
 const ELEMENT_ID = 'tizentube-preview-indicator';
+const BAR_ID = 'tizentube-preview-progress';
 
 let element: HTMLDivElement | null = null;
 let state: PreviewState = IDLE;
@@ -60,14 +69,51 @@ let countdown: ReturnType<typeof setTimeout> | null = null;
  *  reason to go looking for it. */
 let timeElement: HTMLElement | null = null;
 
+/** The progress bar and the element inside it that actually moves. Two nodes
+ *  rather than one, because the track has to stay the full width of the tile
+ *  while the fill grows -- which is how the app's own PREVIEW bar is built:
+ *  `.zIOpyc` is the track and `.OlEbwe` the fill it scales. (Its WATCHED bar,
+ *  `.mSnwOd`/`.Y7ta6`, is a different component and sizes its fill with an
+ *  inline width percentage, which is the technique this deliberately avoids.) */
+let bar: HTMLDivElement | null = null;
+let barFill: HTMLElement | null = null;
+/**
+ * Which preview the bar is currently running for, as that preview's startedAt.
+ *
+ * render() is called for every state change -- a stall, the speaker appearing --
+ * and re-arming on each of those would restart the animation from wherever the
+ * bar had got to, so a video that stuttered twice would show a bar that jumped
+ * backwards twice. Armed once per preview, and the identity of a preview is the
+ * moment it was requested.
+ */
+let barArmedFor: number | null = null;
+/**
+ * The media position the preview began at, in seconds.
+ *
+ * The app's own bar takes this from the endpoint's `startTimeSeconds`; sampling
+ * it off the first frame instead gets the same number for an ordinary preview
+ * and the RIGHT number for one the app resumed part-way through, which
+ * `resumeVideo: true` in the mod's own command asks it to do.
+ */
+let barOrigin = 0;
+/** Which preview barOrigin was sampled for. Kept apart from barArmedFor so that
+ *  switching the bar off and on again inside one preview re-arms it at the
+ *  position the video has actually reached, rather than measuring a fresh origin
+ *  from the middle of a video and claiming the preview just started. */
+let barOriginFor: number | null = null;
+
 /** Media events tell us buffering apart from finished, which no timer can, and
  *  -- since `playing` is the first frame -- loading apart from playing. They are
  *  added only while a preview is running, so they cost nothing at rest.
  *
  *  volumechange is here because the sound mark has to be able to go away: the
  *  app mutes and unmutes its own preview player, and a speaker left drawn on a
- *  muted video is exactly the wrong error. */
-const MEDIA_EVENTS = ['playing', 'waiting', 'stalled', 'volumechange'] as const;
+ *  muted video is exactly the wrong error.
+ *
+ *  timeupdate is the progress bar's clock. It is the only one of these that
+ *  fires repeatedly -- roughly four times a second in Chromium -- and its
+ *  handler does one style write and nothing else. */
+const MEDIA_EVENTS = ['playing', 'waiting', 'stalled', 'volumechange', 'timeupdate'] as const;
 
 function clearSoundTimer(): void {
     if (soundTimer !== null) {
@@ -175,6 +221,198 @@ function ensureElement(): HTMLDivElement | null {
 }
 
 /**
+ * The progress bar, built the same way and for the same reason as the mark: only
+ * once something is genuinely playing, so a refused stylesheet cannot leave a
+ * bare div parked across a thumbnail.
+ */
+function ensureBar(): HTMLDivElement | null {
+    if (bar) return bar;
+    const node = document.createElement('div');
+    node.id = BAR_ID;
+    node.className = 'tt-dimmable';
+    const fill = document.createElement('div');
+    fill.className = 'tt-pp-fill';
+    node.appendChild(fill);
+    bar = node;
+    barFill = fill;
+    whenBodyReady(() => {
+        if (bar && !bar.isConnected) document.body.appendChild(bar);
+    });
+    return bar;
+}
+
+/**
+ * The box the preview is actually playing in, in physical viewport pixels.
+ *
+ * MEASURED FROM THE VIDEO, not from the focused tile, and the difference is the
+ * whole reason this function exists. A focused tile's box includes the title and
+ * channel underneath the thumbnail, so a bar on its bottom edge would be drawn
+ * across the text rather than across the picture. The app positions its player
+ * over the thumbnail itself -- `a.Sc=_.bL(b)` in the preview service, where
+ * `_.bL` is `getBoundingClientRect` of the element the tile handed it -- so the
+ * video's own box IS the thumbnail box, whichever element that turned out to be.
+ *
+ * It is also the honest gate for a preview that has been adopted into the watch
+ * page: that player fills the screen, barBox rejects it, and no bar is drawn
+ * rather than one across the bottom of a full-screen video, where it would read
+ * as the video's own progress.
+ */
+function mediaBox(): { x: number; y: number; width: number } | null {
+    if (!media || typeof media.getBoundingClientRect !== 'function') return null;
+    try {
+        const box = media.getBoundingClientRect();
+        return barBox(
+            { left: box.left, top: box.top, width: box.width, height: box.height },
+            { width: window.innerWidth, height: window.innerHeight },
+        );
+    } catch (_e) {
+        // A detached element. No bar is the right answer, not a guessed one.
+        return null;
+    }
+}
+
+/** Moves the bar onto the box it is describing, without disturbing the fill. */
+function placeBar(): void {
+    // `=== null`, not `!barArmedFor`: barArmedFor holds a startedAt, and a
+    // preview requested at timestamp 0 is falsy. advanceBar carries the same
+    // note; this function had the bug the note describes.
+    if (!bar || barArmedFor === null) return;
+    const box = mediaBox();
+    if (!box) return;
+    bar.style.setProperty('--tt-pp-x', `${box.x}px`);
+    bar.style.setProperty('--tt-pp-y', `${box.y}px`);
+    bar.style.setProperty('--tt-pp-w', `${box.width}px`);
+}
+
+/**
+ * Starts the bar for the preview that is playing now.
+ *
+ * The origin is sampled from the frame that has just arrived -- but only once
+ * per preview, so this is also the path that puts the bar back mid-preview after
+ * its setting has been switched off and on, at the position the video has
+ * actually reached.
+ *
+ * The fill is SNAPPED, with the transition suppressed for that one write. A
+ * preview starting on top of another would otherwise slide its bar backwards
+ * across the new tile from wherever the last one had got to.
+ */
+function armBar(): void {
+    // SAMPLED BEFORE ANYTHING CAN FAIL, because the origin belongs to the
+    // preview rather than to whether its box could be measured. A preview whose
+    // player was full-screen at the first frame -- one adopted from the watch
+    // page -- still knows where it began if it later becomes drawable.
+    if (barOriginFor !== state.startedAt) {
+        barOrigin = media && Number.isFinite(media.currentTime) ? media.currentTime : 0;
+        barOriginFor = state.startedAt;
+    }
+
+    const box = mediaBox();
+    if (!box) {
+        // NOT retireBar(): "cannot measure the box" is not "the preview ended",
+        // and retiring here would throw away the origin just sampled. Hide the
+        // bar and leave the bookkeeping to the retirement that actually happens.
+        barArmedFor = null;
+        if (bar) bar.removeAttribute('data-state');
+        return;
+    }
+    const node = ensureBar();
+    if (!node || !barFill) return;
+
+    const fraction = progressFraction({
+        currentTime: media ? media.currentTime : undefined,
+        startTime: barOrigin,
+        durationMs: state.durationMs,
+    });
+
+    node.style.setProperty('--tt-pp-x', `${box.x}px`);
+    node.style.setProperty('--tt-pp-y', `${box.y}px`);
+    node.style.setProperty('--tt-pp-w', `${box.width}px`);
+    node.setAttribute('data-state', state.phase);
+
+    barFill.style.transitionDuration = '0ms';
+    barFill.style.transform = `scaleX(${fraction === null ? 0 : fraction})`;
+
+    barArmedFor = state.startedAt;
+}
+
+/**
+ * Moves the fill to wherever the video has got to.
+ *
+ * Driven by the media element's own timeupdate, which is the closest thing the
+ * mod has to the onProgressChange the app's own bar subscribes to, and fires at
+ * about the same rate. The stylesheet carries a 250ms linear transition -- the
+ * same one the app's `.OlEbwe` carries -- so those few samples a second are
+ * drawn as a continuous crawl by the compositor rather than as visible steps.
+ *
+ * The transition is handed back on the first advance, because armBar suppressed
+ * it to snap the fill to zero.
+ */
+function advanceBar(): void {
+    // `!barArmedFor` would be wrong here and was: a preview requested at
+    // timestamp 0 is falsy, and this file already records that trap once, in
+    // dispatch's `|| before.phase === 'idle'`. Unreachable on a television,
+    // perfectly reachable in a harness with a fake clock -- which is exactly how
+    // a bug like this survives for years.
+    if (!bar || !barFill || barArmedFor === null) return;
+    const fraction = progressFraction({
+        currentTime: media ? media.currentTime : undefined,
+        startTime: barOrigin,
+        durationMs: state.durationMs,
+    });
+    // Nothing honest to draw: leave the bar where it is rather than sending it
+    // back to zero, which would read as the preview restarting.
+    if (fraction === null) return;
+    barFill.style.transitionDuration = '';
+    barFill.style.transform = `scaleX(${fraction})`;
+}
+
+/**
+ * Hides the bar, keeping the element for the next preview.
+ *
+ * The fill is left exactly where it stopped. Resetting it here would empty the
+ * bar during the 160ms it spends fading out -- a preview rewinding as it ends --
+ * and there is nothing to reset it for: every path back to visible goes through
+ * armBar, which sets the fill itself.
+ */
+function retireBar(): void {
+    barArmedFor = null;
+    barOrigin = 0;
+    barOriginFor = null;
+    if (bar) bar.removeAttribute('data-state');
+}
+
+/** Gives up the element entirely, for the setting going off or a teardown. */
+function dropBar(): void {
+    barArmedFor = null;
+    // barOrigin deliberately survives -- see barOriginFor. It is cleared when
+    // the preview ends, which is retireBar, not when the setting goes off.
+    if (bar) bar.remove();
+    bar = null;
+    barFill = null;
+}
+
+/** Draws the bar, or does not, for whatever the state now is. */
+function syncBar(): void {
+    if (!configRead('enablePreviewProgressBar')) {
+        dropBar();
+        return;
+    }
+    if (state.phase !== 'playing' && state.phase !== 'stalled') {
+        retireBar();
+        return;
+    }
+    if (barArmedFor !== null && barArmedFor === state.startedAt) {
+        // Already running for this preview. Stalling changes how it is painted
+        // and nothing else -- re-arming here would restart the animation from
+        // wherever the bar had reached, so a video that stuttered would show a
+        // bar that jumped backwards.
+        if (bar) bar.setAttribute('data-state', state.phase);
+        return;
+    }
+    armBar();
+}
+
+/**
  * Wakes the reducer at the next deadline that could retire the mark.
  *
  * While loading that is the load timeout, which is much sooner than endsAt --
@@ -202,7 +440,25 @@ function clearWatchdog(): void {
     }
 }
 
+/**
+ * Both halves of the overlay, each answering to its own setting.
+ *
+ * They are drawn by one module because they are driven by one state machine, and
+ * two copies of that machine is two chances for the bar and the mark to disagree
+ * about whether a preview is running. They are SETTINGS-independent all the
+ * same: someone who wants the bar and not the badge -- which is the quieter
+ * arrangement, and the point of making the badge quieter -- gets exactly that.
+ */
 function render(): void {
+    syncBar();
+    renderChip();
+}
+
+function renderChip(): void {
+    if (!configRead('enablePreviewIndicator')) {
+        dropChip();
+        return;
+    }
     if (state.phase === 'idle') {
         if (element) element.removeAttribute('data-state');
         // This branch RETURNS, so anything that has to stop when the mark
@@ -273,8 +529,25 @@ function clearCountdown(): void {
     }
 }
 
+/** Gives up the badge entirely, for the setting going off or a teardown. */
+function dropChip(): void {
+    // Explicit, though render()'s idle branch would also stop it: this path does
+    // not go through render(), and a timer whose only brake is `if (element)` is
+    // one tick of dead work rather than none.
+    clearCountdown();
+    if (element) element.remove();
+    element = null;
+    // Held above; a stale reference into a removed tree would keep it alive and
+    // would be written to by the next preview's first render.
+    timeElement = null;
+}
+
 function place(): void {
-    const node = ensureElement();
+    // The element that already exists, never one built here. Both callers run
+    // render() first, so when the badge is switched on the node is there -- and
+    // when it is switched off, building one to position it would put the badge
+    // back on screen with its setting off.
+    const node = element;
     if (!node) return;
 
     let rect = null;
@@ -319,6 +592,13 @@ function onMediaEvent(event: Event): void {
         refreshSound();
         return;
     }
+    // Before the fall-through below, which reads anything it does not recognise
+    // as a stall. A timeupdate arriving every 250ms would otherwise report a
+    // perfectly healthy preview as buffering, four times a second.
+    if (event.type === 'timeupdate') {
+        advanceBar();
+        return;
+    }
     if (event.type === 'playing') {
         dispatch({ type: 'resume', now: Date.now() });
         // The first frame. Read audio now for the common case where the counter
@@ -328,6 +608,11 @@ function onMediaEvent(event: Event): void {
         soundTimer = setTimeout(() => {
             soundTimer = null;
             refreshSound();
+            // One correction of the bar's box, on a timer that already exists.
+            // The app moves its player onto the tile, and on the path where that
+            // move is animated -- 200ms, ease-in-out -- the box measured at the
+            // first frame can be a box the player was still travelling through.
+            placeBar();
         }, AUDIO_SETTLE_MS);
         return;
     }
@@ -466,28 +751,51 @@ function disable(): void {
     listenToMedia(false);
     clearWatchdog();
     clearSoundTimer();
-    // Explicit, though render()'s idle branch would also stop it: disable()
-    // drops the element without going through render(), and a timer whose only
-    // brake is `if (element)` is one tick of dead work rather than none.
-    clearCountdown();
 
     state = IDLE;
     media = null;
     sound = 'unknown';
 
-    if (element) {
-        element.remove();
-        element = null;
-    }
-    // Held above; a stale reference into a removed tree would keep it alive and
-    // would be written to by the next preview's first render.
-    timeElement = null;
+    dropChip();
+    // Retire before dropping: retireBar owns the per-preview bookkeeping
+    // (the armed marker and the sampled origin) that dropBar deliberately
+    // leaves alone so a setting toggle can re-arm mid-preview.
+    retireBar();
+    dropBar();
+}
+
+/** Whether either half of the overlay wants the state machine running. */
+function anyEnabled(): boolean {
+    return !!configRead('enablePreviewIndicator') || !!configRead('enablePreviewProgressBar');
 }
 
 configChangeEmitter.addEventListener('configChange', (e) => {
-    if (e.detail.key !== 'enablePreviewIndicator') return;
-    if (e.detail.value) enable();
-    else disable();
+    const key = e.detail.key;
+    if (key !== 'enablePreviewIndicator' && key !== 'enablePreviewProgressBar') return;
+    if (!anyEnabled()) {
+        disable();
+        return;
+    }
+    enable();
+
+    // The half that just went off has to let go of its element even though the
+    // module keeps running for the other one.
+    if (!e.detail.value) {
+        if (key === 'enablePreviewIndicator') dropChip();
+        else dropBar();
+        return;
+    }
+
+    // ONLY THE BAR REJOINS A PREVIEW ALREADY IN PROGRESS, and the asymmetry is
+    // about anchors rather than taste. armBar measures the video's own box, so
+    // the bar can put itself in the right place at any moment. The badge
+    // anchors to whatever has focus -- and by the time someone has reached the
+    // settings panel to switch it on, what has focus IS the settings panel. A
+    // render() here drew it with its position variables never written, which
+    // the stylesheet resolves to a hard translate3d(0px, 0px): the badge in the
+    // extreme corner of the screen, for the rest of the preview. So it waits
+    // for the next one, where dispatch's restarted branch places it properly.
+    if (key === 'enablePreviewProgressBar') syncBar();
 });
 
-if (configRead('enablePreviewIndicator')) enable();
+if (anyEnabled()) enable();

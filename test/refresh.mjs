@@ -263,8 +263,11 @@ for (const [file, dir, landmarks] of [
         [
             'export function reduce',
             'export function chipOrigin',
+            'export function barBox',
             'export function anchorUsable',
             'export function shouldAnchor',
+            'export function previewEndsAt',
+            'export function progressFraction',
             'MOVE_GRACE_MS',
             'WATCHDOG_SLACK_MS',
         ],

@@ -843,6 +843,11 @@ export default function modernUI(update?: boolean, parameters?: number[]): void 
                             value: 'enablePreviewIndicator',
                         },
                         {
+                            name: t('settings.options.misc.options.previewProgressBar'),
+                            icon: 'VIDEO_QUALITY',
+                            value: 'enablePreviewProgressBar',
+                        },
+                        {
                             name: t('settings.options.misc.options.mutePreviews'),
                             value: 'mutePreviews',
                         },
