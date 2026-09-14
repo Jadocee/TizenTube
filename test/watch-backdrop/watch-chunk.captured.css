@@ -1,0 +1,210 @@
+/* Captured verbatim from the stylesheet the WATCH PAGE ships in its own
+   lazy-loaded chunk -- not from main.css, and that distinction is the whole
+   reason this file exists.
+
+   Five fixes for "the video goes black when the controls come up" were derived
+   from main.css, because main.css was the only stylesheet anyone had captured.
+   The rule that was actually doing it is not in main.css. It is here:
+
+       .XT6t8b{top:0;right:0;bottom:0;left:0;margin:auto;background-color:#0b0b0b;
+               display:block;height:45rem;pointer-events:none;position:absolute;
+               width:80rem}
+       .app-quality-root .XT6t8b{display:none}
+
+   An opaque panel the exact size of the app's page box (80rem x 45rem, the same
+   figures #container carries), sitting inside the watch chrome container
+   <ytlr-watch-default class="G7qFFc">, whose base state is display:block and
+   whose only brake is app-quality-root. The mod used to strip that class off
+   <body>, so the panel painted for exactly as long as the chrome was up.
+
+   The chunk carries 320 app-quality-root selectors in total. main.css carries
+   231. Anything derived from one of those files alone is derived from less than
+   half of the evidence, which is the mistake this file is here to stop
+   repeating. Only the rules the harness renders are vendored -- the whole chunk
+   is Google's, and a harness that needs all of it is one nobody maintains. */
+
+.mWBAvd {
+    background-image: -webkit-gradient(
+        linear,
+        left top,
+        left bottom,
+        from(transparent),
+        to(#0b0b0b)
+    );
+    background-image: -webkit-linear-gradient(top, transparent 0, #0b0b0b 100%);
+    background-image: linear-gradient(to bottom, transparent 0, #0b0b0b 100%);
+    height: 100%;
+    width: 100%;
+    position: absolute;
+}
+.app-quality-root .mWBAvd {
+    display: none;
+}
+.iMpfAe {
+    background-image: -webkit-gradient(
+        linear,
+        left top,
+        left bottom,
+        from(transparent),
+        color-stop(90%, #030303)
+    );
+    background-image: -webkit-linear-gradient(top, transparent 0, #030303 90%);
+    background-image: linear-gradient(to bottom, transparent 0, #030303 90%);
+    opacity: 0;
+}
+.app-quality-root .iMpfAe {
+    opacity: 1;
+    display: none;
+}
+.app-quality-root .iMpfAe {
+    opacity: 1;
+    display: none;
+}
+.iMpfAe {
+    background-color: #0b0b0b;
+    display: block;
+    height: 100%;
+    position: absolute;
+    width: 100%;
+}
+.OG0bL .iMpfAe {
+    opacity: 1;
+}
+.app-quality-root .OG0bL .iMpfAe {
+    opacity: 1;
+    display: block;
+}
+.app-quality-root .OG0bL .iMpfAe {
+    opacity: 1;
+    display: block;
+}
+.app-quality-root .OG0bL .iMpfAe {
+    display: none;
+}
+.G7qFFc {
+    display: block;
+    height: 100%;
+    left: 0;
+    position: fixed;
+    top: 0;
+    width: 100%;
+}
+.XT6t8b {
+    opacity: 1;
+}
+.app-quality-root .XT6t8b {
+    opacity: 1;
+    display: block;
+}
+.app-quality-root .XT6t8b {
+    opacity: 1;
+    display: block;
+}
+.XT6t8b {
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    margin: auto;
+    background-color: #0b0b0b;
+    display: block;
+    height: 45rem;
+    pointer-events: none;
+    position: absolute;
+    width: 80rem;
+}
+.app-quality-root .XT6t8b {
+    display: none;
+}
+.Av3RDf .XT6t8b {
+    opacity: 0;
+}
+.app-quality-root .Av3RDf .XT6t8b {
+    opacity: 1;
+    display: none;
+}
+.app-quality-root .Av3RDf .XT6t8b {
+    opacity: 1;
+    display: none;
+}
+.xL1bWb .XT6t8b {
+    opacity: 0;
+}
+.Nru8Ae .XT6t8b {
+    opacity: 0;
+}
+.app-quality-root .Nru8Ae .XT6t8b {
+    opacity: 1;
+    display: none;
+}
+.app-quality-root .Nru8Ae .XT6t8b {
+    opacity: 1;
+    display: none;
+}
+.oUWMAc .XT6t8b {
+    opacity: 0;
+}
+.app-quality-root .oUWMAc .XT6t8b {
+    opacity: 1;
+    display: none;
+}
+.app-quality-root .oUWMAc .XT6t8b {
+    opacity: 1;
+    display: none;
+}
+.w5tnte .XT6t8b {
+    opacity: 0;
+}
+.isgUvd .XT6t8b {
+    background-color: #0f0f0f;
+}
+.N3ipUd .XT6t8b {
+    display: none;
+}
+.UfXqSc .XT6t8b {
+    opacity: 0;
+}
+.app-quality-root .UfXqSc .XT6t8b {
+    opacity: 1;
+    display: none;
+}
+.app-quality-root .UfXqSc .XT6t8b {
+    opacity: 1;
+    display: none;
+}
+.KsJslf .XT6t8b {
+    opacity: 1;
+}
+.VkMtsf .XT6t8b {
+    opacity: 0;
+}
+.app-quality-root .VkMtsf .XT6t8b {
+    opacity: 1;
+    display: none;
+}
+.app-quality-root .VkMtsf .XT6t8b {
+    opacity: 1;
+    display: none;
+}
+.ApXCd .XT6t8b {
+    opacity: 0;
+}
+.ZghAqf .XT6t8b {
+    opacity: 0;
+}
+.app-quality-root .ZghAqf .XT6t8b {
+    opacity: 1;
+    display: none;
+}
+.app-quality-root .ZghAqf .XT6t8b {
+    opacity: 1;
+    display: none;
+}
+.YceUtc {
+    display: block;
+    height: 100%;
+    left: 0;
+    position: fixed;
+    top: 0;
+    width: 100%;
+}

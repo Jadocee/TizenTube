@@ -25,7 +25,13 @@ import { chromium, chromiumExecutable, checker, skip, readRepo } from '../lib/re
 const launcher = await chromium();
 if (!launcher) skip('Playwright with Chromium is not installed.');
 
-const APP_RULES = readRepo('test', 'watch-backdrop', 'app-rules.captured.css');
+// TWO captures, and the second is the one five fixes went without. main.css is
+// not the whole stylesheet: the watch page ships its own in a lazy-loaded chunk,
+// and the rule that was blacking out the video lives only there.
+const APP_RULES = [
+    readRepo('test', 'watch-backdrop', 'app-rules.captured.css'),
+    readRepo('test', 'watch-backdrop', 'watch-chunk.captured.css'),
+].join('\n');
 
 // The mod's own blocks, read from source so a change there is a change here.
 const themeSrc = readRepo('mods', 'ui', 'theme.ts');
@@ -38,9 +44,6 @@ const MOD_RULES = [
     readRepo('mods', 'ui', 'skipNotice.css'),
     readRepo('mods', 'ui', 'previewIndicator.css'),
 ].join('\n');
-
-// Applied separately: whether it is present is the question two assertions ask.
-const SCRIMS = readRepo('mods', 'ui', 'qualityScrims.css');
 
 const VIDEO = 'rgb(0, 255, 0)'; // a colour nothing in either stylesheet uses
 const browser = await launcher.launch({ executablePath: chromiumExecutable() });
@@ -59,7 +62,7 @@ async function centrePixel({
     appQualityRoot = true,
     scrim = false,
     mod = true,
-    scrims = false,
+    shadow = true,
     extra = '',
 }) {
     const body = [
@@ -88,8 +91,7 @@ async function centrePixel({
     // in one <style> with the app's rules ahead of them -- the opposite of
     // reality -- and passed a fix that did nothing on a television.
     await page.setContent(
-        `<style id="tt-mod">html{font-size:16px}${mod ? MOD_RULES : ''}` +
-            `${scrims ? `\n${SCRIMS}` : ''}</style>` +
+        `<style id="tt-mod">html{font-size:16px}${mod ? MOD_RULES : ''}</style>` +
             `<body class="${body}">` +
             '<div id="app-background"></div>' +
             '<div id="container">' +
@@ -98,6 +100,14 @@ async function centrePixel({
             '<div class="aeeFdf"><div id="ytlr-player__player-container">' +
             `<video class="video-stream" style="width:100%;height:100%;background:${VIDEO}"></video>` +
             '</div></div></ytlr-player></ytlr-player-container></div>' +
+            // THE WATCH CHROME, which no earlier version of this harness had, and
+            // whose absence is why it stayed green through five failed fixes.
+            // <ytlr-watch-page> wraps <ytlr-watch-default>, and the last child of
+            // that container is the "shadow" div -- an opaque 80rem x 45rem panel
+            // that the app hides with app-quality-root and nothing else.
+            '<ytlr-watch-page class="YceUtc"><ytlr-watch-default class="G7qFFc">' +
+            (shadow ? '<div class="XT6t8b"></div>' : '') +
+            '</ytlr-watch-default></ytlr-watch-page>' +
             extra +
             '</body>',
     );
@@ -134,31 +144,49 @@ check(
     'rgb(17, 17, 17)',
 );
 
-// --- the regression: app-quality-root ---------------------------------------
-// ui.ts used to run a MutationObserver stripping this class off <body> on every
-// attribute change. It reads as a cosmetic flag and is not one: the app uses it
-// to turn OFF its own legacy scrim fills, including
-// `.Vdm04.YW4uOd:before{background:#030303;height:100%;width:100%}` at z-index 1
-// on ytlr-player -- over the video, under the chrome.
+// --- THE BUG, and it is the class removal itself ----------------------------
+// The mod used to strip `app-quality-root` off <body> on every attribute change.
+// The class is UNCONDITIONAL in the app -- main.js's page-class builder does
+// `P.push("app-quality-root")` outside every branch -- so removing it puts the
+// app into a CSS state that never occurs in the wild, losing 231 selectors from
+// main.css and another 320 from the watch chunk.
+//
+// One of those is the whole symptom. Rendered here rather than argued.
 check(
-    'with the class, a scrimmed player shows the video',
-    await centrePixel({ scrim: true }),
+    'with the class, the chrome leaves the video alone',
+    await centrePixel({ appQualityRoot: true }),
     VIDEO,
 );
 check(
-    '  ...removing it alone covers the video',
-    await centrePixel({ scrim: true, appQualityRoot: false }),
+    '  ...removing it paints the shadow panel over the video',
+    await centrePixel({ appQualityRoot: false }),
+    'rgb(11, 11, 11)',
+);
+// ISOLATED, so the assertion above names a cause rather than a coincidence: take
+// that one element out of the tree and the video comes back with the class still
+// removed. Nothing else in either stylesheet is doing it.
+check(
+    '  ...and it is .XT6t8b doing it, nothing else',
+    await centrePixel({ appQualityRoot: false, shadow: false }),
+    VIDEO,
+);
+// The colour is the app's, not ours: with the mod's own stylesheets out of the
+// page entirely the panel still paints. This is not something the mod draws.
+check(
+    "  ...with or without the mod's own rules",
+    await centrePixel({ appQualityRoot: false, mod: false }),
+    'rgb(11, 11, 11)',
+);
+
+// --- the scrims, which were never the cause ---------------------------------
+// Five fixes aimed here. Kept as assertions because they record what the app
+// really does, and because the player scrim IS a real mechanism -- just not this
+// symptom's. With the class present, every one of them leaves the video alone.
+check('a scrimmed player shows the video', await centrePixel({ scrim: true }), VIDEO);
+check(
+    '  ...and removing the class arms that one too',
+    await centrePixel({ scrim: true, appQualityRoot: false, shadow: false }),
     'rgb(3, 3, 3)',
-);
-check(
-    '  ...which is what qualityScrims.css exists to prevent',
-    await centrePixel({ scrim: true, appQualityRoot: false, scrims: true }),
-    VIDEO,
-);
-check(
-    '  ...and with no scrim the class makes no difference',
-    await centrePixel({ scrim: false, appQualityRoot: false }),
-    VIDEO,
 );
 
 // --- every scrim the app can put on the player, rendered ---------------------
@@ -184,7 +212,7 @@ check('the captured map names scrim classes', scrimClasses.length > 15, true);
 
 for (const cls of scrimClasses) {
     const stock = await centrePixel({ scrim: cls, mod: false });
-    const withMod = await centrePixel({ scrim: cls, appQualityRoot: false, scrims: true });
+    const withMod = await centrePixel({ scrim: cls });
     if (coversInStock.has(cls)) {
         // The app hides the video here by itself: app-quality-root only recolours
         // this one rather than clearing it. Asserted so that if the app ever stops
@@ -196,63 +224,9 @@ for (const cls of scrimClasses) {
     check(`  ...and so does the mod`, withMod, VIDEO);
 }
 
-// --- the file stays subtractive, and keeps winning --------------------------
-const stripComments = (t) => t.replace(/\/\*[\s\S]*?\*\//g, '');
-const REMOVER = /^(background|background-image)\s*:\s*none$|^background-color\s*:\s*transparent$/i;
-const ourRules = [...stripComments(SCRIMS).matchAll(/([^{}]+)\{([^{}]*)\}/g)];
-const decls = ourRules
-    .flatMap((m) => m[2].split(';'))
-    .map((d) => d.trim())
-    .filter(Boolean);
-check('qualityScrims.css has rules', ourRules.length > 0, true);
-// A rule here that PAINTS would be the original bug reintroduced by its own fix.
-check(
-    '  ...and every declaration only clears a fill',
-    decls.filter((d) => !REMOVER.test(d.replace(/\s*!important$/, ''))),
-    [],
-);
-// !important is load-bearing, not decoration: the app's sheet is appended to
-// <head> at runtime, after the mod's, so equal specificity loses without it.
-check(
-    '  ...and carries !important, which the load order requires',
-    decls.filter((d) => !/!important$/.test(d)),
-    [],
-);
-
-// --- content scrims are NOT ours to clear -----------------------------------
-// The other half of the mistake. These keep titles legible over artwork, and
-// clearing them is a regression in the opposite direction from a black video.
-const ourSelectors = ourRules.map((m) => m[1].trim());
-check(
-    'no content scrim is cleared',
-    ourSelectors.filter((s) => !s.includes('Vdm04') && !/^\.(IipoN|J3QAHd|Y4ss9b|P21kJ)\b/.test(s)),
-    [],
-);
-
-// --- and no player scrim is missed ------------------------------------------
-// The rendering loop above can only test classes the captured CSS carries rules
-// for. This closes the gap from the other side: every app-quality-root rule that
-// clears a fill on a Vdm04 selector must be restated here.
-const playerClears = [];
-for (const m of stripComments(APP_RULES).matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
-    const sel = m[1].trim();
-    if (!sel.startsWith('.app-quality-root ')) continue;
-    if (!m[2].split(';').some((d) => REMOVER.test(d.trim()))) continue;
-    const target = sel.slice('.app-quality-root '.length);
-    if (target.includes('Vdm04')) playerClears.push(target);
-}
-const norm = (s) => s.trim().replace(/\s+/g, ' ');
-const have = new Set(ourSelectors.map(norm));
-check(
-    'every player scrim the app clears is restated',
-    [...new Set(playerClears.map(norm))].filter((s) => !have.has(s)),
-    [],
-);
-
-// --- the removal stays, because the buttons need it -------------------------
-// Putting the class back turns the transport controls either side of play/pause
-// near-black and unselectable. That is why the fix is a suppression block and not
-// simply leaving the class alone.
+// --- the mod must leave the class alone -------------------------------------
+// The inverse of what this file used to assert. It required the removal and the
+// compensating stylesheet, and it was green for the whole life of the bug.
 const uiSrc = readRepo('mods', 'ui', 'ui.ts');
 const uiCode = uiSrc
     .replace(/\/\*[\s\S]*?\*\//g, '')
@@ -260,22 +234,43 @@ const uiCode = uiSrc
     .filter((l) => !/^\s*\/\//.test(l))
     .join('\n');
 check(
-    'the mod still removes app-quality-root',
+    'the mod no longer removes app-quality-root',
     /remove\(\s*['"]app-quality-root['"]\s*\)/.test(uiCode),
-    true,
+    false,
 );
 check(
-    '  ...and injects the suppressions when it does',
-    /setStyleBlock\(\s*'quality-scrims'/.test(uiCode),
-    true,
+    '  ...and ships no stylesheet compensating for having removed it',
+    /quality-scrims|qualityScrims/.test(uiCode),
+    false,
 );
-// Order matters: a frame with the class gone and the block not yet applied is a
-// frame of black video.
-check(
-    '  ...before it starts removing',
-    uiCode.indexOf("setStyleBlock('quality-scrims'") < uiCode.indexOf('MutationObserver'),
-    true,
-);
+// The polarity that justified the removal, checked against the app's own rules
+// rather than against memory. The claim was that the class makes the transport
+// buttons near-black; it is what makes them transparent, and taking it away is
+// what turned them black and unselectable.
+const buttonFill = await page.evaluate(async (css) => {
+    const el = document.createElement('style');
+    el.textContent = css;
+    document.head.appendChild(el);
+    // Put the page back exactly as it was. The checks after this one read the
+    // live page, and leaving the class off left the shadow panel painting --
+    // which failed the #container assertion below for a reason that had nothing
+    // to do with #container.
+    const original = document.body.className;
+    const read = (withClass) => {
+        document.body.className = withClass ? 'app-quality-root' : '';
+        const d = document.createElement('div');
+        d.className = 'IipoN';
+        document.body.appendChild(d);
+        const c = getComputedStyle(d).backgroundColor;
+        d.remove();
+        return c;
+    };
+    const out = { withClass: read(true), without: read(false) };
+    document.body.className = original;
+    return out;
+}, APP_RULES);
+check('the class makes the transport button transparent', buttonFill.withClass, 'rgba(0, 0, 0, 0)');
+check('  ...and removing it is what turns it near-black', buttonFill.without, 'rgb(6, 6, 6)');
 
 // --- the correction: #container was never the culprit -----------------------
 // A previous commit scoped theme.ts's fill away from the watch page to fix this
