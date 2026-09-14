@@ -1,0 +1,38 @@
+{
+    "_comment": [
+        "The scrim styles the YouTube TV app can put on ytlr-player, and the class",
+        "each maps to. Taken verbatim from the shipped bundle's own Fkb map in",
+        "main.js -- this list is the app's, not ours, which is the point: a scrim",
+        "style added by a later version arrives here when the capture is refreshed,",
+        "and the harness renders it whether or not anyone thought to.",
+        "",
+        "main.js template `alb` applies `Vdm04` plus one of these classes to",
+        "ytlr-player when a scrim style is set and loadedPlaybackConfig.mode is 2",
+        "or 3. Empty lists (UNKNOWN, NONE) paint nothing.",
+        "",
+        "`coversInStock` names the classes that hide the video even with",
+        "app-quality-root present, so the mod is not blamed for them:",
+        "app-quality-root only RECOLOURS TbjVGf, #030303 to #0f0f0f, rather than",
+        "clearing it. Measured, not assumed."
+    ],
+    "styles": {
+        "SCRIM_STYLE_UNKNOWN": [],
+        "SCRIM_STYLE_NONE": [],
+        "SCRIM_STYLE_HERO_RESULT": ["awrNff", "IFZMkd"],
+        "SCRIM_STYLE_HERO_RESULT_CONDENSED": ["Xo9vGf", "izle0c"],
+        "SCRIM_STYLE_DEFAULT": ["YW4uOd"],
+        "SCRIM_STYLE_SHOW_PRIMARY": ["gGYUTe"],
+        "SCRIM_STYLE_SHOW_CORPUS": ["TbjVGf"],
+        "SCRIM_STYLE_CAROUSEL": ["ZQBeUc", "jxtlY"],
+        "SCRIM_STYLE_IMMERSIVE_PREVIEW": ["CGTfzb", "qjAaSb"],
+        "SCRIM_STYLE_IMMERSIVE_HEADER": ["RHayA"],
+        "SCRIM_STYLE_IMMERSIVE_HEADER_SCROLLED": ["fB5tAb"],
+        "SCRIM_STYLE_TVOD_HANDOFF": ["K0BWPd"],
+        "SCRIM_STYLE_TVOD_TRANSPARENT_BACKGROUND": ["m4Gtyf"],
+        "SCRIM_STYLE_IMMERSIVE_MASTHEAD": ["aHsoBd"],
+        "SCRIM_STYLE_IMMERSIVE_MASTHEAD_SLIMMED": ["z279Wd"],
+        "SCRIM_STYLE_EVENT_CARD": ["Yg7Od"],
+        "SCRIM_STYLE_PAGE_HEADER": ["Ry3Ro"]
+    },
+    "coversInStock": ["TbjVGf"]
+}

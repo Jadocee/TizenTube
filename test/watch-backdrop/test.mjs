@@ -70,11 +70,15 @@ async function centrePixel({
     ]
         .filter(Boolean)
         .join(' ');
+    // `scrim` is either false, or the scrim class to apply. Template `alb` sets
+    // Vdm04 and g511Kb alongside whichever class Fkb maps the style to, so the
+    // three always travel together.
+    const scrimClass = scrim === true ? 'YW4uOd' : scrim;
     const playerClasses = [
         's3u3Oc',
         'iLKnN',
         'ExC9Fb',
-        ...(scrim ? ['Vdm04', 'YW4uOd', 'g511Kb'] : []),
+        ...(scrimClass ? ['Vdm04', 'g511Kb', scrimClass] : []),
     ];
     // THE STYLESHEET ORDER IS THE APP'S, NOT THE CONVENIENT ONE. tv.html ships no
     // stylesheet: base.js registers _F_installCss, whose installer appends a
@@ -157,97 +161,51 @@ check(
     VIDEO,
 );
 
-// --- the tripwire: the suppression list must be exactly right ---------------
-// qualityScrims.css restates the fills app-quality-root turns off. Which ones it
-// may restate is the question that has now been got wrong twice, so it is
-// derived here from the captured sheet rather than trusted.
+// --- every scrim the app can put on the player, rendered ---------------------
+// THIS REPLACED A LIST COMPARISON, because the list was compared on the wrong
+// property twice. The first version cleared every app-quality-root rule that
+// removed a fill, which stripped content scrims and put promo text on bare
+// artwork at 1.04:1. The second kept only rules whose base was a FLAT opaque
+// fill -- and shipped, leaving fifteen gradient player scrims armed. Nine of
+// those cover the video, several going fully opaque across most of the frame,
+// and that reached a television as "a black screen with a gradient at the
+// bottom". Flat-versus-gradient was never the question; on-the-player was.
 //
-// THE CRITERION IS THE BASE RULE, NOT THE DECLARATION THAT CLEARS IT. The class
-// clears two different things. A flat #030303 or #060606 at height:100%;
-// width:100% is the fill that hid the video, and restating it is the fix. A
-// GRADIENT is a scrim that keeps titles legible over artwork, and restating that
-// one put promo text on bare artwork at 1.04:1 contrast -- worse than either
-// state YouTube ships. "It only removes a fill, so it must be safe" is exactly
-// the reasoning that shipped that, and it is why this compares both directions:
-// a missing rule blacks out video, an extra one strips a scrim.
+// So the question is asked of the renderer instead of of a selector. Fkb --
+// captured from the app's own bundle -- names every scrim style and its class.
+// Each one is put on ytlr-player the way template `alb` does, and the video has
+// to still be there. A style YouTube adds later arrives in this list when the
+// capture is refreshed, and gets rendered whether or not anyone noticed it.
+const SCRIM_MAP = JSON.parse(readRepo('test', 'watch-backdrop', 'scrim-classes.captured.json'));
+const scrimClasses = [...new Set(Object.values(SCRIM_MAP.styles).flat())];
+const coversInStock = new Set(SCRIM_MAP.coversInStock);
+
+check('the captured map names scrim classes', scrimClasses.length > 15, true);
+
+for (const cls of scrimClasses) {
+    const stock = await centrePixel({ scrim: cls, mod: false });
+    const withMod = await centrePixel({ scrim: cls, appQualityRoot: false, scrims: true });
+    if (coversInStock.has(cls)) {
+        // The app hides the video here by itself: app-quality-root only recolours
+        // this one rather than clearing it. Asserted so that if the app ever stops
+        // doing it, this entry stops being an excuse and has to be removed.
+        check(`${cls}: the app covers the video here itself`, stock !== VIDEO, true);
+        continue;
+    }
+    check(`${cls}: stock shows the video`, stock, VIDEO);
+    check(`  ...and so does the mod`, withMod, VIDEO);
+}
+
+// --- the file stays subtractive, and keeps winning --------------------------
 const stripComments = (t) => t.replace(/\/\*[\s\S]*?\*\//g, '');
 const REMOVER = /^(background|background-image)\s*:\s*none$|^background-color\s*:\s*transparent$/i;
-const FLAT_FILL = /background(-color)?\s*:\s*#[0-9a-f]{3,6}/i;
-const appRules = [...stripComments(APP_RULES).matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => [
-    m[1].trim(),
-    m[2],
-]);
-
-// Every rule the same selector has without the class, so we can see what it is.
-const baseOf = new Map();
-for (const [sel, body] of appRules) {
-    if (sel.startsWith('.app-quality-root ')) continue;
-    baseOf.set(sel, `${baseOf.get(sel) || ''} ; ${body}`);
-}
-
-const candidates = [];
-const expected = [];
-for (const [sel, body] of appRules) {
-    if (!sel.startsWith('.app-quality-root ')) continue;
-    if (!body.split(';').some((d) => REMOVER.test(d.trim()))) continue;
-    const target = sel.slice('.app-quality-root '.length);
-    candidates.push(target);
-    const base = baseOf.get(target) || '';
-    const flatOpaque =
-        FLAT_FILL.test(base) &&
-        !base.includes('gradient') &&
-        /height\s*:\s*100%/.test(base) &&
-        /width\s*:\s*100%/.test(base);
-    if (flatOpaque) expected.push(target);
-}
-
-check('the captured sheet yields suppressions to classify', candidates.length > 20, true);
-// If the base rules were missing from the fixture, everything would classify as
-// "not a flat fill" and the expected set would be empty -- which would make the
-// comparison below pass against an empty file. That is the failure this guards.
-check('  ...and the fixture carries their base rules', expected.length > 0, true);
-check(
-    '  ...most of which are gradient scrims, left alone',
-    candidates.length - expected.length > 10,
-    true,
-);
-
-// Both the extraction above and the generator that wrote qualityScrims.css assume
-// the class always appears as a LEADING `.app-quality-root ` with a descendant
-// combinator. A compound form or a later position would be skipped by both,
-// silently -- the tripwire would agree the list is complete because it had been
-// wrong the same way. So the assumption is asserted, not relied on.
-const odd = appRules
-    .flatMap(([sel]) => sel.split(','))
-    .map((b) => b.trim())
-    .filter((b) => b.includes('app-quality-root') && !b.startsWith('.app-quality-root '));
-check('  ...and every one is a leading descendant selector', odd, []);
-
-const norm = (sel) =>
-    sel
-        .trim()
-        .replace(/\s*,\s*/g, ',')
-        .replace(/\s+/g, ' ');
 const ourRules = [...stripComments(SCRIMS).matchAll(/([^{}]+)\{([^{}]*)\}/g)];
-const ours = new Set(ourRules.map((m) => norm(m[1])));
-const want = new Set(expected.map(norm));
-check(
-    'qualityScrims.css restates every flat fill',
-    [...want].filter((s) => !ours.has(s)),
-    [],
-);
-check(
-    '  ...and nothing else',
-    [...ours].filter((s) => !want.has(s)),
-    [],
-);
-
-// Subtractive only, still: a rule here that PAINTS would be the original bug
-// reintroduced by its own fix.
 const decls = ourRules
-    .flatMap((m) => (m[1] === '' ? [] : m[2].split(';')))
+    .flatMap((m) => m[2].split(';'))
     .map((d) => d.trim())
     .filter(Boolean);
+check('qualityScrims.css has rules', ourRules.length > 0, true);
+// A rule here that PAINTS would be the original bug reintroduced by its own fix.
 check(
     '  ...and every declaration only clears a fill',
     decls.filter((d) => !REMOVER.test(d.replace(/\s*!important$/, ''))),
@@ -256,8 +214,38 @@ check(
 // !important is load-bearing, not decoration: the app's sheet is appended to
 // <head> at runtime, after the mod's, so equal specificity loses without it.
 check(
-    '  ...and carries !important, which order requires',
+    '  ...and carries !important, which the load order requires',
     decls.filter((d) => !/!important$/.test(d)),
+    [],
+);
+
+// --- content scrims are NOT ours to clear -----------------------------------
+// The other half of the mistake. These keep titles legible over artwork, and
+// clearing them is a regression in the opposite direction from a black video.
+const ourSelectors = ourRules.map((m) => m[1].trim());
+check(
+    'no content scrim is cleared',
+    ourSelectors.filter((s) => !s.includes('Vdm04') && !/^\.(IipoN|J3QAHd|Y4ss9b|P21kJ)\b/.test(s)),
+    [],
+);
+
+// --- and no player scrim is missed ------------------------------------------
+// The rendering loop above can only test classes the captured CSS carries rules
+// for. This closes the gap from the other side: every app-quality-root rule that
+// clears a fill on a Vdm04 selector must be restated here.
+const playerClears = [];
+for (const m of stripComments(APP_RULES).matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    const sel = m[1].trim();
+    if (!sel.startsWith('.app-quality-root ')) continue;
+    if (!m[2].split(';').some((d) => REMOVER.test(d.trim()))) continue;
+    const target = sel.slice('.app-quality-root '.length);
+    if (target.includes('Vdm04')) playerClears.push(target);
+}
+const norm = (s) => s.trim().replace(/\s+/g, ' ');
+const have = new Set(ourSelectors.map(norm));
+check(
+    'every player scrim the app clears is restated',
+    [...new Set(playerClears.map(norm))].filter((s) => !have.has(s)),
     [],
 );
 
