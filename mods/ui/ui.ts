@@ -10,6 +10,7 @@ if (window.__spatialNavigation__) window.__spatialNavigation__.keyMode = 'NONE';
 import css from './ui.css';
 import qualityScrimsCss from './qualityScrims.css';
 import { configChangeEmitter, configRead, configWrite } from '../config.js';
+import { onStartupScreenNow } from '../features/startupScreen.js';
 import updateStyle from './theme.js';
 import { showToast } from './ytUI.js';
 import modernUI from './settings.js';
@@ -509,21 +510,38 @@ function execute_once_dom_loaded(): void {
         }, 2000);
     }
 
-    if (configRead('reloadHomeOnStartup')) {
-        if (configRead('launchToOnStartup')) {
-            resolveCommand(JSON.parse(configRead('launchToOnStartup')));
-        } else {
-            resolveCommand({
-                signalAction: {
-                    signal: 'SOFT_RELOAD_PAGE',
-                },
-            });
+    // NOT WHILE THE APP IS ASKING THE USER SOMETHING. This block runs off a
+    // 250ms poll for a <video> element, so it lands at an unpredictable moment;
+    // when the app had decided to show the account picker, the reload below tore
+    // it down and landed on the signed-in account's home. From the sofa that is
+    // the picker appearing and then logging you in as the previous user before
+    // you could choose, intermittently, depending on which won the race.
+    //
+    // Skipped rather than deferred. The reload exists so the first home payload
+    // goes through the mod's processing; picking an account navigates anyway,
+    // and that navigation is processed like any other, so there is nothing left
+    // for it to do afterwards.
+    if (!onStartupScreenNow()) {
+        if (configRead('reloadHomeOnStartup')) {
+            if (configRead('launchToOnStartup')) {
+                resolveCommand(JSON.parse(configRead('launchToOnStartup')));
+            } else {
+                resolveCommand({
+                    signalAction: {
+                        signal: 'SOFT_RELOAD_PAGE',
+                    },
+                });
+            }
         }
-    }
 
-    const commandExecutor = getCommandExecutor();
-    if (commandExecutor) {
-        commandExecutor.executeFunction(new commandExecutor.commandFunction('reloadGuideAction'));
+        // Same reason: this repaints the guide, and doing that under a startup
+        // screen is the other half of the same interruption.
+        const commandExecutor = getCommandExecutor();
+        if (commandExecutor) {
+            commandExecutor.executeFunction(
+                new commandExecutor.commandFunction('reloadGuideAction'),
+            );
+        }
     }
 
     // THAT ONE CLASS DOES TWO JOBS, AND THE MOD WANTS OPPOSITE THINGS FROM THEM.

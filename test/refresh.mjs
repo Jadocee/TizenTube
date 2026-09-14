@@ -134,6 +134,23 @@ for (const landmark of [
 }
 out('config/mod.generated.mts', configSrc);
 
+// startupScreen.ts is pure -- no imports, no DOM except in the one live reader,
+// which the harness does not call.
+const startupScreenSrc = readRepo('mods', 'features', 'startupScreen.ts');
+if (/^\s*import\s/m.test(startupScreenSrc)) {
+    fail('startupScreen.ts has grown an import; the harness copy is no longer the real thing');
+}
+for (const landmark of [
+    'export function onStartupScreen',
+    'BLOCKING_SCREENS',
+    'BLOCKING_PAGE_TYPES',
+]) {
+    if (!startupScreenSrc.includes(landmark)) {
+        fail(`startupScreen.ts no longer contains "${landmark}"; fix test/refresh.mjs`);
+    }
+}
+out('startup-screen/mod.generated.mts', startupScreenSrc);
+
 // startupError.ts runs for real.
 out('settings/startupError.generated.mts', readRepo('mods', 'ui', 'startupError.ts'));
 
