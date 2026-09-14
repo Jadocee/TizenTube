@@ -19,13 +19,34 @@ for sel, body in rules:
         print(f'{sel.strip()}{{{body}}}')
 ```
 
-Two things to know about it.
+`watch-chunk.captured.css` is the second capture, and the more important one.
 
-**It is a reduction, and the reduction can go stale.** A scrim style whose
-selector matches none of those names would not be in the file, and this harness
-would pass while the app gained a new way to paint over the video. That is the
-price of not vendoring 302KB of someone else's stylesheet; re-run the extractor
+**main.css is not the whole stylesheet.** The watch page ships its own in a
+lazy-loaded chunk, and that chunk carries 320 `app-quality-root` selectors to
+main.css's 231. Five fixes for "the video goes black when the controls come up"
+were derived from main.css alone, and the rule actually doing it was never in
+main.css:
+
+```css
+.XT6t8b{top:0;right:0;bottom:0;left:0;margin:auto;background-color:#0b0b0b;
+        display:block;height:45rem;pointer-events:none;position:absolute;width:80rem}
+.app-quality-root .XT6t8b{display:none}
+```
+
+To refresh it, save the watch page's chunk stylesheet and keep every rule whose
+selector mentions `XT6t8b`, `G7qFFc`, `YceUtc`, `mWBAvd` or `iMpfAe`.
+
+Three things to know about the captures.
+
+**They are reductions, and a reduction can go stale.** A style whose selector
+matches none of those names would not be in the file, and this harness would pass
+while the app gained a new way to paint over the video. That is the price of not
+vendoring half a megabyte of someone else's stylesheet; re-run the extractors
 when the app updates.
+
+**Derive from every stylesheet the page loads, not the first one you find.** That
+is the specific mistake this directory exists to stop repeating, and it cost five
+releases.
 
 **The measurement is a screenshot, not a computed style.** The harness this
 replaced asked `getComputedStyle(#container).backgroundColor` and nothing else,

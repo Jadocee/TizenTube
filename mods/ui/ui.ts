@@ -8,7 +8,6 @@ import '../spatial-navigation-polyfill.js';
 // navigation natively, and an unguarded throw here would abort the bundle.
 if (window.__spatialNavigation__) window.__spatialNavigation__.keyMode = 'NONE';
 import css from './ui.css';
-import qualityScrimsCss from './qualityScrims.css';
 import { configChangeEmitter, configRead, configWrite } from '../config.js';
 import { onStartupScreenNow } from '../features/startupScreen.js';
 import updateStyle from './theme.js';
@@ -544,40 +543,50 @@ function execute_once_dom_loaded(): void {
         }
     }
 
-    // THAT ONE CLASS DOES TWO JOBS, AND THE MOD WANTS OPPOSITE THINGS FROM THEM.
+    // `app-quality-root` IS NOT OURS TO REMOVE, and five shipped fixes went past
+    // that before anyone checked. The mod used to strip it off <body> on every
+    // attribute change, with a stylesheet restating the fills it took away.
     //
-    // `app-quality-root` is how the app restyles controls for a device it has
-    // judged low-end -- flat buttons, clipped titles, hard cuts instead of fades.
-    // Removing it is inherited behaviour ("Fix UI issues, again. Love, Googol.")
-    // and it is wanted: with the class on, the transport buttons either side of
-    // play/pause render near-black and read as unselectable.
+    // THE CLASS IS UNCONDITIONAL. It occurs exactly once in main.js, in the
+    // page-class builder, outside every branch:
     //
-    // It is ALSO how the app turns off its own legacy scrim fills, among them
+    //     P=[];_.E("enableAnimations",!0)?P.push("full-animation")
+    //        :_.E("isLimitedMemory",!1)?P.push("limited-animation limited-memory")
+    //        :P.push("limited-animation");
+    //     P.push("app-quality-root");
     //
-    //     .Vdm04.YW4uOd:before { background:#030303; height:100%; width:100% }
-    //     .app-quality-root .Vdm04.YW4uOd:before { background:none }
+    // The low-end judgement is the animation token beside it. `app-quality-root`
+    // is the app's baseline television class, on every device and every
+    // navigation, and the comment that used to sit here -- "how the app restyles
+    // controls for a device it has judged low-end" -- was simply wrong.
     //
-    // at z-index 1 on ytlr-player -- over the video, under the chrome. Removing
-    // the class re-arms twenty-nine of those.
+    // SO WAS THE POLARITY THAT JUSTIFIED IT. The claim was that the class makes
+    // the transport buttons near-black. The rules say the opposite:
     //
-    // BOTH HALVES WERE LEARNED THE EXPENSIVE WAY, one shipped regression each:
-    // removing the class blacked out the video, and putting it back blacked out
-    // the buttons. They cannot be separated by toggling the class, because it is
-    // one class. So the class goes, and ui/qualityScrims.css restores only the
-    // fill-clearing half -- subtractive rules that cannot paint anything.
+    //     .IipoN{background-color:#060606;height:100%;width:100%}
+    //     .app-quality-root .IipoN{background-color:transparent}
     //
-    // The stylesheet is injected BEFORE the observer starts, so there is no frame
-    // in which the class is gone and the suppressions are not yet applied.
-    if (configRead('enableFixedUI')) {
-        setStyleBlock('quality-scrims', qualityScrimsCss);
-        try {
-            const observer = new MutationObserver(() => {
-                const body = document.body;
-                if (body.classList.contains('app-quality-root')) {
-                    body.classList.remove('app-quality-root');
-                }
-            });
-            observer.observe(document.body, { attributes: true, childList: false, subtree: false });
-        } catch (_e) {}
-    }
+    // The class is what makes them transparent. Removing it is what turned them
+    // near-black and unselectable, which was reported as a regression and then
+    // patched around instead of undone.
+    //
+    // AND IT IS WHAT WAS BLACKING OUT THE VIDEO. The watch page ships its own
+    // stylesheet in a lazy-loaded chunk -- 320 app-quality-root selectors that
+    // main.css does not contain, so nothing derived from main.css ever saw them.
+    // One of them is the whole bug:
+    //
+    //     .XT6t8b{top:0;right:0;bottom:0;left:0;margin:auto;background-color:#0b0b0b;
+    //             display:block;height:45rem;pointer-events:none;position:absolute;
+    //             width:80rem}
+    //     .app-quality-root .XT6t8b{display:none}
+    //
+    // An opaque 80rem x 45rem panel -- the app's whole page box -- inside the
+    // watch chrome container, whose base state is `display:block` and whose only
+    // brake is that class. Strip the class and it paints over the video for
+    // exactly as long as the chrome is up, which is precisely what was reported:
+    // picture gone when the controls come up, back when they go, the suggestion
+    // row underneath still perfectly bright.
+    //
+    // There is nothing to replace it with. Restating 22 rules out of 542 was the
+    // shape of the mistake, not an incomplete version of the fix.
 }
