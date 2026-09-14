@@ -98,7 +98,8 @@
                     "afrPauseDuration": {
                         "title": "Doba Pauzy při Automatické Frekvenci Snímků",
                         "subtitle": "Nastavte dobu (v sekundách) pro pozastavení přehrávání videa při úpravě frekvence snímků"
-                    }
+                    },
+                    "chapters": "Chapters"
                 }
             },
             "uiSettings": {
@@ -159,6 +160,32 @@
                     "checkForUpdates": "Zkontrolovat aktualizace",
                     "checkForUpdatesOnStartup": "Zkontrolovat aktualizace při spuštění"
                 }
+            },
+            "ads": {
+                "title": "Ads & Promotions"
+            },
+            "home": {
+                "title": "Home & Recommendations",
+                "options": {
+                    "previews": {
+                        "title": "Video Previews"
+                    }
+                }
+            },
+            "hiding": {
+                "title": "Hidden Content"
+            },
+            "sidebar": {
+                "title": "Sidebar"
+            },
+            "appearance": {
+                "title": "Appearance"
+            },
+            "startup": {
+                "title": "Startup"
+            },
+            "about": {
+                "title": "About & Support"
             }
         },
         "ttSettings": {

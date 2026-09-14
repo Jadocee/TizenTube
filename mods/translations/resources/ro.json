@@ -98,7 +98,8 @@
                     "afrPauseDuration": {
                         "title": "Durata pauzei pentru rata de cadre automată",
                         "subtitle": "Setează durata (în secunde) pentru pauza redării video la ajustarea ratei de cadre"
-                    }
+                    },
+                    "chapters": "Chapters"
                 }
             },
             "uiSettings": {
@@ -159,6 +160,32 @@
                     "checkForUpdates": "Verifică dacă există actualizări noi",
                     "checkForUpdatesOnStartup": "Verifică dacă există actualizări noi la pornire"
                 }
+            },
+            "ads": {
+                "title": "Ads & Promotions"
+            },
+            "home": {
+                "title": "Home & Recommendations",
+                "options": {
+                    "previews": {
+                        "title": "Video Previews"
+                    }
+                }
+            },
+            "hiding": {
+                "title": "Hidden Content"
+            },
+            "sidebar": {
+                "title": "Sidebar"
+            },
+            "appearance": {
+                "title": "Appearance"
+            },
+            "startup": {
+                "title": "Startup"
+            },
+            "about": {
+                "title": "About & Support"
             }
         },
         "ttSettings": {

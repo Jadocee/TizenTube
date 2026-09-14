@@ -96,7 +96,8 @@
                     "afrPauseDuration": {
                         "title": "Duración de Pausa de Tasa de Cuadros por Segundo Automática",
                         "subtitle": "Establece la duración (en segundos) para pausar la reproducción de video al ajustar la tasa de cuadros"
-                    }
+                    },
+                    "chapters": "Chapters"
                 }
             },
             "uiSettings": {
@@ -147,6 +148,32 @@
                     "checkForUpdates": "Buscar actualizaciones",
                     "checkForUpdatesOnStartup": "Buscar actualizaciones al iniciar"
                 }
+            },
+            "ads": {
+                "title": "Ads & Promotions"
+            },
+            "home": {
+                "title": "Home & Recommendations",
+                "options": {
+                    "previews": {
+                        "title": "Video Previews"
+                    }
+                }
+            },
+            "hiding": {
+                "title": "Hidden Content"
+            },
+            "sidebar": {
+                "title": "Sidebar"
+            },
+            "appearance": {
+                "title": "Appearance"
+            },
+            "startup": {
+                "title": "Startup"
+            },
+            "about": {
+                "title": "About & Support"
             }
         },
         "ttSettings": {

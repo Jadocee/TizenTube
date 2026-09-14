@@ -98,7 +98,8 @@
                     "afrPauseDuration": {
                         "title": "Трајање паузе за AFR",
                         "subtitle": "Поставите трајање паузе (у секундама) при прилагођавању брзине освежавања"
-                    }
+                    },
+                    "chapters": "Chapters"
                 }
             },
             "uiSettings": {
@@ -159,6 +160,32 @@
                     "checkForUpdates": "Провери ажурирања",
                     "checkForUpdatesOnStartup": "Провери ажурирања при покретању"
                 }
+            },
+            "ads": {
+                "title": "Ads & Promotions"
+            },
+            "home": {
+                "title": "Home & Recommendations",
+                "options": {
+                    "previews": {
+                        "title": "Video Previews"
+                    }
+                }
+            },
+            "hiding": {
+                "title": "Hidden Content"
+            },
+            "sidebar": {
+                "title": "Sidebar"
+            },
+            "appearance": {
+                "title": "Appearance"
+            },
+            "startup": {
+                "title": "Startup"
+            },
+            "about": {
+                "title": "About & Support"
             }
         },
         "ttSettings": {

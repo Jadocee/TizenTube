@@ -96,7 +96,8 @@
                     "afrPauseDuration": {
                         "title": "Αυτόματη διάρκεια παύσης κατά τον ρυθμό καρέ",
                         "subtitle": "Ρυθμίστε τη διάρκεια παύσης του βίντεο (σε δευτερόλεπτα) κατά την προσαρμογή του ρυθμού καρέ"
-                    }
+                    },
+                    "chapters": "Chapters"
                 }
             },
             "uiSettings": {
@@ -147,6 +148,32 @@
                     "checkForUpdates": "Έλεγχος ενημερώσεων",
                     "checkForUpdatesOnStartup": "Έλεγχος ενημερώσεων κατά την έναρξη"
                 }
+            },
+            "ads": {
+                "title": "Ads & Promotions"
+            },
+            "home": {
+                "title": "Home & Recommendations",
+                "options": {
+                    "previews": {
+                        "title": "Video Previews"
+                    }
+                }
+            },
+            "hiding": {
+                "title": "Hidden Content"
+            },
+            "sidebar": {
+                "title": "Sidebar"
+            },
+            "appearance": {
+                "title": "Appearance"
+            },
+            "startup": {
+                "title": "Startup"
+            },
+            "about": {
+                "title": "About & Support"
             }
         },
         "ttSettings": {

@@ -98,7 +98,8 @@
                     "afrPauseDuration": {
                         "title": "AFR mev Duration",
                         "subtitle": "mev (seconds) yInuqlI'"
-                    }
+                    },
+                    "chapters": "Chapters"
                 }
             },
             "uiSettings": {
@@ -159,6 +160,32 @@
                     "checkForUpdates": "chu'ghach yISam",
                     "checkForUpdatesOnStartup": "tagh chu'ghach yISam"
                 }
+            },
+            "ads": {
+                "title": "Ads & Promotions"
+            },
+            "home": {
+                "title": "Home & Recommendations",
+                "options": {
+                    "previews": {
+                        "title": "Video Previews"
+                    }
+                }
+            },
+            "hiding": {
+                "title": "Hidden Content"
+            },
+            "sidebar": {
+                "title": "Sidebar"
+            },
+            "appearance": {
+                "title": "Appearance"
+            },
+            "startup": {
+                "title": "Startup"
+            },
+            "about": {
+                "title": "About & Support"
             }
         },
         "ttSettings": {

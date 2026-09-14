@@ -99,7 +99,8 @@
                     "afrPauseDuration": {
                         "title": "Otomatik Kare Hızı Duraklatma Süresi",
                         "subtitle": "Kare hızı ayarlanırken video oynatmayı duraklatma süresini (saniye) ayarlayın"
-                    }
+                    },
+                    "chapters": "Chapters"
                 }
             },
             "uiSettings": {
@@ -160,6 +161,32 @@
                     "checkForUpdates": "Güncellemeleri kontrol et",
                     "checkForUpdatesOnStartup": "Açılışta güncellemeleri kontrol et"
                 }
+            },
+            "ads": {
+                "title": "Ads & Promotions"
+            },
+            "home": {
+                "title": "Home & Recommendations",
+                "options": {
+                    "previews": {
+                        "title": "Video Previews"
+                    }
+                }
+            },
+            "hiding": {
+                "title": "Hidden Content"
+            },
+            "sidebar": {
+                "title": "Sidebar"
+            },
+            "appearance": {
+                "title": "Appearance"
+            },
+            "startup": {
+                "title": "Startup"
+            },
+            "about": {
+                "title": "About & Support"
             }
         },
         "ttSettings": {
