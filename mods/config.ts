@@ -53,6 +53,12 @@ const defaultConfig = {
     // previews are unmuted by default, "where is that audio coming from?" --
     // answerable only by waiting.
     enablePreviewIndicator: true,
+    // The bar YouTube's own client draws along the bottom of a previewing
+    // thumbnail. Independent of the badge above on purpose: the two say
+    // different things -- one that a preview is running and how far through it
+    // is, the other whether it is still loading and whether it has sound -- and
+    // the quietest arrangement, which is the bar alone, has to be reachable.
+    enablePreviewProgressBar: true,
     mutePreviews: false,
     // Suppression the user applies from a tile's long-press menu. Both lists ship
     // empty, so the feature is inert until used; the master toggle exists so it

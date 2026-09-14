@@ -18,14 +18,41 @@
    against it on the grounds that "the duration is what we ASK the app for, not
    what it does". That objection was right about the naive implementation and is
    answered by previewState.remainingMs() rather than overruled: the number is
-   the requested duration measured FROM THE FRAME THAT ACTUALLY ARRIVED, which
-   is the same base `resume` re-bases the watchdog on, and it is absent
-   altogether -- not zero, not guessed -- while loading or when the app gave no
-   usable duration. It counts down to the real end, not to endsAt, which carries
-   WATCHDOG_SLACK_MS and would sit at "5s" for five seconds after the preview
-   had visibly stopped.
+   the requested duration measured from the moment the app was ASKED to play --
+   which is where the app arms the timer that stops the preview -- and it is
+   absent altogether, not zero and not guessed, while loading or when the app
+   gave no usable duration. It counts down to the real end, not to endsAt, which
+   carries WATCHDOG_SLACK_MS and would sit at "5s" for five seconds after the
+   preview had visibly stopped.
 
-   Still deliberately absent: a progress meter and equaliser bars.
+   THE PROGRESS BAR IS NOW HERE TOO, and this file previously listed "a progress
+   meter" among the things deliberately absent. What changed is not the taste but
+   the evidence: the shipped app HAS one. `progress-overlay-view-model` draws
+   `.zIOpyc` (a 0.25rem track at rgba(255,255,255,.3)) wrapping `.OlEbwe` (a
+   #e1002d fill, scaleX from the left, transition 250ms linear), pinned to the
+   bottom of the thumbnail by `.Ubdfj{bottom:0;left:0;right:0;position:absolute}`.
+   The numbers below are those numbers. It does not appear on this surface
+   because the component is gated on the server sending a progressOverlayViewModel
+   carrying PROGRESS_BAR_STYLE_PLAYER and DURATION_SOURCE_PREVIEW_PLAYBACK_DURATION,
+   which it does not -- so the bar is drawn here instead of asked for.
+
+   THE BADGE IS SMALLER AND QUIETER THAN IT WAS, because it is no longer the only
+   thing saying "this is playing". A full-width bar under the thumbnail carries
+   that at a glance, which leaves the badge saying only WHICH KIND of playing --
+   waiting, running, making a noise -- and that is a secondary read that does not
+   need to shout. Gone: the 0.125rem white ring. Reduced: 3rem to 2.5rem, the
+   fill from 72% to 55% black, every glyph by about a fifth.
+
+   THE COUNTDOWN DID NOT SHRINK WITH THEM, and that is the one deliberate
+   exception. It is the only part of this mark that is TEXT, and text has a
+   legibility floor a solid triangle does not. 1.15rem sits between the app's own
+   two commonest type sizes -- 1rem appears in 65 of its rules and 1.25rem in 68
+   -- so it is already inside the range YouTube itself considers readable across
+   a room, and there is nothing below it to give away. Shrinking the digits in
+   step with the icons would have made the one part of this mark that carries a
+   number the first part to become unreadable.
+
+   Still deliberately absent: equaliser bars.
 
    THE SPINNER IS BOUNDED. previewState.ts retires the mark after
    LOADING_TIMEOUT_MS if no frame ever arrives, so the rotation cannot outlive
@@ -50,15 +77,26 @@
    wrong way. clock.css records the same trap; this is the same trap. */
 
 #tizentube-preview-indicator {
-    /* 48px at a 16px root, and the root on a television is larger than that --
-     the app's grid is 80rem across, so 1rem is a 1/80th of the viewport width,
-     which makes this 72px at 1920. Down from 4rem because the mark was asked to
-     be smaller, and stopped AT the floor rather than through it: 3rem is exactly
-     the >= 48px minimum preview-indicator/style.mjs has always asserted, which
-     is the ~45 arcmin a simple non-text glyph needs to resolve at three metres.
-     Below this the disc stops being legible from a sofa and the countdown digits
-     go first. */
-    --tt-pi-size: 3rem;
+    /* An eighteenth of the height of the box the app lays its whole interface
+     out in: `#container{position:absolute;height:45rem;width:80rem;top:0;
+     bottom:0;left:0;right:0;margin:auto}`, which tv.html ships and every page
+     renders inside. The badge is positioned in viewport coordinates rather than
+     inside that box, so this is a size REFERENCE -- how big the badge is next to
+     everything else on screen -- not a claim about where it sits.
+
+     It replaces an angular figure that was not evidence at all. This file used
+     to say 1rem was 24 device pixels at 1920 and reason in arcminutes from
+     there; nothing in the app declares that. main.css sets
+     `body,html{font-size:100%}` and tv.html carries no viewport meta, so the
+     root is whatever the engine defaults to. That was the repo's own assumption
+     fed back to itself as evidence, which is a habit this file has now had to
+     break twice.
+
+     Down from 3rem, which was a fifteenth, and that IS a reduction rather than a
+     restatement. The reason the floor moved is that the job moved: a fifteenth
+     is what a mark needs when it is the ONLY evidence a preview is running, and
+     the bar below now carries that across the full width of the thumbnail. */
+    --tt-pi-size: 2.5rem;
     /* Written by previewIndicator.ts in physical viewport pixels. */
     --tt-pi-x: 0px;
     --tt-pi-y: 0px;
@@ -94,10 +132,13 @@
     border-radius: 50%;
     /* Dark rather than bright: this sits over arbitrary video, and a light fill
      in the same place on every focused tile is exactly the shape an OLED holds
-     on to. A dark disc with a light hairline reads at distance without giving
-     the panel anything to burn. */
-    background-color: rgb(0 0 0 / 72%);
-    border: 0.125rem solid rgb(255 255 255 / 55%);
+     on to. The white ring that used to draw its edge is gone -- it was the
+     loudest thing on the mark -- and a shadow does that job instead, which
+     separates the disc from a bright thumbnail without drawing a second shape
+     around it. 55% still clears 3:1 for the ink over the worst possible
+     backdrop, which style.mjs measures rather than trusts. */
+    background-color: rgb(0 0 0 / 55%);
+    box-shadow: 0 0.0625rem 0.1875rem rgb(0 0 0 / 45%);
     color: #f1f1f1;
 
     /* Under no circumstances may this take a press or perturb what is under it.
@@ -110,7 +151,16 @@
      therefore shows nothing, rather than parking a disc in the corner. */
     visibility: hidden;
     opacity: 0;
-    transition: opacity 160ms linear;
+    /* VISIBILITY IS IN THE TRANSITION, and leaving it out is why the fade this
+     file has always claimed never actually happened: `visibility` is not
+     interpolable but it IS transitionable, and without it here the element
+     flipped to hidden in the same frame the attribute went away, so 160ms of
+     opacity animated behind something that had already stopped painting.
+     Measured in the harness -- visibility read "hidden" on the first frame
+     while opacity was still walking down from 0.9. */
+    transition:
+        opacity 160ms linear,
+        visibility 160ms linear;
 
     &[data-state="loading"],
     &[data-state="playing"],
@@ -122,9 +172,16 @@
     /* Buffering after playback began. Dimmed rather than returned to the
      spinner: frames have already been seen, so this is a stutter rather than a
      wait, and swapping the shape back and forth on a flaky connection would
-     flicker. */
+     flicker.
+
+     A FILTER RATHER THAN OPACITY, because opacity is taken. ui.ts's idle
+     dimming stamps `opacity` inline WITH !important on every .tt-dimmable
+     element, which this is -- so an opacity written here loses outright once
+     anyone turns screen dimming on, and the stutter would stop being visible
+     for exactly the people who asked their television to dim itself. filter is
+     composited the same way and nothing else writes it. */
     &[data-state="stalled"] {
-        opacity: 0.55;
+        filter: opacity(0.55);
     }
 
     /* Anything beyond the single play mark makes this a pill. The shape change
@@ -139,8 +196,10 @@
          itself part of the signal -- and style.mjs holds it to a >= 24px
          difference at a 16px root, which is the width the clamp in place()
          would otherwise be wrong by. With the glyphs now smaller, the padding
-         is what keeps that true: 1.25rem play + 0.35rem gap + 1.05rem speaker
-         + 2rem padding = 74.4px against a 48px disc. */
+         is what keeps that true: 1rem play + 0.35rem gap + 0.85rem speaker
+         + 2rem padding = 4.2rem = 67.2px against a 40px disc, a 27.2px
+         difference. (Those numbers were written for the 3rem badge and went
+         stale the moment it shrank; if you change a glyph, change them.) */
         padding-inline: 1rem;
         gap: 0.35rem;
     }
@@ -163,11 +222,11 @@
 #tizentube-preview-indicator[data-state="playing"] > .tt-pi-play,
 #tizentube-preview-indicator[data-state="stalled"] > .tt-pi-play {
     display: block;
-    inline-size: 1.25rem;
-    block-size: 1.25rem;
+    inline-size: 1rem;
+    block-size: 1rem;
     /* Optical centring: the glyph's mass sits left of the box's middle, so it
      needs nudging right to look centred inside a disc. */
-    margin-left: 0.15rem;
+    margin-left: 0.12rem;
 }
 
 /* A pill has room for the icon to sit properly, so the nudge that centres it
@@ -214,11 +273,14 @@
 #tizentube-preview-indicator[data-state="loading"] > .tt-pi-glyph {
     display: block;
     box-sizing: border-box;
-    inline-size: 1.15rem;
-    block-size: 1.15rem;
-    /* Scaled with the ring: 0.22rem on a 1.15rem circle is a washer, not a
+    /* Not the play mark's 1rem, and not by accident: style.mjs asserts the two
+     are different sizes, which is the cheap proof that a state swap actually
+     swapped the element rather than leaving both drawn. */
+    inline-size: 0.95rem;
+    block-size: 0.95rem;
+    /* Scaled with the ring: too thick on a circle this small is a washer, not a
      spinner -- the transparent quadrant stops reading as a gap. */
-    border: 0.16rem solid rgb(255 255 255 / 30%);
+    border: 0.14rem solid rgb(255 255 255 / 30%);
     border-top-color: currentColor;
     border-radius: 50%;
     animation: tt-pi-spin 900ms linear infinite;
@@ -237,8 +299,8 @@
    was never there, so 'unknown' draws nothing at all. */
 #tizentube-preview-indicator[data-sound="on"] > .tt-pi-sound {
     display: block;
-    inline-size: 1.05rem;
-    block-size: 1.05rem;
+    inline-size: 0.85rem;
+    block-size: 0.85rem;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -252,4 +314,105 @@
     #tizentube-preview-indicator[data-state="loading"] > .tt-pi-glyph {
         animation: none;
     }
+}
+
+/* --- the progress bar ----------------------------------------------------- */
+
+/* Every number in here is the app's own, read out of main.css rather than
+   chosen: `.zIOpyc{background-color:rgba(255,255,255,0.3);height:.25rem;
+   overflow:hidden;position:relative;width:100%}` for the track and
+   `.OlEbwe{transform:scaleX(0);transition:transform .25s linear;
+   background-color:#e1002d;height:100%;left:0;position:absolute;top:0;
+   transform-origin:left;width:100%}` for the fill. Matching them is the whole
+   request: this is meant to be the bar YouTube draws, not a bar of our own that
+   happens to be near the same place.
+
+   FIXED, NOT INSIDE THE TILE. The app's version is an absolutely-positioned
+   child of the thumbnail; the mod's is a child of document.body positioned over
+   the box the preview is playing in. Reaching into the tile would mean holding a
+   selector for a class name that changes every few weeks -- and the tile the
+   video appears over is not the tile's own DOM anyway: the app moves a single
+   shared player onto the thumbnail's rect, which is why previewIndicator.ts
+   measures the video element rather than the tile.
+
+   THE BOTTOM EDGE IS CONTESTED and that is deliberate. YouTube's own watched
+   progress bar (`.y2FKY`) sits at exactly this height on any partly-watched
+   video. While a preview is playing, what is playing is the thing worth
+   describing, so this is drawn over it -- which is what the app's own preview
+   bar does too, being pinned to the same edge. */
+
+#tizentube-preview-progress {
+    /* Written by previewIndicator.ts in physical viewport pixels. */
+    --tt-pp-x: 0px;
+    --tt-pp-y: 0px;
+    --tt-pp-w: 0px;
+
+    position: fixed;
+    left: 0;
+    top: 0;
+    /* --tt-pp-y is the box's BOTTOM edge, so the element is pulled up by its own
+     height to sit on it. That way previewState.barBox never has to know how
+     thick this is, and the thickness stays declared in exactly one place. */
+    transform: translate3d(var(--tt-pp-x), var(--tt-pp-y), 0) translateY(-100%);
+
+    box-sizing: border-box;
+    /* Physical, for the reason the whole file is physical: this element is
+     appended to document.body and inherits the app's direction. */
+    width: var(--tt-pp-w);
+    height: 0.25rem;
+    overflow: hidden;
+
+    background-color: rgb(255 255 255 / 30%);
+
+    /* Same guarantees as the badge: out of flow, inert, above the app's own
+     overlays. */
+    pointer-events: none;
+    z-index: 900;
+
+    /* Hidden until previewIndicator.ts sets data-state, so a rule that never
+     matches draws nothing rather than parking a grey line on screen. */
+    visibility: hidden;
+    opacity: 0;
+    /* visibility transitioned alongside opacity, for the reason spelled out on
+     the badge above: without it the element stops painting a frame before the
+     fade starts, and the fade is decoration on something already gone. */
+    transition:
+        opacity 160ms linear,
+        visibility 160ms linear;
+
+    &[data-state="playing"],
+    &[data-state="stalled"] {
+        visibility: visible;
+        opacity: 1;
+    }
+
+    /* Buffering. Dimmed exactly as the badge is, by a filter and for the same
+     reason -- ui.ts's idle dimming owns `opacity` on .tt-dimmable elements and
+     stamps it !important. The bar has stopped moving because the picture has,
+     and that pause needs to read as a stutter rather than as the preview
+     having ended. */
+    &[data-state="stalled"] {
+        filter: opacity(0.55);
+    }
+}
+
+/* Scaled rather than resized: a transform is composited, and a width animated
+   250ms at a time would be a layout on a television that is also decoding video.
+   The app's own fill is scaled for the same reason. */
+#tizentube-preview-progress > .tt-pp-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #e1002d;
+    /* Physical: `left` is the left edge whatever the inherited direction is,
+     which is what stops the bar filling from the wrong end for an Arabic
+     account. */
+    transform-origin: left;
+    transform: scaleX(0);
+    /* Long enough to carry the eye between two timeupdates -- which arrive about
+     four times a second -- and short enough that the bar is never meaningfully
+     behind the picture. The app uses the same quarter second. */
+    transition: transform 250ms linear;
 }

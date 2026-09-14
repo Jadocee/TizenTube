@@ -218,13 +218,29 @@ export interface SoundInput {
  * overwhelming majority of videos.
  */
 /**
- * Milliseconds of preview left, or null when there is nothing honest to say.
+ * When the app will stop this preview, or null when that cannot be said.
  *
- * NOT `endsAt - now`. endsAt is the WATCHDOG deadline and carries
- * WATCHDOG_SLACK_MS on top of the real end, so counting down to it would sit at
- * "5s" for five seconds after the preview had visibly stopped. The honest number
- * is the duration the app asked for, measured from the frame that actually
- * arrived -- which is the same base `resume` re-bases endsAt on.
+ * THE BASE IS THE REQUEST, NOT THE FIRST FRAME, and an earlier version of this
+ * file had that backwards. The shipped bundle arms the stop like this, inside
+ * the preview service's own start():
+ *
+ *   Hlb=function(a,b,c,d,e,f){ ... _.E("deferInlineFadeOut",!1)
+ *     ? a.wa=a.J.onStateChange(function(g){g===1&&( ... a.I=setTimeout(...,e) ...)})
+ *     : (_.Ilb(a,c,b.fadeoutDurationMs,f), e&&e>0&&(a.I=setTimeout(function(){
+ *         a.J.stop();a.I=0;_.gL(a)},e))) ... }
+ *
+ * Two branches. Only the first -- behind the server flag `deferInlineFadeOut`,
+ * which defaults to false and is ABSENT from the EXPERIMENT_FLAGS blob tv.html
+ * ships -- waits for playback state 1 before arming the timer. The branch this
+ * device takes arms it immediately, so the preview dies `durationMs` after it
+ * was ASKED for and the load latency comes out of the preview, not out of thin
+ * air. Measuring from the frame that arrived therefore over-reported by exactly
+ * the load time: the countdown read "0:02" at the moment the preview stopped.
+ *
+ * Under-promising is the safe direction for both readouts, which is why this
+ * stays on the request base even though the flag could in principle be on: a
+ * countdown that reaches zero a moment early is a much smaller lie than one that
+ * is still promising time after the frames have gone.
  *
  * Null, not zero, when the answer is unknown: while loading nothing has started
  * so there is nothing to count, and a preview whose duration came through as 0
@@ -233,13 +249,80 @@ export interface SoundInput {
  * stylesheet argued against a countdown at all -- the answer to that objection
  * is this function, not a guess.
  */
-export function remainingMs(state: PreviewState, now: number): number | null {
+export function previewEndsAt(state: PreviewState): number | null {
     if (!state) return null;
     if (state.phase !== 'playing' && state.phase !== 'stalled') return null;
-    if (!state.playingAt || !state.durationMs) return null;
-    if (!Number.isFinite(now)) return null;
-    const left = state.playingAt + state.durationMs - now;
+    // Finite, not positive. A preview requested at timestamp 0 is unreachable on
+    // a television and perfectly reachable in a harness with a fake clock, and
+    // the phase check above has already excluded IDLE -- which is the only thing
+    // a `> 0` guard would have been protecting against. Duration is the opposite
+    // case: zero there genuinely means "the app gave us no length", so it stays.
+    if (!Number.isFinite(state.startedAt) || !(state.durationMs > 0)) return null;
+    return state.startedAt + state.durationMs;
+}
+
+/**
+ * Milliseconds of preview left, or null when there is nothing honest to say.
+ *
+ * NOT `endsAt - now`. endsAt is the WATCHDOG deadline and carries
+ * WATCHDOG_SLACK_MS on top of the real end, so counting down to it would sit at
+ * "5s" for five seconds after the preview had visibly stopped.
+ */
+export function remainingMs(state: PreviewState, now: number): number | null {
+    const ends = previewEndsAt(state);
+    if (ends === null || !Number.isFinite(now)) return null;
+    const left = ends - now;
     return left > 0 ? left : 0;
+}
+
+export interface ProgressInput {
+    /** The media element's position, in seconds. */
+    currentTime?: number;
+    /** Where this preview began, in seconds. The app takes it from the
+     *  endpoint's startTimeSeconds; the mod samples it off the first frame,
+     *  which is the same number and also survives `resumeVideo`. */
+    startTime?: number;
+    /** The window the app was asked to play, in ms. */
+    durationMs?: number;
+}
+
+/**
+ * How far through the preview the video has got, 0..1, or null.
+ *
+ * THIS IS THE APP'S OWN FORMULA, and it is transcribed rather than invented,
+ * because the ask was for the bar the official client draws. The shipped bundle
+ * has a progress-overlay-view-model whose onProgressChange handler reads:
+ *
+ *   c = (c = inlinePlaybackCommand?.durationMs) && c > 0 ? c/1E3
+ *                                                       : Math.max(0, b.duration - e);
+ *   b = c > 0 ? Math.min(100, Math.max(0, Math.max(0, b.current - e) / c * 100)) : 0
+ *
+ * where `e` is the endpoint's startTimeSeconds and `b.current` the player's
+ * position. So the official bar is MEDIA TIME over the requested window, not
+ * wall clock over it -- it stops when the picture stops, which is what a
+ * progress bar means and what someone watching a stuttering preview expects to
+ * see. That component is server-gated (it needs a progressOverlayViewModel in
+ * the tile's thumbnailOverlays carrying PROGRESS_BAR_STYLE_PLAYER and
+ * DURATION_SOURCE_PREVIEW_PLAYBACK_DURATION) and does not arrive on this
+ * surface, which is why the mod draws the same bar itself.
+ *
+ * Null, not zero, when there is nothing to say: no reading off the element, or
+ * no usable duration to divide by. A bar that sits at zero claims the preview
+ * has not started; a bar that is absent claims nothing.
+ */
+export function progressFraction(input: ProgressInput | null | undefined): number | null {
+    if (!input) return null;
+    const current = input.currentTime;
+    const span = input.durationMs;
+    if (!Number.isFinite(current as number)) return null;
+    if (!Number.isFinite(span as number) || !((span as number) > 0)) return null;
+    const start = Number.isFinite(input.startTime as number) ? (input.startTime as number) : 0;
+    // Math.max over the numerator, exactly as the app does it: a player that
+    // reports a position before the origin -- a seek, a resumed video whose
+    // first frame landed late -- must read as "not started", never as a
+    // negative scale that flips the bar through its own origin.
+    const done = Math.max(0, (current as number) - start) / ((span as number) / 1000);
+    return done > 1 ? 1 : done;
 }
 
 /**
@@ -342,6 +425,53 @@ export function chipOrigin(
     return {
         x: clamp(Math.round(width * (1 - SAFE_FRACTION) - chipW), width - chipW),
         y: clamp(Math.round(height * (1 - SAFE_FRACTION) - chipH), height - chipH),
+    };
+}
+
+/**
+ * Where the progress bar goes, given the box the preview is playing in.
+ *
+ * `y` is the bar's BOTTOM edge, not its top, so this function never has to know
+ * how thick the bar is -- the stylesheet owns that, and a thickness duplicated
+ * here would be a second place to change it and a second place to get it wrong.
+ * previewIndicator.css lands the element on that edge with a translateY(-100%).
+ *
+ * Flush with the bottom of the box, because that is where the app pins its own
+ * preview progress bar: `.Ubdfj{bottom:0;display:block;left:0;position:absolute;
+ * right:0}`, the host of the progress-overlay-view-model this one copies. Its
+ * WATCHED bar, `.y2FKY`, is pinned to the same edge -- that is the bar this one
+ * is knowingly drawn over while a preview is playing, not the one it imitates.
+ *
+ * The box is CLIPPED to the viewport rather than merely clamped. A tile half off
+ * the left edge of a shelf is an ordinary sight on this app, and a bar that kept
+ * its full width would either hang off the screen or -- once the origin was
+ * clamped to 0 -- run further right than the tile it describes, which is a
+ * progress bar that lies about its own scale.
+ *
+ * Null when the box is not plausibly a tile. anchorUsable rejects the
+ * full-screen player, which is the case that matters: a preview adopted into
+ * the watch page has no tile to draw on, and a bar across the bottom of a
+ * full-screen video would read as the video's own progress.
+ */
+export function barBox(
+    rect: Rect | null | undefined,
+    viewport: Size,
+): { x: number; y: number; width: number } | null {
+    const width = viewport && Number.isFinite(viewport.width) ? viewport.width : 0;
+    const height = viewport && Number.isFinite(viewport.height) ? viewport.height : 0;
+    if (!anchorUsable(rect, { width, height })) return null;
+
+    const left = Math.max(0, rect!.left);
+    const right = Math.min(width, rect!.left + rect!.width);
+    const visible = right - left;
+    // Entirely off one side. Clamping would put a full-width bar at x=0, which
+    // is worse than no bar: it would describe a tile that is not there.
+    if (!(visible > 0)) return null;
+
+    return {
+        x: Math.round(left),
+        y: Math.round(Math.max(0, Math.min(rect!.top + rect!.height, height))),
+        width: Math.round(visible),
     };
 }
 

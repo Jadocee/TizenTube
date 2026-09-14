@@ -1,7 +1,10 @@
 // What previewIndicator.ts reaches for outside itself. Deliberately thin: the
 // module under test is the DOM shell, so everything it depends on is a spy and
 // nothing here has behaviour of its own to get wrong.
-export const store = { enablePreviewIndicator: true };
+// Mirrors defaultConfig. A stub that disagrees with the shipped defaults is a
+// harness asserting about a product nobody runs -- and both of these are on by
+// default, which is what makes the independence checks below worth having.
+export const store = { enablePreviewIndicator: true, enablePreviewProgressBar: true };
 export const configRead = (k) => store[k];
 
 const listeners = [];

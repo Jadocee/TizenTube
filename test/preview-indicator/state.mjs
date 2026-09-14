@@ -20,6 +20,9 @@ import {
     shouldAnchor,
     soundState,
     remainingMs,
+    previewEndsAt,
+    progressFraction,
+    barBox,
     formatRemaining,
     LOADING_TIMEOUT_MS,
     AUDIO_SETTLE_MS,
@@ -367,39 +370,59 @@ check('a NaN clock anchors rather than throwing', shouldAnchor(T0, NaN), true);
 // --- the countdown ----------------------------------------------------------
 // The stylesheet argued for years that a countdown could not be honest, because
 // "the duration is what we ASK the app for, not what it does". These are the
-// assertions that answer it. The number is measured from the frame that
-// ARRIVED, not from the request, and it is absent rather than invented whenever
-// the app gave nothing usable.
+// assertions that answer it. The number is measured from the REQUEST, and it is
+// absent rather than invented whenever the app gave nothing usable.
 const counting = reduce(IDLE, { type: 'start', now: T0, durationMs: 30000, anchored: true });
 const rolling = reduce(counting, { type: 'resume', now: T0 + 4000 });
 
 check('a preview still loading has no countdown', remainingMs(counting, T0 + 100), null);
+// FROM THE REQUEST, and this assertion was the other way round until the bundle
+// settled it. The preview service arms the timer that stops a preview inside its
+// own start() -- `a.I=setTimeout(function(){a.J.stop();...},e)` -- and only the
+// `deferInlineFadeOut` branch waits for playback to begin before doing so. That
+// flag defaults to false and is absent from the EXPERIMENT_FLAGS blob tv.html
+// ships, so the load latency comes out of the preview. Counting from the frame
+// meant the badge read "0:04" at the moment the preview actually stopped.
 check(
-    'playing counts from the FIRST FRAME, not the request',
+    'playing counts from the REQUEST, not the first frame',
     remainingMs(rolling, T0 + 4000),
-    30000,
+    26000,
 );
-check('  ...so the 4s spent loading are not deducted', remainingMs(rolling, T0 + 5000), 29000);
+check('  ...so the 4s spent loading are already gone', remainingMs(rolling, T0 + 5000), 25000);
 // NOT endsAt. endsAt carries WATCHDOG_SLACK_MS, so counting to it would sit at
 // "0:05" for five seconds after the preview visibly stopped.
 check(
     '  ...and it reaches zero at the real end, not the watchdog',
-    remainingMs(rolling, T0 + 34000),
+    remainingMs(rolling, T0 + 30000),
     0,
 );
 check('  ...never going negative', remainingMs(rolling, T0 + 99000), 0);
 check(
-    '  ...while the watchdog is still five seconds out',
-    rolling.endsAt - (rolling.playingAt + rolling.durationMs),
-    WATCHDOG_SLACK_MS,
+    '  ...while the watchdog is still further out than that',
+    rolling.endsAt > rolling.startedAt + rolling.durationMs + WATCHDOG_SLACK_MS - 1,
+    true,
 );
+// The deadline is one function, and both readouts go through it. Asserting that
+// keeps the bar and the digits from drifting apart the way two copies of the
+// same arithmetic always eventually do.
+check('the deadline is the request plus the window', previewEndsAt(rolling), T0 + 30000);
+check('  ...and a loading preview has none', previewEndsAt(counting), null);
+check('  ...nor an idle one', previewEndsAt(IDLE), null);
+// A preview requested at exactly timestamp 0. Unreachable on a television and
+// perfectly reachable in a harness with a fake clock, which is how a `> 0` guard
+// here went unnoticed until the bar stopped being drawn.
+const atZero = reduce(reduce(IDLE, { type: 'start', now: 0, durationMs: 30000, anchored: true }), {
+    type: 'resume',
+    now: 0,
+});
+check('a preview requested at timestamp zero still counts', remainingMs(atZero, 1000), 29000);
 
 // A stall is still a running preview: the disc dims but the clock does not stop,
 // because the app has not stopped counting either.
 check(
     'a stalled preview keeps counting',
     remainingMs(reduce(rolling, { type: 'stall' }), T0 + 6000),
-    28000,
+    24000,
 );
 
 // Absent, not zero. A readout that invents a number is the thing the old
@@ -425,5 +448,94 @@ check('  ...and minutes are not', formatRemaining(65000), '1:05');
 check('a long preview still reads', formatRemaining(605000), '10:05');
 check('junk reads as zero rather than NaN', formatRemaining(NaN), '0:00');
 check('  ...as does a negative', formatRemaining(-5), '0:00');
+
+// --- how far through the video is -------------------------------------------
+// The app's own progress-overlay-view-model computes
+//   Math.min(100, Math.max(0, Math.max(0, current - e) / (durationMs/1E3) * 100))
+// and these are that formula's answers. MEDIA time, not wall clock: the bar is
+// describing the picture, so it stops when the picture does.
+const WINDOW = { durationMs: 40000, startTime: 0 };
+check('the first frame is an empty bar', progressFraction({ ...WINDOW, currentTime: 0 }), 0);
+check('  ...a quarter in is a quarter', progressFraction({ ...WINDOW, currentTime: 10 }), 0.25);
+check('  ...and the last frame is full', progressFraction({ ...WINDOW, currentTime: 40 }), 1);
+// A video longer than the window keeps playing past it until the app stops it;
+// the bar has nowhere further to go.
+check(
+    'a video running past the window clamps',
+    progressFraction({ ...WINDOW, currentTime: 90 }),
+    1,
+);
+// The offset case: `resumeVideo: true` is in the mod's own command, so a
+// half-watched video starts in the middle and the bar has to measure from there.
+check(
+    'a resumed video measures from where it resumed',
+    progressFraction({ durationMs: 40000, startTime: 120, currentTime: 140 }),
+    0.5,
+);
+// Both Math.max(0, ...) guards, which the app has and which are not decoration:
+// a negative numerator would scale the fill through its own origin and draw the
+// bar backwards out of the left edge of the tile.
+check(
+    '  ...and a position before that reads as not started',
+    progressFraction({ durationMs: 40000, startTime: 120, currentTime: 110 }),
+    0,
+);
+// IDENTITY, NOT EQUALITY, and the difference is the whole point of these four.
+// checker() compares JSON.stringify(got) === JSON.stringify(want), and
+// JSON.stringify(NaN) is the string "null" -- so `check(..., null)` passes just
+// as happily when the function returns NaN, which is exactly what it returns
+// with the Number.isFinite guards deleted. Measured: removing the guard left
+// all four green while progressFraction({durationMs:40000}) was returning NaN
+// and the bar was being handed `scaleX(NaN)`.
+const isNull = (v) => v === null;
+check(
+    'no duration means no bar',
+    isNull(progressFraction({ currentTime: 10, durationMs: 0 })),
+    true,
+);
+check('  ...and neither does no reading', isNull(progressFraction({ durationMs: 40000 })), true);
+check(
+    '  ...nor a NaN one',
+    isNull(progressFraction({ durationMs: 40000, currentTime: NaN })),
+    true,
+);
+check('  ...nor nothing at all', isNull(progressFraction(null)), true);
+
+// --- where the bar goes -----------------------------------------------------
+// `y` is the BOTTOM edge, so the stylesheet owns the thickness and this function
+// never has to know it.
+const onBox = barBox(TILE, VIEWPORT);
+check('the bar spans the box it is given', onBox.width, TILE.width);
+check('  ...starting at its left edge', onBox.x, TILE.left);
+check('  ...and sitting on its bottom edge', onBox.y, TILE.top + TILE.height);
+// A tile half off the left edge of a shelf is an ordinary sight. The bar is
+// CLIPPED rather than clamped: keeping its full width would make it run further
+// right than the tile it describes, which is a progress bar lying about scale.
+const offLeft = barBox({ left: -100, top: 200, width: 300, height: 170 }, VIEWPORT);
+check('a tile half off the left edge is clipped', [offLeft.x, offLeft.width].join(), '0,200');
+const offRight = barBox({ left: 1820, top: 200, width: 300, height: 170 }, VIEWPORT);
+check('  ...and so is one off the right', [offRight.x, offRight.width].join(), '1820,100');
+// The vertical clamp, which nothing reached before: a shelf scrolled so its
+// tiles hang past the bottom of the screen would otherwise put the bar below
+// the viewport, where it is drawn nowhere and says nothing.
+check(
+    'a tile hanging off the bottom is clamped to the screen',
+    barBox({ left: 300, top: 1000, width: 320, height: 170 }, VIEWPORT).y,
+    1080,
+);
+check(
+    'a tile entirely off screen gets no bar',
+    barBox({ left: -400, top: 200, width: 300, height: 170 }, VIEWPORT),
+    null,
+);
+// The full-screen player, which is what an adopted preview looks like. A bar
+// across the bottom of that would read as the video's own progress.
+check(
+    'the full-screen player gets no bar',
+    barBox({ left: 0, top: 0, width: 1920, height: 1080 }, VIEWPORT),
+    null,
+);
+check('nor does a missing box', barBox(null, VIEWPORT), null);
+check('nor a zero viewport', barBox(TILE, { width: 0, height: 0 }), null);
 
 done();
