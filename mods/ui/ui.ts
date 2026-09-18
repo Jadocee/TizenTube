@@ -8,6 +8,7 @@ import '../spatial-navigation-polyfill.js';
 // navigation natively, and an unguarded throw here would abort the bundle.
 if (window.__spatialNavigation__) window.__spatialNavigation__.keyMode = 'NONE';
 import css from './ui.css';
+import playerTextCss from './playerText.css';
 import { configChangeEmitter, configRead, configWrite } from '../config.js';
 import { onStartupScreenNow } from '../features/startupScreen.js';
 import updateStyle from './theme.js';
@@ -179,6 +180,7 @@ function execute_once_dom_loaded(): void {
     // Add CSS to head.
 
     setStyleBlock('ui', css);
+    setStyleBlock('playerText', playerTextCss);
 
     // Fix UI issues.
     //

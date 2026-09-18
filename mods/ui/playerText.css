@@ -1,0 +1,119 @@
+/* Readability of text in the player controls overlay.
+   
+   THE PROBLEM IS THE APP'S OWN "QUALITY" PATH. With app-quality-root present
+   (which the mod now correctly leaves alone), the app strips text-shadows from
+   every text element in the watch overlay and replaces them with
+   background-color:#000; display:inline — opaque black highlight boxes behind
+   each line. It works for readability, but it looks heavy-handed: every piece of
+   metadata and every timestamp sits in a solid black rectangle, obliterating the
+   gradient behind it and giving the overlay the look of a debug mode rather than
+   a polished player.
+   
+   THIS FILE REVERSES THAT TRADE. It suppresses the black highlight boxes and
+   restores text-shadows — not the originals, which were too subtle for a
+   television at three metres, but a stronger set tuned for that distance. One
+   tight dark shadow for the letterform and a wider soft blur for the backdrop,
+   both from the same dark tone the app uses (#030303) rather than pure black,
+   which holds its opacity without clipping to the panel's gamma curve.
+   
+   EVERY SELECTOR HERE IS AN APP CLASS, not one of ours, so every rule needs
+   !important: the app's stylesheet is appended to <head> at runtime AFTER the
+   mod's (base.js's _F_installCss), so equal specificity loses without it.
+   
+   THE SELECTORS ARE SCOPED UNDER .app-quality-root, which means they only fire
+   when the class IS present — the condition the mod now preserves. If a future
+   change removed the class again, these rules would simply stop matching rather
+   than fighting whatever replaced them.
+   
+   Derived from the shipped stylesheets (main.css + chunk_007.css). If the app
+   changes its class names, these rules go inert rather than breaking anything,
+   which is the safe failure mode for a cosmetic override. */
+
+/* --- suppress the black highlight boxes ----------------------------------- */
+
+/* The video title's inline black box. */
+.app-quality-root .VdWCZc .s0UVSb {
+    background-color: transparent !important;
+}
+
+/* The time display's elapsed-time black box. */
+.app-quality-root .g6XRz {
+    background-color: transparent !important;
+}
+
+/* Transport button label backgrounds that carry the same pattern. */
+.app-quality-root .h3b7fd .RRJiYc {
+    background-color: transparent !important;
+}
+
+/* --- restore and strengthen text-shadows ---------------------------------- */
+
+/* The shared shadow for player overlay text. Two layers:
+   1) A tight 1px offset for the letterform edge, keeping glyphs crisp
+   2) A soft 4px blur for the halo, lifting text off any background
+   
+   The app's originals were 0 .0625rem .125rem #030303 (1px offset, 2px blur) —
+   fine for a desktop, too subtle for a sofa. The wider blur here is what
+   YouTube's own NON-quality path uses for its equivalent elements (e.g.
+   `.pzxMJ{text-shadow:0 0 4px black}`). */
+
+/* Video title (ytlr-video-title-tray host). */
+.app-quality-root .k0HoAc {
+    text-shadow:
+        0 0.0625rem 0.125rem #030303,
+        0 0 0.25rem rgb(0 0 0 / 80%) !important;
+}
+
+/* Channel name / primary metadata line. */
+.app-quality-root .JsCfxb {
+    text-shadow:
+        0 0.0625rem 0.125rem #030303,
+        0 0 0.25rem rgb(0 0 0 / 80%) !important;
+}
+
+/* Secondary metadata (view count, date). */
+.app-quality-root .f9TLue {
+    text-shadow:
+        0 0.0625rem 0.125rem #030303,
+        0 0 0.25rem rgb(0 0 0 / 80%) !important;
+}
+
+/* Video title text within the title badge. */
+.app-quality-root .VdWCZc .s0UVSb {
+    text-shadow:
+        0 0.0625rem 0.125rem #030303,
+        0 0 0.25rem rgb(0 0 0 / 80%) !important;
+}
+
+/* Time elapsed / duration labels. */
+.app-quality-root .iXfi4e {
+    text-shadow:
+        0 0.0625rem 0.125rem #030303,
+        0 0 0.25rem rgb(0 0 0 / 80%) !important;
+}
+
+/* Time scrubber position tooltip. */
+.app-quality-root .g6XRz {
+    text-shadow:
+        0 0.0625rem 0.125rem #030303,
+        0 0 0.25rem rgb(0 0 0 / 80%) !important;
+}
+
+/* Paid content / promotion notice. */
+.app-quality-root .Imsnhf .prqC5c {
+    text-shadow:
+        0 0.0625rem 0.125rem #030303,
+        0 0 0.25rem rgb(0 0 0 / 80%) !important;
+}
+
+/* Description overlay text. */
+.app-quality-root .pzxMJ {
+    text-shadow:
+        0 0 0.25rem rgb(0 0 0 / 90%),
+        0 0 0.5rem rgb(0 0 0 / 50%) !important;
+}
+.app-quality-root .OEPoZ {
+    text-shadow:
+        0 0 0.25rem rgb(0 0 0 / 90%),
+        0 0 0.5rem rgb(0 0 0 / 50%) !important;
+}
