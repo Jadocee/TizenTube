@@ -121,6 +121,12 @@ export interface DeferOptions {
  * So the block is deferred instead: the picker is never disturbed, and the feed
  * still gets its pass through the mod once the picker is gone.
  *
+ * earlyBrowse.ts has since taken the race itself away -- it adopts the feed the
+ * pre-bootstrap already fetched, so a late hook no longer means a missed
+ * payload. This stays: the reload covers what the mod does to a page besides
+ * parse its responses, and a second pass over an already-clean feed costs a
+ * request, while missing one costs the session.
+ *
  * Runs AT MOST ONCE, and not at all if the budget runs out with the screen still
  * up -- firing then would be the original bug on a slow chooser.
  */

@@ -153,6 +153,25 @@ for (const landmark of [
 }
 out('startup-screen/mod.generated.mts', startupScreenSrc);
 
+// earlyBrowse.ts is pure -- no imports, and the only global it touches is
+// console, which a harness has too.
+const earlyBrowseSrc = readRepo('mods', 'features', 'earlyBrowse.ts');
+if (/^\s*import\s/m.test(earlyBrowseSrc)) {
+    fail('earlyBrowse.ts has grown an import; the harness copy is no longer the real thing');
+}
+for (const landmark of [
+    'export function adoptEarlyBrowse',
+    // The two guards the harness pins, named here so deleting one is a refresh
+    // failure rather than a silently weaker suite.
+    'if (cleaned !== undefined) value.response = cleaned;',
+    'wrapped.then(undefined, () => {});',
+]) {
+    if (!earlyBrowseSrc.includes(landmark)) {
+        fail(`earlyBrowse.ts no longer contains "${landmark}"; fix test/refresh.mjs`);
+    }
+}
+out('early-browse/mod.generated.mts', earlyBrowseSrc);
+
 // startupError.ts runs for real.
 out('settings/startupError.generated.mts', readRepo('mods', 'ui', 'startupError.ts'));
 

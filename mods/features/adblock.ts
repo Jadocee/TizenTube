@@ -1,6 +1,7 @@
 import { configRead, configWrite } from '../config.js';
 import { recordVideoContext } from './videoContext.js';
 import { prune, pruneTokens, textCouldMatch, type PruneRule } from './jsonPrune.js';
+import { adoptEarlyBrowse } from './earlyBrowse.js';
 import {
     TILE_STYLE_DEFAULT,
     DEFAULT_PREVIEW_DURATION_MS,
@@ -521,6 +522,19 @@ JSON.parse = function () {
     return processResponse(r, (arguments as any)[0]);
 };
 
+// The one payload the hook above cannot reach: the home feed tv.html's inline
+// pre-bootstrap fetched and parsed before this script existed. It is published
+// as `window.pendingEarlyBrowse` and consumed as already-parsed data that is
+// never parsed again, so if the hook was late there is no second chance at it --
+// which is what "ads came back after switching accounts" was. earlyBrowse.ts
+// records the evidence and why adopting it here has no race left in it.
+//
+// `undefined` for the source text, exactly as the Response.json path passes:
+// there is no raw JSON to filter on, so the ad pass runs rather than being
+// skipped. Idempotent against the hook above by way of the `processed` set, so
+// the order the two saw the payload in does not matter.
+adoptEarlyBrowse(window, (response) => processResponse(response));
+
 /**
  * A deep copy that does NOT re-enter this module.
  *
@@ -601,13 +615,18 @@ JSON.stringify = function (value: any, replacer?: any, space?: any) {
 // override is the sufficient hook and this loop has nothing left to find.
 //
 // THE REAL CAUSE of "blocking fails for a whole session" is elsewhere, and is
-// what ui.ts's deferred startup reload now covers: switching accounts reloads
+// what the adoptEarlyBrowse call above now covers: switching accounts reloads
 // the DOCUMENT (the app's own command is named `reloadOnAccountSwitch`, and
 // signing out fires signalAction:{signal:"RELOAD_PAGE"}, which resolves to a
-// top-frame navigation), and in the new document tv.html's inline pre-bootstrap
-// POSTs for the home feed before any external script runs. If the mod is not
-// re-injected and patched before that response lands, that feed keeps its ads
-// for the session. The startup reload refetches it through these hooks.
+// top-frame navigation), the reloaded URL carries `is_account_switch=1`, and
+// tv.html's inline pre-bootstrap treats that as "no startup screen" and so
+// always runs its very-early browse -- a raw XMLHttpRequest and a bare
+// JSON.parse, from inside the HTML, before base.js is requested. Nothing
+// re-parses that feed afterwards, so a hook installed even a moment too late
+// never sees it at all. earlyBrowse.ts carries the bundle quotes.
+//
+// Note what is NOT the cause: TizenBrew re-injects on every document, so the
+// mod is present. It is present asynchronously, which is a different thing.
 //
 // Left in place rather than removed: it is inert, and taking ad-blocking code
 // out while chasing an ad-blocking bug is the wrong order to do things in. See
