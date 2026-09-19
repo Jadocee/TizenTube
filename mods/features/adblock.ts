@@ -577,15 +577,44 @@ JSON.stringify = function (value: any, replacer?: any, space?: any) {
 // `window.JSON` is the same object the assignments above already wrote to, so
 // the two `window.JSON.x = x` lines that used to sit here were no-ops.
 //
-// This part is not. YouTube's bundle keeps per-module references to JSON, and a
-// module that captured `parse` before this script ran keeps calling the native
-// one -- its ad payloads are never filtered. This loop exists to repair that,
-// but it used to run once at module load, when `window._yttv` does not exist
-// yet: every other feature in this mod polls for it, and `for (const key in
-// undefined)` iterates zero times. So it never patched anything, and whether
-// ads were blocked came down to whether this script won the race against
-// YouTube's bundle -- which is why blocking silently fails for a whole session
-// now and then and comes back after restarting the app.
+// THE LOOP BELOW IS KEPT BUT DOES NOT DO WHAT ITS OLD COMMENT CLAIMED, and the
+// claim is corrected here rather than deleted because it sent one investigation
+// down the wrong road already.
+//
+// It said: YouTube's bundle keeps per-module references to JSON, a module that
+// captured `parse` before this script ran keeps calling the native one, and this
+// repairs that -- "which is why blocking silently fails for a whole session now
+// and then and comes back after restarting the app".
+//
+// That last clause is the misattribution. `this._yttv` is NOT a registry of
+// modules: every file in the app is `(function(_){...})(this._yttv)`, so it is
+// the bundle's single NAMESPACE object and this loop iterates its exported
+// symbols. Nothing in the app ever creates a `.JSON` property on any of them --
+// measured across main.js, base.js, tv.html and all ten chunks:
+//
+//   .JSON=     0        JSON=JSON  0        ["JSON"]  0
+//   JSON:      2, both inside error-message strings in chunks/008.js
+//
+// The three bracket hits in chunks/004.js are `JSON[G[1573]]` -- obfuscated
+// READS of the global through a string table. Those resolve on the very object
+// `JSON.parse = ...` above writes to, which is the proof that the global
+// override is the sufficient hook and this loop has nothing left to find.
+//
+// THE REAL CAUSE of "blocking fails for a whole session" is elsewhere, and is
+// what ui.ts's deferred startup reload now covers: switching accounts reloads
+// the DOCUMENT (the app's own command is named `reloadOnAccountSwitch`, and
+// signing out fires signalAction:{signal:"RELOAD_PAGE"}, which resolves to a
+// top-frame navigation), and in the new document tv.html's inline pre-bootstrap
+// POSTs for the home feed before any external script runs. If the mod is not
+// re-injected and patched before that response lands, that feed keeps its ads
+// for the session. The startup reload refetches it through these hooks.
+//
+// Left in place rather than removed: it is inert, and taking ad-blocking code
+// out while chasing an ad-blocking bug is the wrong order to do things in. See
+// the PR for the removal proposal and the harness that would have to change
+// with it -- test/adblock/test.mjs builds a `{JSON:{parse,stringify}}` module by
+// hand, which is a shape the shipped app never produces, so it confirms this
+// loop against an invented world.
 
 let jsonPatchAttempts = 0;
 let jsonPatchQuietPasses = 0;

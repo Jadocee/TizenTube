@@ -142,6 +142,8 @@ if (/^\s*import\s/m.test(startupScreenSrc)) {
 }
 for (const landmark of [
     'export function onStartupScreen',
+    'export function whenStartupScreenClears',
+    'STARTUP_SCREEN_WAIT_POLLS',
     'BLOCKING_SCREENS',
     'BLOCKING_PAGE_TYPES',
 ]) {
