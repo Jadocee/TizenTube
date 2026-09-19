@@ -4,7 +4,11 @@
 interface CDPClient {
     Runtime: {
         enable(): Promise<unknown>;
-        evaluate(params: { expression: string; contextId?: number }): Promise<unknown>;
+        evaluate(params: {
+            expression: string;
+            contextId?: number;
+            returnByValue?: boolean;
+        }): Promise<RemoteResult | unknown>;
     };
     Page: {
         enable(): Promise<unknown>;
@@ -17,6 +21,17 @@ interface CDPClient {
         event: 'Runtime.executionContextCreated',
         handler: (message: { context: { id: number } }) => void,
     ): void;
+    // Subscribed through the generic `on` rather than chrome-remote-interface's
+    // event-as-promise form: `client.Page.loadEventFired()` returning a promise
+    // is a newer-version convenience, and the pinned dependency here is 0.25.7.
+    // `on` is the shape the injector already uses for executionContextCreated.
+    on(event: 'Page.loadEventFired', handler: () => void): void;
+}
+
+/** What Runtime.evaluate answers with when returnByValue is set. */
+interface RemoteResult {
+    result?: { type?: string; value?: unknown };
+    exceptionDetails?: unknown;
 }
 
 declare module 'chrome-remote-interface' {

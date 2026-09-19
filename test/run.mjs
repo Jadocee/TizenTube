@@ -22,6 +22,7 @@ const HARNESSES = [
     { name: 'stylesheet under CSP', dir: 'stylesheet', file: 'run.mjs', browser: true },
     { name: 'theme panel styling', dir: 'panel-style', file: 'test.mjs', browser: true },
     { name: 'watch backdrop', dir: 'watch-backdrop', file: 'test.mjs', browser: true },
+    { name: 'boot screen', dir: 'boot-screen', file: 'test.mjs', browser: true },
     { name: 'proxy injection', dir: 'injection', file: 'proxy.test.mjs' },
     {
         name: 'bundle at document-start',

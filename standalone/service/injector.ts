@@ -10,6 +10,120 @@ let isConnecting = false;
 // clear a later one's flag.
 let connectGeneration = 0;
 
+/**
+ * How far the debugger attach has got.
+ *
+ * THE BUG THIS EXISTS FOR. `isConnecting` is one bit, set in exactly one place
+ * and cleared in nine, and a clean attach clears it with precisely the same
+ * value as every failure. So the splash -- whose whole decision is
+ * `canConnectToDaemon && !isConnecting` -- cannot tell "installed and on
+ * YouTube" from "gave up". Worse, it does not merely mislead: a late clear looks
+ * exactly like "idle, start an attach", so the relaunched splash fires
+ * /tizentube/debugger and exits the app again, which starts another attach. That
+ * is the boot loop the file's other comments describe, and one bit is why it
+ * cannot be broken from the outside.
+ *
+ * A phase can be. The splash starts an attach only from `idle`, and on `failed`
+ * it goes to the proxy instead -- which injects by a different route, so a
+ * broken debugger costs the mod nothing.
+ */
+export type AttachPhase =
+    /** Nothing has been asked of the debugger in this service's lifetime. */
+    | 'idle'
+    /** The route was hit; waiting for the app to exit so sdbd can relaunch it. */
+    | 'launching'
+    /** sdb/CDP handshake in flight. */
+    | 'connecting'
+    /** The userscript is being uploaded over CDP -- half a megabyte, on a TV. */
+    | 'installing'
+    /** Registered and sent to YouTube. Whether it RAN is a separate question. */
+    | 'navigated'
+    /** ...and the page answered a probe saying the mod is running in it. */
+    | 'verified'
+    /** The page said it was not, and it has been re-sent through the proxy. */
+    | 'recovered'
+    /** Gave up. Nothing was installed. */
+    | 'failed';
+
+export interface AttachReport {
+    phase: AttachPhase;
+    /** Which CDP command took, once one has. */
+    method: string | null;
+    /** One line, for a screen with no console attached. Never a stack. */
+    error: string | null;
+    /** Bumped per attempt, so a caller can tell a retry from a stall. */
+    generation: number;
+}
+
+let attach: AttachReport = { phase: 'idle', method: null, error: null, generation: 0 };
+
+/** The current attach, for whoever is reporting it over HTTP. */
+export const attachState = (): AttachReport => ({ ...attach });
+
+/**
+ * Records a phase, and the one detail that goes with it.
+ *
+ * Deliberately not a state machine with guards: every caller is a failure path
+ * in someone else's callback, and a guard that swallowed a transition would
+ * leave the phase saying something that is no longer true -- which is the defect
+ * this replaces, not an improvement on it.
+ */
+export function noteAttach(
+    phase: AttachPhase,
+    detail?: { method?: string | null; error?: string | null },
+): void {
+    attach = {
+        phase,
+        method: detail && detail.method !== undefined ? detail.method : attach.method,
+        error: detail && detail.error !== undefined ? detail.error : attach.error,
+        generation: phase === 'launching' ? attach.generation + 1 : attach.generation,
+    };
+}
+
+/** Clears the per-attempt detail so a retry does not inherit the last error. */
+function beginAttempt(): void {
+    attach = { ...attach, method: null, error: null };
+}
+
+const fail = (error: string): void => {
+    noteAttach('failed', { error });
+};
+
+/**
+ * Where the proxy serves YouTube, with the same query the splash would have
+ * used. 8099 is this service's express port; 8095 is the DIAL port, and the
+ * mismatch is deliberate -- see watchUrl above.
+ */
+const proxyUrl = (args: string): string =>
+    `http://localhost:8099/tv?additionalDataUrl=http%3A%2F%2Flocalhost%3A8095%2Fdial%2Fapps%2FYouTube${args ? `&${args}` : ''}`;
+
+/**
+ * Asked of the page after it has loaded, to find out whether the userscript
+ * actually RAN -- which is not the same question as whether CDP accepted it.
+ *
+ * `window.queuedVideos` is the first statement of mods/features/videoQueuing.ts,
+ * at module scope with no condition on it, and videoQueuing is imported
+ * unconditionally from the bundle entry. So it is set by the time the bundle has
+ * finished evaluating, which is long before load. The name appears nowhere in
+ * YouTube's own main.js, base.js or tv.html -- measured, not assumed -- so a
+ * true answer cannot come from the app.
+ *
+ * test/injector/test.mjs pins the expression against the real built bundle, so
+ * renaming the global fails the suite rather than silently turning every launch
+ * into a recovery.
+ */
+export const BOOT_PROBE = 'typeof window.queuedVideos !== "undefined"';
+
+/**
+ * How long the probe waits for the page to load before giving up on verifying.
+ *
+ * Generous on purpose. A cold youtube.com/tv on a television is seconds of
+ * script, and the cost of waiting too long is nothing -- the page is already in
+ * front of the viewer and the flag was cleared before this started. The cost of
+ * waiting too briefly would be a re-navigation of a page that was fine.
+ */
+export const VERIFY_TIMEOUT_MS = 20000;
+
 const watchUrl = (args: string): string =>
     // 8095, not 8085: index.ts sets global.isTizenTube before requiring the DIAL
     // service, and service.ts binds 8095 in that case. standalone/index.html's
@@ -40,6 +154,67 @@ function registerOnNewDocument(client: CDPClient, source: string): Promise<strin
         .catch(() => null);
 }
 
+/**
+ * Asks the page whether the mod is actually in it, and fixes it if not.
+ *
+ * WHY THIS IS NOT PARANOIA. Everything before this point proves that CDP
+ * ACCEPTED the script, not that it ran. `addScriptToEvaluateOnNewDocument`
+ * resolving means the browser stored it; the Runtime.evaluate fallback below
+ * does not even mean that, because its promise is neither returned nor awaited
+ * anywhere. The one thing that settles the question is asking the document.
+ *
+ * FAIL-SAFE IN ONE DIRECTION ONLY. A probe that errors, times out, or comes back
+ * with anything other than a boolean changes nothing at all: the phase stays
+ * `navigated`, which is exactly as much as was known before it ran. Only a
+ * literal `false` -- the page loaded, the expression evaluated, and the mod is
+ * not there -- re-navigates, and that costs one page load on a path that had
+ * already failed silently. Erring the other way would make every television
+ * whose CDP build answers evaluate differently look broken.
+ *
+ * Never rejects. It is called after `isConnecting` has been cleared, and a
+ * rejection would fall into connectToDebugger's catch and navigate a second
+ * time.
+ */
+function verifyInjection(client: CDPClient, args: string): Promise<void> {
+    const loaded = new Promise<boolean>((resolve) => {
+        // Page.enable() was awaited before the navigate, so the event is being
+        // delivered. Subscribed through the generic `on`, which is the form this
+        // file already uses -- see the note in types/modules.d.ts.
+        client.on('Page.loadEventFired', () => resolve(true));
+    });
+    const expired = new Promise<boolean>((resolve) => {
+        setTimeout(() => resolve(false), VERIFY_TIMEOUT_MS);
+    });
+
+    return Promise.race([loaded, expired])
+        .then((ready: boolean) => {
+            if (!ready) throw new Error('the page never fired load');
+            return client.Runtime.evaluate({ expression: BOOT_PROBE, returnByValue: true });
+        })
+        .then((answer: RemoteResult | unknown) => {
+            const value = (answer as RemoteResult | null)?.result?.value;
+            if (value === true) {
+                noteAttach('verified', { error: null });
+                return;
+            }
+            if (value !== false) throw new Error('the probe answered with nothing');
+
+            console.error(
+                '[TizenTube] The registered userscript did not run; retrying through the proxy.',
+            );
+            // The proxy splices the script into <head> as a parser-blocking tag,
+            // so it needs no CDP at all. A different route to the same result.
+            return client.Page.navigate({ url: proxyUrl(args) }).then(() => {
+                noteAttach('recovered', { error: 'the injected script did not run' });
+            });
+        })
+        .catch((e: Error) => {
+            // Unverified is not failed. The script was registered and the page was
+            // sent; all that is missing is the confirmation.
+            console.warn('[TizenTube] Could not verify the injection:', e && e.message);
+        });
+}
+
 function connectToDebugger(host: string, port: number, args: string, attempt: number = 0): void {
     nodeFetch(`http://${host}:${port}`)
         .then(() => {
@@ -68,6 +243,7 @@ function connectToDebugger(host: string, port: number, args: string, attempt: nu
                     .then(() => userScript.get())
                     .then((source: string | null) => {
                         if (!source) throw new Error('empty userscript');
+                        noteAttach('installing');
                         return registerOnNewDocument(client, source).then((method) => {
                             if (!method) {
                                 // Last resort on protocol versions without either
@@ -81,24 +257,48 @@ function connectToDebugger(host: string, port: number, args: string, attempt: nu
                                     });
                                 });
                             }
+                            // Recorded either way, including the fallback. A report
+                            // that called the losing side of the race a clean
+                            // attach is what made the difference invisible.
+                            noteAttach('installing', {
+                                method: method || 'Runtime.executionContextCreated',
+                            });
                             return client.Page.navigate({ url: watchUrl(args) });
                         });
                     })
                     // The attach is over only here: the script is registered for
                     // every future document and the page has been sent to YouTube.
                     .then(() => {
+                        noteAttach('navigated');
                         isConnecting = false;
+                        // After the flag, deliberately. Verification is a question
+                        // about a page that has already been handed over, and
+                        // holding isConnecting across it would reintroduce exactly
+                        // the stall this file's other comments are about.
+                        return verifyInjection(client, args);
                     })
                     .catch((e: Error) => {
-                        console.error(
-                            '[TizenTube] Could not install the userscript:',
-                            e && e.message,
-                        );
+                        const message = (e && e.message) || 'unknown error';
+                        console.error('[TizenTube] Could not install the userscript:', message);
                         // Still show YouTube rather than leaving a blank app, and
                         // only report the attach finished once that has been sent.
-                        client.Page.navigate({ url: watchUrl(args) })
+                        //
+                        // THROUGH THE PROXY, WHEN THERE IS A SCRIPT TO SERVE. This
+                        // used to send the page to https://youtube.com with nothing
+                        // installed -- a coded path to "the app runs, the mod is
+                        // simply not in it, and nothing says so". The proxy reaches
+                        // the same place by splicing the userscript into <head> as a
+                        // parser-blocking tag, which needs no CDP and cannot lose
+                        // the race. Only when the failure WAS the userscript is
+                        // plain YouTube the better answer, because the proxy would
+                        // then serve the same missing script behind a second page
+                        // load.
+                        const viaProxy = message !== 'empty userscript';
+                        fail(message);
+                        client.Page.navigate({ url: viaProxy ? proxyUrl(args) : watchUrl(args) })
                             .catch(() => {})
                             .then(() => {
+                                if (viaProxy) noteAttach('recovered', { error: message });
                                 isConnecting = false;
                             });
                     });
@@ -114,6 +314,7 @@ function connectToDebugger(host: string, port: number, args: string, attempt: nu
             notifier.on('error', (e: Error) => {
                 console.error('[TizenTube] CDP attach failed:', e && e.message);
                 if (attempt >= 300) {
+                    fail(`the debugger never accepted a connection (${(e && e.message) || '?'})`);
                     isConnecting = false;
                     return;
                 }
@@ -124,6 +325,7 @@ function connectToDebugger(host: string, port: number, args: string, attempt: nu
             // The debugger port takes a moment to come up. Bounded at ~30s, rather
             // than retrying every 100ms for the life of the service.
             if (attempt >= 300) {
+                fail(`the debugger port ${port} never came up`);
                 isConnecting = false;
                 console.error('[TizenTube] Debugger never became reachable on port', port);
                 return;
@@ -175,14 +377,21 @@ function canConnectToDaemon(attempt: number = 0): Promise<DaemonState> {
 }
 
 function startDebugger(args: string): Promise<boolean> {
+    beginAttempt();
     return canConnectToDaemon().then((res) => {
-        if (!res.canConnectToDaemon) return false;
+        if (!res.canConnectToDaemon) {
+            // Reachable: the splash decided to attach from a getState taken
+            // earlier, and developer mode can be switched off between the two.
+            fail('developer mode is off, or the sdb daemon stopped answering');
+            return false;
+        }
         const client = adbhost.createConnection({ host: '127.0.0.1', port: 26101 });
 
         // adbhost attaches no 'error' handler of its own, and an unhandled 'error'
         // on a net.Socket is thrown by EventEmitter -- from an I/O callback, with
         // nothing above it to catch.
         client._stream.on('error', (e: Error) => {
+            fail(`the sdb connection failed (${(e && e.message) || '?'})`);
             isConnecting = false;
             console.error('[TizenTube] sdb connection failed:', e && e.message);
         });
@@ -191,12 +400,20 @@ function startDebugger(args: string): Promise<boolean> {
             const packageId = tizen.application.getAppInfo().packageId;
             const gen = ++connectGeneration;
             isConnecting = true;
+            noteAttach('connecting');
             // Nothing clears this on the paths where sdbd never replies with a
             // port, and the splash polls getState until something does. Longer
             // than connectToDebugger's own ~30s budget so it cannot pre-empt a
             // live attach, and generation-checked so it only ever clears its own.
             setTimeout(() => {
                 if (connectGeneration === gen) {
+                    // Only when nothing later got anywhere. The watchdog outlives
+                    // a successful attach by design, and overwriting a `navigated`
+                    // or `verified` phase with `failed` 45 seconds after the fact
+                    // would tell the next launch to avoid a route that works.
+                    if (attach.phase === 'connecting' || attach.phase === 'installing') {
+                        fail('the debugger attach timed out');
+                    }
                     isConnecting = false;
                     console.error('[TizenTube] debugger attach timed out');
                 }
@@ -206,6 +423,7 @@ function startDebugger(args: string): Promise<boolean> {
             // required_version="9.0" now excludes outright.
             const shellCmd = client.createStream(`shell:0 debug ${packageId}.TizenTubeStandalone`);
             shellCmd.on('error', () => {
+                fail('sdbd rejected the debug launch');
                 isConnecting = false;
             });
 
@@ -222,6 +440,7 @@ function startDebugger(args: string): Promise<boolean> {
                 const port = Number(m[1]);
                 buf = '';
                 if (!port || port > 65535) {
+                    fail('sdbd did not report a usable debug port');
                     isConnecting = false;
                     console.error('[TizenTube] Could not parse the debug port from sdbd');
                     return;

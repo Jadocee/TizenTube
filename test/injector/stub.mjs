@@ -13,6 +13,14 @@ export const knobs = {
     userScript: 'console.log("tizentube")',
     debugPort: 7011, // what sdbd reports back
     sdbReplyMs: 10, // how long sdbd takes to answer
+    enableOk: true, // whether Runtime.enable succeeds -- a CDP failure that is not the script
+    loadEventMs: 5, // how long the navigated page takes to fire load
+    // What the page answers the boot probe with. `true` means the mod is
+    // running in it; `false` means it demonstrably is not, which is the only
+    // answer allowed to trigger a recovery; `undefined` stands for a CDP build
+    // that does not honour returnByValue, which must change nothing.
+    bootProbe: true,
+    probeOk: true, // whether Runtime.evaluate answers the probe at all
 };
 
 export const reset = () => {
@@ -26,10 +34,23 @@ export const reset = () => {
         userScript: 'console.log("tizentube")',
         debugPort: 7011,
         sdbReplyMs: 10,
+        enableOk: true,
+        loadEventMs: 5,
+        bootProbe: true,
+        probeOk: true,
     });
 };
 
 const later = (ms, v) => new Promise((r) => setTimeout(() => r(v), ms));
+
+/** The first trace entry starting with `prefix`, or -1. */
+export const traceIndex = (prefix) => trace.findIndex((t) => t.startsWith(prefix));
+
+/** Every url the page was navigated to, in order. */
+export const navigations = () =>
+    trace
+        .filter((t) => t.startsWith('navigate:start:'))
+        .map((t) => t.slice('navigate:start:'.length));
 
 export const nodeFetch = (url) => {
     trace.push(`fetch:${url}`);
@@ -62,9 +83,18 @@ function makeClient() {
         Runtime: {
             enable: () => {
                 trace.push('Runtime.enable');
+                if (!knobs.enableOk) return Promise.reject(new Error('Runtime domain refused'));
                 return Promise.resolve();
             },
-            evaluate: () => {
+            // Two callers with different shapes: the last-resort injection
+            // passes the whole userscript and reads nothing, and the boot probe
+            // passes returnByValue and reads the answer.
+            evaluate: (params) => {
+                if (params && params.returnByValue) {
+                    trace.push('probe');
+                    if (!knobs.probeOk) return Promise.reject(new Error('no such context'));
+                    return Promise.resolve({ result: { value: knobs.bootProbe } });
+                }
                 trace.push('Runtime.evaluate');
                 return Promise.resolve();
             },
@@ -91,10 +121,17 @@ function makeClient() {
                     trace.push('upload:done');
                 });
             },
-            navigate: () => {
-                trace.push('navigate:start');
+            navigate: (params) => {
+                trace.push(`navigate:start:${(params && params.url) || ''}`);
                 return later(knobs.navigateMs).then(() => {
                     trace.push('navigate:done');
+                    // The real browser fires this once the navigated document
+                    // has loaded. Fired from the navigate it belongs to rather
+                    // than on a timer from connect, because the probe waits for
+                    // exactly this and would otherwise race it.
+                    setTimeout(() => {
+                        (listeners['Page.loadEventFired'] || []).forEach((f) => f());
+                    }, knobs.loadEventMs);
                 });
             },
         },

@@ -152,3 +152,36 @@ function refresh(): Promise<boolean> {
 export { get, refresh };
 export const isPackaged = (): boolean => !!packaged;
 export const currentVersion = (): string | null => version;
+
+/** What a caller needs to decide whether the mod can be delivered at all. */
+export interface UserScriptState {
+    /** There is a script to serve. False is the one case the boot screen gates on. */
+    ready: boolean;
+    /** Its size, so "ready" cannot mean a one-line stub nobody noticed. */
+    bytes: number;
+    version: string | null;
+    packaged: boolean;
+}
+
+/**
+ * The delivery state, for the boot screen.
+ *
+ * Synchronous, and it must stay that way. `get()` returns a promise, but in a
+ * shipped build UPDATE_SOURCE is null, so download() is `Promise.resolve(source)`
+ * and rolldown eliminates the network path outright -- the answer at the first
+ * request is the answer forever. Reporting it through a promise would suggest a
+ * readiness that arrives later, and the boot screen would poll for something
+ * that cannot change.
+ *
+ * `bytes` is deliberately the source's length rather than a boolean. The route
+ * that serves this script answers 200 with a one-line `console.error(...)` stub
+ * when there is nothing to send, which is exactly the failure that reaches
+ * YouTube unmodded with nothing on screen to say so; a size makes the difference
+ * between a stub and half a megabyte visible to a screen that can show it.
+ */
+export const state = (): UserScriptState => ({
+    ready: !!source && source.length > 0,
+    bytes: source ? source.length : 0,
+    version,
+    packaged: !!packaged,
+});
