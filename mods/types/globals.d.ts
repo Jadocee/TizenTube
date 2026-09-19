@@ -42,6 +42,18 @@ declare global {
         tectonicConfig?: TectonicConfig;
         h5vcc?: { tizentube?: H5vccTizenTube };
 
+        /**
+         * The home feed tv.html's inline pre-bootstrap fetched before any
+         * external script ran, resolving to `{identity, response}`. base.js
+         * reassigns it from its own early-browse path and deletes it once it
+         * has been consumed, so it is absent at least as often as it is there.
+         * Typed as a thenable rather than a Promise: the mod replaces it with a
+         * derivation of whatever the page published. See features/earlyBrowse.ts.
+         */
+        pendingEarlyBrowse?: PromiseLike<{ response?: unknown }>;
+        /** Set by the same pre-bootstrap when it decided not to run at all. */
+        vebSkipped?: boolean;
+
         /** Owned by the mod. */
         queuedVideos: QueuedVideos;
         isPipPlaying: boolean;

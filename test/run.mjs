@@ -22,6 +22,7 @@ const HARNESSES = [
     { name: 'stylesheet under CSP', dir: 'stylesheet', file: 'run.mjs', browser: true },
     { name: 'theme panel styling', dir: 'panel-style', file: 'test.mjs', browser: true },
     { name: 'watch backdrop', dir: 'watch-backdrop', file: 'test.mjs', browser: true },
+    { name: 'boot screen', dir: 'boot-screen', file: 'test.mjs', browser: true },
     { name: 'proxy injection', dir: 'injection', file: 'proxy.test.mjs' },
     {
         name: 'bundle at document-start',
@@ -69,6 +70,7 @@ const HARNESSES = [
     { name: 'dearrow request cache', dir: 'tile-fixes', file: 'dearrow.mjs', types: true },
     { name: 'focus motion switches', dir: 'focus-motion', file: 'test.mjs', types: true },
     { name: 'startup screen guard', dir: 'startup-screen', file: 'test.mjs', types: true },
+    { name: 'early browse adoption', dir: 'early-browse', file: 'test.mjs', types: true },
     { name: 'clock visibility', dir: 'clock-visibility', file: 'test.mjs', types: true },
     { name: 'skip notice timing', dir: 'skip-notice', file: 'test.mjs', types: true },
     { name: 'skip notice runtime', dir: 'skip-notice', file: 'runtime.mjs', types: true },

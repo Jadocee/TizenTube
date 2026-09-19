@@ -10,7 +10,7 @@ if (window.__spatialNavigation__) window.__spatialNavigation__.keyMode = 'NONE';
 import css from './ui.css';
 import playerTextCss from './playerText.css';
 import { configChangeEmitter, configRead, configWrite } from '../config.js';
-import { onStartupScreenNow } from '../features/startupScreen.js';
+import { onStartupScreenNow, whenStartupScreenClears } from '../features/startupScreen.js';
 import updateStyle from './theme.js';
 import { showToast } from './ytUI.js';
 import modernUI from './settings.js';
@@ -511,18 +511,40 @@ function execute_once_dom_loaded(): void {
         }, 2000);
     }
 
-    // NOT WHILE THE APP IS ASKING THE USER SOMETHING. This block runs off a
-    // 250ms poll for a <video> element, so it lands at an unpredictable moment;
-    // when the app had decided to show the account picker, the reload below tore
-    // it down and landed on the signed-in account's home. From the sofa that is
-    // the picker appearing and then logging you in as the previous user before
-    // you could choose, intermittently, depending on which won the race.
+    // DEFERRED, NOT SKIPPED, and the difference is a session's worth of ads.
     //
-    // Skipped rather than deferred. The reload exists so the first home payload
-    // goes through the mod's processing; picking an account navigates anyway,
-    // and that navigation is processed like any other, so there is nothing left
-    // for it to do afterwards.
-    if (!onStartupScreenNow()) {
+    // This block runs off a 250ms poll for a <video> element, so it lands at an
+    // unpredictable moment. When the app had decided to show the account picker,
+    // the reload below tore it down and landed on the signed-in account's home --
+    // the picker appearing and then logging you in as the previous user before
+    // you could choose. So it was gated on onStartupScreenNow().
+    //
+    // THE GATE WAS RIGHT AND THE REASONING UNDER IT WAS WRONG. It said: "picking
+    // an account navigates anyway, and that navigation is processed like any
+    // other, so there is nothing left for it to do afterwards." That assumed the
+    // mod is still there to process it. It is not.
+    //
+    // Switching accounts RELOADS THE DOCUMENT. The app names the command
+    // `reloadOnAccountSwitch`, alongside `restartToAccountSelectorCommand` and
+    // `exitYtkAndReloadToAccountSelectorCommand`; signing out posts
+    // /tv_config?action_clear=1, clears its caches and fires
+    // `signalAction:{signal:"RELOAD_PAGE"}`, which resolves through
+    // ReloadPageCommandResolver to _.Ck() -> _.Dla(location, url) -- a top-frame
+    // navigation with an incremented `hrld` counter in the query. Every hook
+    // this mod installed dies with that document.
+    //
+    // In the new document tv.html's inline pre-bootstrap fetches the home feed
+    // itself -- `{browseId:"default",context:p}`, POSTed before any external
+    // script runs, with the `br_s`/`br_r` timing marks around it. Whether the
+    // mod is re-injected and has patched JSON.parse before that response lands
+    // is a race against the network. This reload is what covers the launches
+    // where it loses: it refetches the feed through the hooks. Skipping it on
+    // exactly the launches that follow an account switch -- the ones that always
+    // show a startup screen -- is why ads came back after switching accounts.
+    //
+    // So: wait for the screen to go, then do the work. The picker is never torn
+    // down, and the feed still gets a pass through the mod.
+    const runStartupCommands = (): void => {
         if (configRead('reloadHomeOnStartup')) {
             if (configRead('launchToOnStartup')) {
                 resolveCommand(JSON.parse(configRead('launchToOnStartup')));
@@ -543,7 +565,17 @@ function execute_once_dom_loaded(): void {
                 new commandExecutor.commandFunction('reloadGuideAction'),
             );
         }
-    }
+    };
+
+    // The waiting is in features/startupScreen.ts, where a harness drives it with
+    // a fake clock. If the choice reloads the document -- which an account switch
+    // does -- this timer dies with it and the fresh document runs the whole
+    // sequence again, which is the correct outcome rather than a missed one.
+    whenStartupScreenClears(runStartupCommands, {
+        isOnScreen: onStartupScreenNow,
+        setInterval: (fn, ms) => setInterval(fn, ms),
+        clearInterval: (handle) => clearInterval(handle as ReturnType<typeof setInterval>),
+    });
 
     // `app-quality-root` IS NOT OURS TO REMOVE, and five shipped fixes went past
     // that before anyone checked. The mod used to strip it off <body> on every

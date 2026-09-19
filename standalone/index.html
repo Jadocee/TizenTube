@@ -79,31 +79,13 @@
 
         .progress-container { animation: rise 700ms cubic-bezier(0.2, 0.7, 0.3, 1) 240ms both; }
 
-        /* Motion is a preference, and some sets expose it as an accessibility
-           setting. Reduced motion keeps the composition and drops everything
-           that moves -- including the progress bar's sweep, which is the most
-           restless thing on the screen. */
-        @media (prefers-reduced-motion: reduce) {
-            .bubble { animation: none; opacity: 0.5; }
-            .wordmark, .tagline, .progress-container { animation: none; }
-            .progress-bar { animation: none; width: 100%; opacity: 0.5; }
-        }
-
+        /* translateX, not left/width. The comment at the top of this file says
+           only transform and opacity are animated, and the bar this replaces
+           animated `left` and `width` -- two properties that relayout the
+           element every frame, on a TV SoC, for the whole of a cold launch. */
         @keyframes indeterminate-bar {
-            0% {
-                left: 0%;
-                width: 0;
-            }
-
-            50% {
-                left: 0%;
-                width: 100%;
-            }
-
-            100% {
-                left: 100%;
-                width: 0;
-            }
+            0%   { transform: translateX(-100%) scaleX(0.4); }
+            100% { transform: translateX(100%) scaleX(0.4); }
         }
 
         .progress-container {
@@ -111,18 +93,54 @@
             width: 300px;
             height: 4px;
             margin-top: 40px;
-            background-color: rgba(25, 118, 210, 0.3);
+            background-color: rgb(77 163 255 / 24%);
             border-radius: 2px;
             overflow: hidden;
         }
 
-        .progress-bar {
+        /* How far the launch actually is, driven from the script below. A bar
+           that only ever sweeps says "something is happening"; this one says
+           which of the four things. */
+        .progress-fill {
             position: absolute;
             top: 0;
             left: 0;
+            width: 100%;
             height: 100%;
-            background-color: #1976D2;
+            background-color: #4da3ff;
+            opacity: 0.55;
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 400ms cubic-bezier(0.2, 0.7, 0.3, 1);
+        }
+
+        .progress-sweep {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #4da3ff;
             animation: indeterminate-bar 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+
+        /* LAST IN THE FILE, AND THAT IS THE WHOLE POINT. These rules override
+           ones of equal specificity, so source order is what decides them --
+           and this block used to sit ABOVE the progress bar it disables, which
+           meant the bar's own `animation` line won and reduced motion did
+           nothing to the most restless thing on the screen. Anything added
+           below this block is not covered by it. */
+        /* Motion is a preference, and some sets expose it as an accessibility
+           setting. Reduced motion keeps the composition and drops everything
+           that moves -- including the sweep, which is the most restless thing on
+           the screen. The FILL stays: it is not decoration, it is how far the
+           launch has got, and removing it would remove the information. Its
+           transition goes, so it arrives at each stage rather than sliding. */
+        @media (prefers-reduced-motion: reduce) {
+            .bubble { animation: none; opacity: 0.5; }
+            .wordmark, .tagline, .progress-container { animation: none; }
+            .progress-sweep { animation: none; opacity: 0; }
+            .progress-fill { transition: none; }
         }
     </style>
     <script>
@@ -175,27 +193,195 @@
             statusEl.textContent = message;
         }
 
+        // --- what this screen is for -------------------------------------
+        //
+        // It used to be a launcher: it started the service, asked one question
+        // about the sdb daemon, and handed the television over. Neither exit
+        // checked anything about the mod. The proxy branch assigned
+        // location.href after reading a single boolean; the debugger branch
+        // fired a request it never waited for and exited the app on the next
+        // line. So "YouTube boots and TizenTube is simply not in it, and nothing
+        // on screen says so" was one falsy value away on every launch -- the
+        // service answers 200 with a one-line console.error stub when it has no
+        // userscript to serve, and the page unblocks and carries on.
+        //
+        // It is a gate now. It does not hand over until the service says there
+        // is a userscript to inject, it names the stage it is waiting on, and
+        // when the debugger route fails it takes the proxy route instead --
+        // which injects by splicing a parser-blocking tag into <head> and needs
+        // no debugger at all. The one thing it still cannot do is watch the mod
+        // start, because on both routes the navigation that loads the mod is
+        // what destroys this page; that half is verified inside the service,
+        // which holds the CDP client and asks the page directly.
+
+        // Fractions the bar fills to. Four stages, so the bar means which one.
+        const STAGES = {
+            service: { at: 0.18, label: "Starting up" },
+            userscript: { at: 0.46, label: "Loading TizenTube" },
+            attaching: { at: 0.74, label: "Installing" },
+            handover: { at: 1, label: "Opening YouTube" }
+        };
+
+        // What each attach phase looks like from the sofa. The phases come from
+        // standalone/service/injector.ts; an unknown one falls back rather than
+        // rendering "undefined" at eighty pixels tall.
+        const ATTACH_TEXT = {
+            launching: "Restarting in debug mode\u2026",
+            connecting: "Connecting to the debugger\u2026",
+            installing: "Installing TizenTube\u2026",
+            navigated: "Opening YouTube\u2026",
+            verified: "Opening YouTube\u2026",
+            recovered: "Opening YouTube\u2026"
+        };
+
+        // The phases that mean the page should already have been navigated by
+        // the service, over CDP. Reaching one of them and still being on screen
+        // is a contradiction, and it is bounded below rather than waited out.
+        const DONE_PHASES = { navigated: true, verified: true, recovered: true };
+
+        // Every budget is in polls, and the poll is 500ms.
+        const POLL_MS = 500;
+        const SCRIPT_WARN = 6;      // 3s before saying the userscript is slow
+        const SCRIPT_GIVE_UP = 40;  // 20s before going without it
+        const DAEMON_GIVE_UP = 24;  // 12s; the probe itself can take ten
+        const DONE_GIVE_UP = 20;    // 10s waiting for a navigation that already happened
+        const READ_TIME_MS = 4000;  // long enough to read a failure before it goes
+
+        let stageNow = "";
+        function stage(name) {
+            const step = STAGES[name];
+            if (!step || stageNow === name) return;
+            // Recorded only once it has actually been painted. This script runs
+            // from <head>, so the first calls happen with no body to write to;
+            // memoising them would mean the stage was never drawn and every
+            // later call for the same stage returned early.
+            if (!document.body) return;
+            stageNow = name;
+            const tagline = document.querySelector(".tagline");
+            if (tagline) tagline.textContent = step.label;
+            const fill = document.querySelector(".progress-fill");
+            if (fill) fill.style.transform = `scaleX(${step.at})`;
+        }
+
         const pkgId = tizen.application.getCurrentApplication().appInfo.packageId;
 
         const serviceId = `${pkgId}.StandaloneService`;
 
         // Attempts spent waiting for the service to answer on 8099.
         let attempts = 0;
+        // ...and for each of the two things it can be waiting on afterwards.
+        let scriptWaits = 0;
+        let daemonWaits = 0;
+        let doneWaits = 0;
+        // Set once handover has been committed to, so a poll already in flight
+        // cannot commit to it a second time.
+        let handedOver = false;
+        let args;
 
-        function useInjectorOrProxy() {
-            // The whole read goes inside the try. getRequestedAppControl()
-            // returns null when the app was not started by an app-control
-            // request, and that deref used to sit one line ABOVE the try written
-            // to tolerate exactly this kind of absence -- so it threw out of the
-            // launch callback instead of falling through to the no-args path.
-            let args;
-            try {
-                const requested = tizen.application.getCurrentApplication().getRequestedAppControl();
-                const data = requested.appControl.data;
-                args = JSON.parse(data[0].value[0]).args;
-            } catch (e) {
-                // No app-control data: carry on with no args.
+        function proxyUrl() {
+            return `http://localhost:8099/tv?additionalDataUrl=http%3A%2F%2Flocalhost%3A8095%2Fdial%2Fapps%2FYouTube${args ? `&${args}` : ""}`;
+        }
+
+        function toProxy() {
+            if (handedOver) return;
+            handedOver = true;
+            stage("handover");
+            location.href = proxyUrl();
+        }
+
+        function decide(res) {
+            const script = (res && res.userScript) || {};
+            const daemon = (res && res.daemon) || {};
+            const attach = (res && res.attach) || {};
+
+            // 1. Is there a mod to install at all? This is the gate the whole
+            //    screen exists for, and it comes first because neither route is
+            //    worth taking without an answer.
+            if (!script.ready) {
+                stage("userscript");
+                scriptWaits++;
+                if (scriptWaits === SCRIPT_WARN) {
+                    status("Still loading TizenTube\u2026");
+                } else if (scriptWaits >= SCRIPT_GIVE_UP) {
+                    // A television stuck on a launch screen is worse than one
+                    // showing YouTube with no mod, so this ends in YouTube
+                    // either way -- but not silently, and not before the reason
+                    // has been on screen long enough to read. The proxy route,
+                    // because the debugger one would relaunch the app into the
+                    // very failure being reported.
+                    status("TizenTube could not be loaded. Starting YouTube without it\u2026");
+                    setTimeout(toProxy, READ_TIME_MS);
+                    return;
+                }
+                setTimeout(poll, POLL_MS);
+                return;
             }
+
+            // 2. Is an attach already under way? Then the SERVICE owns the
+            //    handover -- it navigates the page over CDP -- and this screen's
+            //    job is to say what is happening until it does. This branch is
+            //    where the relaunched app sits, and it is the only moment the
+            //    launch screen is on the television while the userscript is
+            //    actually being installed.
+            const busy = attach.phase && attach.phase !== "idle" && attach.phase !== "failed";
+            if (daemon.isConnecting || busy) {
+                stage("attaching");
+                status(ATTACH_TEXT[attach.phase] || "Installing TizenTube\u2026");
+                // The phases that mean the service has ALREADY navigated the
+                // page get a bound of their own. Still being here after one of
+                // them means the navigation did not take, and the in-flight
+                // phases cannot be treated the same way -- they are legitimately
+                // slow (half a megabyte over CDP, on a television) and the
+                // service has its own watchdogs for them.
+                if (DONE_PHASES[attach.phase] && ++doneWaits >= DONE_GIVE_UP) {
+                    toProxy();
+                    return;
+                }
+                setTimeout(poll, POLL_MS);
+                return;
+            }
+
+            // 3. Has anybody actually looked for the daemon yet? "No daemon" and
+            //    "nobody has asked" are different answers and the route must not
+            //    be chosen from the second. Bounded, because the proxy needs no
+            //    daemon and waiting longer buys nothing.
+            if (!daemon.probed) {
+                stage("service");
+                daemonWaits++;
+                if (daemonWaits >= DAEMON_GIVE_UP) {
+                    toProxy();
+                    return;
+                }
+                setTimeout(poll, POLL_MS);
+                return;
+            }
+
+            // 4. The debugger route, when it is available and has not already
+            //    failed. `idle` is the guard that breaks the boot loop: a failed
+            //    attach used to be indistinguishable from a finished one, so the
+            //    relaunched screen asked for another, exited, and went round
+            //    again with nothing on the device able to stop it.
+            if (daemon.canConnectToDaemon && attach.phase === "idle") {
+                if (handedOver) return;
+                handedOver = true;
+                stage("attaching");
+                status("Restarting in debug mode\u2026");
+                fetch(`http://localhost:8099/tizentube/debugger${args ? `?${args}` : ""}`);
+                tizen.application.getCurrentApplication().exit();
+                return;
+            }
+
+            // 5. Otherwise the proxy, which injects without a debugger.
+            if (attach.phase === "failed") {
+                status("The debugger could not attach. Using the built-in proxy instead\u2026");
+                setTimeout(toProxy, READ_TIME_MS);
+                return;
+            }
+            toProxy();
+        }
+
+        function poll() {
+            if (handedOver) return;
             // launchAppControl's success callback means the launch REQUEST was
             // accepted, not that express is listening yet, so the first attempts
             // here are normally connection refusals. The abort deadline matters
@@ -204,44 +390,42 @@
             // because fetch has no default timeout.
             const ctrl = new AbortController();
             const deadline = setTimeout(() => ctrl.abort(), 5000);
-            fetch('http://localhost:8099/tizentube/getState', { signal: ctrl.signal })
+            fetch("http://localhost:8099/tizentube/ready", { signal: ctrl.signal })
                 .then(r => { clearTimeout(deadline); return r.json(); })
-                .then(res => {
-                    if (res.canConnectToDaemon && !res.isConnecting) {
-                        fetch(`http://localhost:8099/tizentube/debugger${args ? `?${args}` : ''}`);
-                        tizen.application.getCurrentApplication().exit();
-                    } else if (!res.canConnectToDaemon) {
-                        location.href = `http://localhost:8099/tv?additionalDataUrl=http%3A%2F%2Flocalhost%3A8095%2Fdial%2Fapps%2FYouTube${args ? `&${args}` : ''}`
-                    } else {
-                        // canConnectToDaemon && isConnecting: an attach is already
-                        // in flight. This case matched neither branch above, so the
-                        // splash sat here forever -- and it is reachable in normal
-                        // use, because the debugger branch exits the app and a
-                        // relaunch can land here while the previous attach is still
-                        // running. Wait for it instead.
-                        //
-                        // Terminates either way: the service clears isConnecting on
-                        // a successful CDP connect, and gives up after ~30s if the
-                        // debugger port never comes up. Both outcomes lead to one of
-                        // the branches above on a later poll. 500ms matches the
-                        // service's own retry cadence.
-                        setTimeout(useInjectorOrProxy, 500);
-                    }
-                }).catch(() => {
+                .then(decide)
+                .catch(() => {
                     clearTimeout(deadline);
                     // Retry in place rather than reloading the document. The old
                     // `window.location.reload()` had no delay and no counter, so a
                     // service that took a moment to bind produced a full document
                     // reload loop at connection-refusal speed -- and each reload
-                    // re-ran launchAppControl.
+                    // re-ran the app-control launch below.
+                    stage("service");
                     attempts++;
                     if (attempts === 30) {
                         status("Still waiting for the TizenTube 9 service\u2026");
                     } else if (attempts === 120) {
                         status("The TizenTube 9 service is not responding. Try closing and reopening the app.");
                     }
-                    setTimeout(useInjectorOrProxy, 500);
+                    setTimeout(poll, POLL_MS);
                 });
+        }
+
+        function useInjectorOrProxy() {
+            // The whole read goes inside the try. getRequestedAppControl()
+            // returns null when the app was not started by an app-control
+            // request, and that deref used to sit one line ABOVE the try written
+            // to tolerate exactly this kind of absence -- so it threw out of the
+            // launch callback instead of falling through to the no-args path.
+            try {
+                const requested = tizen.application.getCurrentApplication().getRequestedAppControl();
+                const data = requested.appControl.data;
+                args = JSON.parse(data[0].value[0]).args;
+            } catch (e) {
+                // No app-control data: carry on with no args.
+            }
+            stage("service");
+            poll();
         }
 
         tizen.application.launchAppControl(
@@ -275,7 +459,8 @@
         <h1 class="wordmark">TizenTube <span class="nine">9</span></h1>
         <p class="tagline">Starting up</p>
         <div class="progress-container">
-            <div class="progress-bar"></div>
+            <div class="progress-fill"></div>
+            <div class="progress-sweep"></div>
         </div>
     </div>
 </body>

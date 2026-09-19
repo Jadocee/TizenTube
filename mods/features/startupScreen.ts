@@ -83,3 +83,66 @@ export function onStartupScreenNow(): boolean {
         bodyClassName: document.body?.className,
     });
 }
+
+/** How long to wait for a startup screen to go away, in 250ms polls. Five
+ *  minutes: the thing being waited for is a person choosing an account, and a
+ *  set left on the picker overnight should not still be polling by morning. */
+export const STARTUP_SCREEN_WAIT_POLLS = 1200;
+
+export interface DeferOptions {
+    /** Reads the live signals. Injected so a harness can drive it. */
+    isOnScreen: () => boolean;
+    setInterval: (fn: () => void, ms: number) => unknown;
+    clearInterval: (handle: unknown) => void;
+    /** Defaults to STARTUP_SCREEN_WAIT_POLLS. */
+    maxPolls?: number;
+}
+
+/**
+ * Runs `task` once, as soon as no startup screen is in the way.
+ *
+ * WHY THIS IS NOT JUST A GUARD. ui.ts's startup block fires SOFT_RELOAD_PAGE and
+ * repaints the guide, and both must stay away from the account picker -- firing
+ * under it tears it down and logs you in as the previous user. The first fix
+ * skipped the block outright when a screen was up, on the reasoning that picking
+ * an account navigates anyway and that navigation would be processed like any
+ * other.
+ *
+ * That assumed the mod survives the choice. It does not. Switching accounts
+ * reloads the DOCUMENT -- the app's own command is named `reloadOnAccountSwitch`
+ * and signing out fires `signalAction:{signal:"RELOAD_PAGE"}`, which resolves to
+ * a top-frame navigation -- so every hook the mod installed dies, and in the new
+ * document tv.html's inline pre-bootstrap POSTs for the home feed before any
+ * external script runs. Whether the mod is re-injected and has patched
+ * JSON.parse before that response lands is a race against the network. The
+ * startup reload is what covers the launches where it loses, and skipping it on
+ * exactly the launches that follow an account switch is how ads came back.
+ *
+ * So the block is deferred instead: the picker is never disturbed, and the feed
+ * still gets its pass through the mod once the picker is gone.
+ *
+ * earlyBrowse.ts has since taken the race itself away -- it adopts the feed the
+ * pre-bootstrap already fetched, so a late hook no longer means a missed
+ * payload. This stays: the reload covers what the mod does to a page besides
+ * parse its responses, and a second pass over an already-clean feed costs a
+ * request, while missing one costs the session.
+ *
+ * Runs AT MOST ONCE, and not at all if the budget runs out with the screen still
+ * up -- firing then would be the original bug on a slow chooser.
+ */
+export function whenStartupScreenClears(task: () => void, opts: DeferOptions): void {
+    if (!opts.isOnScreen()) {
+        task();
+        return;
+    }
+
+    const limit = opts.maxPolls === undefined ? STARTUP_SCREEN_WAIT_POLLS : opts.maxPolls;
+    let waited = 0;
+    const handle = opts.setInterval(() => {
+        if (opts.isOnScreen() && ++waited <= limit) return;
+        opts.clearInterval(handle);
+        // Re-checked rather than assumed: the loop also exits on the budget, and
+        // the screen can still be up when it does.
+        if (!opts.isOnScreen()) task();
+    }, 250);
+}

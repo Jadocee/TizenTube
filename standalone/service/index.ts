@@ -56,9 +56,71 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     next();
 });
 
+// The last answer the daemon probe gave, so /tizentube/ready can reply at once.
+//
+// THE PROBE IS NOT FAST. canConnectToDaemon retries a refused 8001 twenty times
+// at 500ms before reporting "no daemon" -- about ten seconds -- while the boot
+// screen aborts its request at five and tries again, starting a second chain
+// that will also outlive its caller. Polled through getState that is a loop the
+// screen cannot get out of. So the readiness route never waits on the probe: it
+// answers with whatever is known, says whether a probe has ever completed, and
+// starts one if none is running.
+let lastDaemon: injector.DaemonState | null = null;
+let daemonProbeRunning = false;
+
+function refreshDaemonState(): void {
+    if (daemonProbeRunning) return;
+    daemonProbeRunning = true;
+    injector
+        .canConnectToDaemon()
+        .then((r) => {
+            lastDaemon = r;
+        })
+        .catch(() => {
+            // canConnectToDaemon resolves rather than rejects, but a future edit
+            // to it must not be able to latch this flag and stop every later probe.
+        })
+        .then(() => {
+            daemonProbeRunning = false;
+        });
+}
+
 app.get('/tizentube/getState', (_req: Request, res: Response) => {
     injector.canConnectToDaemon().then((r) => {
+        lastDaemon = r;
         res.json(r);
+    });
+});
+
+/**
+ * Everything the boot screen needs to decide whether it is safe to hand over.
+ *
+ * WHY IT EXISTS. getState answers three facts about the sdb daemon and nothing
+ * about the mod, so the boot screen's whole decision -- navigate to the proxy,
+ * or start a debugger attach and exit -- was taken without ever asking whether
+ * there is a userscript to inject. The route below will happily serve a
+ * one-line console.error stub in its place (see the userscript handler at the
+ * top of this file), so "YouTube boots with no mod and nothing on screen says
+ * so" was one falsy value away on every launch.
+ *
+ * Registered here deliberately: after the CORS middleware, so it carries
+ * Access-Control-Allow-Origin for the widget page, which is a different origin
+ * from this server; and before the catch-all proxy at the bottom of this file,
+ * which would otherwise forward /tizentube/ready to youtube.com. The userscript
+ * route above sits ABOVE the middleware and terminates the request, which is why
+ * it has no CORS header and why the boot screen asks this route instead of
+ * fetching the script to see whether it is real.
+ */
+app.get('/tizentube/ready', (_req: Request, res: Response) => {
+    if (!lastDaemon) refreshDaemonState();
+    res.json({
+        userScript: userScript.state(),
+        // `probed` distinguishes "no daemon" from "nobody has looked yet". The
+        // boot screen must not pick a route from the second.
+        daemon: lastDaemon
+            ? { ...lastDaemon, probed: true }
+            : { canConnectToDaemon: false, ip: '', isConnecting: false, probed: false },
+        attach: injector.attachState(),
     });
 });
 
@@ -67,6 +129,14 @@ app.get('/tizentube/debugger', (req: Request, res: Response) => {
     // Answered immediately: the caller is index.html, which exits the app right
     // after and never reads a body. This route used to leave the request hanging.
     res.status(202).end();
+
+    // Before anything asynchronous. The caller exits the app on the next line it
+    // runs, and the app that comes back has to be able to see that an attach is
+    // already owed to it -- otherwise it reads `idle`, asks for another, and
+    // exits again. Marking it here rather than inside startDebugger closes the
+    // window between the exit and sdbd relaunching the app, which is precisely
+    // the window the relaunched boot screen lives in.
+    injector.noteAttach('launching', { method: null, error: null });
 
     // getAppsContext is asynchronous and clearInterval only ran inside its
     // callback, so every tick queued in between also saw `!app` and started
@@ -81,6 +151,13 @@ app.get('/tizentube/debugger', (req: Request, res: Response) => {
         // never disappears from the context list.
         if (++ticks > 600) {
             clearInterval(interval);
+            // Said out loud, because the boot screen is waiting on it. If exit()
+            // did not take, the screen is still up in THIS instance of the app
+            // and would otherwise sit on `launching` for as long as the service
+            // lives. `failed` sends it to the proxy, which needs no debugger.
+            injector.noteAttach('failed', {
+                error: 'the app never closed, so it could not be relaunched in debug mode',
+            });
             return;
         }
         tizen.application.getAppsContext((appsContext: any[]) => {

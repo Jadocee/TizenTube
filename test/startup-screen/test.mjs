@@ -12,7 +12,11 @@
 // app really produces, including the two that must NOT suppress the reload --
 // STARTUP_SCREEN_NONE and _UNKNOWN -- because getting those wrong would disable
 // the startup reload on ordinary launches and nothing on screen would say why.
-import { onStartupScreen } from './mod.generated.mts';
+import {
+    onStartupScreen,
+    whenStartupScreenClears,
+    STARTUP_SCREEN_WAIT_POLLS,
+} from './mod.generated.mts';
 import { checker } from '../lib/repo.mjs';
 
 const { check, done } = checker();
@@ -104,5 +108,71 @@ check(
     }),
     true,
 );
+
+// --- deferring, which is the half that was missing -------------------------
+// THE SECOND BUG. The predicate above was used as a plain guard: when a screen
+// was up the startup block was SKIPPED, on the reasoning that picking an account
+// navigates anyway and that navigation would be processed like any other.
+//
+// It is not, because the mod is not there to process it. Switching accounts
+// reloads the DOCUMENT -- the app's own command is `reloadOnAccountSwitch`, and
+// signing out fires signalAction:{signal:"RELOAD_PAGE"}, which resolves through
+// ReloadPageCommandResolver to a top-frame navigation. In the new document
+// tv.html's inline pre-bootstrap POSTs for the home feed before any external
+// script runs, so whether the mod has patched JSON.parse before that response
+// lands is a race. The startup reload covers the launches where it loses, and
+// skipping it on exactly the launches that follow an account switch is how ads
+// came back after switching accounts.
+//
+// Driven with a fake clock: the real one takes five minutes to reach the budget.
+function harness({ screenFor }) {
+    let now = 0;
+    let ran = 0;
+    const timers = new Map();
+    let seq = 0;
+    const opts = {
+        isOnScreen: () => now < screenFor,
+        setInterval: (fn, ms) => {
+            const id = ++seq;
+            timers.set(id, { fn, ms });
+            return id;
+        },
+        clearInterval: (id) => timers.delete(id),
+    };
+    const tick = (polls) => {
+        for (let i = 0; i < polls; i++) {
+            now += 250;
+            for (const [, t] of [...timers]) t.fn();
+        }
+    };
+    whenStartupScreenClears(() => ran++, opts);
+    return { tick, ran: () => ran, live: () => timers.size };
+}
+
+// No screen: straight through, no timer at all.
+const clear = harness({ screenFor: 0 });
+check('with no startup screen it runs at once', clear.ran(), 1);
+check('  ...and schedules nothing', clear.live(), 0);
+
+// A screen that clears after four polls.
+const brief = harness({ screenFor: 1000 });
+check('with a screen up it does not run yet', brief.ran(), 0);
+brief.tick(3);
+check('  ...still held off three polls in', brief.ran(), 0);
+brief.tick(2);
+check('  ...and runs once the screen clears', brief.ran(), 1);
+check('  ...stopping the timer when it does', brief.live(), 0);
+brief.tick(20);
+check('  ...exactly once, never again', brief.ran(), 1);
+
+// The picker left up for longer than the budget. Firing then would be the
+// original bug on a slow chooser, so it must give up instead.
+const forever = harness({ screenFor: Number.POSITIVE_INFINITY });
+forever.tick(STARTUP_SCREEN_WAIT_POLLS + 5);
+check('a screen that never clears is given up on', forever.ran(), 0);
+check('  ...and the timer is not left running', forever.live(), 0);
+
+// The budget is a real number of polls, not an accident.
+check('the budget is five minutes at 250ms', STARTUP_SCREEN_WAIT_POLLS * 250, 300000);
 
 done();
