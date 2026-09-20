@@ -15,6 +15,8 @@ import {
     bestTitle,
     bestThumbnailTime,
     CACHE_LIMIT,
+    MAX_CONCURRENT,
+    knownBranding,
 } from './dearrowCache.generated.mts';
 
 const { check, done } = checker();
@@ -136,12 +138,167 @@ check('an entry with no title string is skipped', bestTitle({ titles: [{ votes: 
 check('the best-voted thumbnail time wins', bestThumbnailTime(BRANDING), 60);
 check('no thumbnails yields null', bestThumbnailTime({ thumbnails: [] }), null);
 check('null yields null', bestThumbnailTime(null), null);
-// An entry can win the vote and still carry no timestamp -- the original code
-// read `.timestamp` off the winner and produced undefined in a URL.
+// An entry can win the vote and still carry no timestamp, and the runner-up is
+// then the answer. The first version of this returned null instead, which is
+// the whole defect below wearing a different hat: a usable timestamp is part of
+// being a candidate at all, not a test applied to the winner.
 check(
-    'a winner with no timestamp yields null',
+    'a top-voted entry with no timestamp does not win',
     bestThumbnailTime({ thumbnails: [{ votes: 99 }, { timestamp: 5, votes: 1 }] }),
+    5,
+);
+check(
+    '  ...and with no usable entry at all the answer is still null',
+    bestThumbnailTime({ thumbnails: [{ votes: 99 }, { votes: 1 }] }),
     null,
 );
+
+// --- `original` is a vote FOR YouTube's own title, not a submission ---------
+// THE DEFECT THIS SECTION EXISTS FOR. DeArrow lets people vote to KEEP the
+// original title or thumbnail, and those votes come back in the same lists with
+// `original: true`. The old selection was pure max-votes, so on a popular video
+// it returned YouTube's own title and the mod wrote it back over itself --
+// invisible, until a badge started claiming it was the community's work.
+//
+// Fixtures taken from the live API rather than invented: jNQXAC9IVRw's top
+// entry is `{"title":"Me at the zoo","original":true,"votes":10,"locked":true}`.
+check(
+    'a vote for the original title is not a community title',
+    bestTitle({
+        titles: [
+            { title: 'Me at the zoo', original: true, votes: 10, locked: true },
+            { title: 'The first video on YouTube', votes: 3 },
+        ],
+    }),
+    'The first video on YouTube',
+);
+check(
+    '  ...and with nothing else, there is no community title',
+    bestTitle({ titles: [{ title: 'Me at the zoo', original: true, votes: 10 }] }),
+    null,
+);
+
+// The thumbnail half was worse: a vote for the original carries a null
+// timestamp, so it won and then failed the finite check, and
+// enableDeArrowThumbnails silently did nothing on exactly the popular videos
+// anyone would notice. dQw4w9WgXcQ, live.
+check(
+    'a vote for the original thumbnail does not hide the community one',
+    bestThumbnailTime({
+        thumbnails: [
+            { timestamp: null, original: true, votes: 9 },
+            { timestamp: 3.92349, original: false, votes: 2, locked: true },
+        ],
+    }),
+    3.92349,
+);
+
+// --- `locked` is a moderator's pin and outranks votes -----------------------
+check(
+    'a locked title beats a better-voted one',
+    bestTitle({
+        titles: [
+            { title: 'loud but unpinned', votes: 500 },
+            { title: 'pinned', votes: 1, locked: true },
+        ],
+    }),
+    'pinned',
+);
+check(
+    '  ...and two locked entries fall back to votes',
+    bestTitle({
+        titles: [
+            { title: 'pinned quietly', votes: 1, locked: true },
+            { title: 'pinned loudly', votes: 9, locked: true },
+        ],
+    }),
+    'pinned loudly',
+);
+check(
+    '  ...and a locked ORIGINAL is still not a community title',
+    bestTitle({
+        titles: [
+            { title: "YouTube's own", votes: 99, locked: true, original: true },
+            { title: 'the submission', votes: 1 },
+        ],
+    }),
+    'the submission',
+);
+
+// --- a non-answer is not remembered as an answer ----------------------------
+// A 404 means "nobody has submitted branding", which IS an answer and is kept so
+// the same video is not asked about on every shelf. A 429 or a 5xx means "ask
+// again later", and the old code could not tell them apart: `res.ok === false`
+// returned null down the SUCCESS path and only the .catch evicted, so one
+// rate-limited burst taught the mod that those videos had no titles for the rest
+// of the session.
+resetBrandingCache();
+requests = [];
+globalThis.fetch = (url) => {
+    requests.push(url);
+    return Promise.resolve({ ok: false, status: 429, json: () => Promise.resolve(null) });
+};
+check('a rate-limited request resolves to null', await fetchBranding('vidRL'), null);
+await fetchBranding('vidRL');
+check('  ...and is retried rather than cached as "no title"', requests.length, 2);
+
+resetBrandingCache();
+requests = [];
+globalThis.fetch = (url) => {
+    requests.push(url);
+    return Promise.resolve({ ok: false, status: 404, json: () => Promise.resolve(null) });
+};
+check('a 404 resolves to null', await fetchBranding('vid404'), null);
+await fetchBranding('vid404');
+check('  ...and is NOT retried, because it is an answer', requests.length, 1);
+
+// --- what is already known, without waiting ---------------------------------
+// The call that makes the title appear at all. Applying branding from a .then()
+// is applying it after the component drew the tile, and nothing redraws it.
+resetBrandingCache();
+stubFetch(BRANDING);
+check('nothing is known before asking', knownBranding('vidK'), undefined);
+await fetchBranding('vidK');
+check('  ...and it is known once the answer arrives', bestTitle(knownBranding('vidK')), 'loudest');
+check('an id nobody asked about is still unknown', knownBranding('vidNever'), undefined);
+check('  ...and junk ids are unknown rather than throwing', knownBranding(42), undefined);
+
+resetBrandingCache();
+globalThis.fetch = () => Promise.resolve({ ok: false, status: 404, json: () => null });
+await fetchBranding('vidNone');
+// null, not undefined: "asked, and there is nothing" is a different answer from
+// "nobody has asked", and only the second one is worth asking again.
+check('a video with no branding is known to have none', knownBranding('vidNone'), null);
+
+// --- the wire is not flooded ------------------------------------------------
+// One captured channel payload carries 163 eligible tiles, and every one of them
+// used to go out in the same synchronous pass.
+resetBrandingCache();
+let open = 0;
+let peak = 0;
+const release = [];
+globalThis.fetch = () => {
+    open++;
+    peak = Math.max(peak, open);
+    return new Promise((resolve) => {
+        release.push(() => {
+            open--;
+            resolve({ ok: true, json: () => Promise.resolve(BRANDING) });
+        });
+    });
+};
+const many = [];
+for (let i = 0; i < 163; i++) many.push(fetchBranding(`flood${i}`));
+check('a shelf of 163 tiles does not open 163 requests', peak <= MAX_CONCURRENT, true);
+check('  ...and the cap is a real number', MAX_CONCURRENT > 0 && MAX_CONCURRENT < 163, true);
+// Drained, so every one of them still completes rather than being dropped.
+while (release.length) {
+    const next = release.shift();
+    next();
+    await Promise.resolve();
+}
+await Promise.all(many);
+check('  ...and all of them are eventually answered', peak <= MAX_CONCURRENT, true);
+globalThis.fetch = savedFetch;
 
 done();

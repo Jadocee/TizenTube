@@ -13,9 +13,16 @@ import {
     shelfCanShrink,
     shelfIsEmpty,
     shrinkShelf,
+    markCommunityTitle,
     hasMembersOnlyBadge,
 } from './tileFixes.js';
-import { fetchBranding, bestTitle, bestThumbnailTime } from './dearrowCache.js';
+import {
+    fetchBranding,
+    knownBranding,
+    bestTitle,
+    bestThumbnailTime,
+    type Branding,
+} from './dearrowCache.js';
 import { isAiChannel } from './aisList.js';
 import {
     menuItems,
@@ -779,62 +786,75 @@ function deArrowify(items: any[]) {
         // one per tile, on every shelf, from a television.
         if (configRead('enableDeArrow') && deArrowableTile(item)) {
             const videoID = item.tileRenderer.contentId;
-            // One request per video rather than one per tile. This used to fire an
-            // uncached, undeduplicated fetch for every tile it walked -- on the order
-            // of a hundred and fifty outbound requests for a first home screen, again
-            // for every continuation, and twice for a video appearing on two shelves.
+            // SYNCHRONOUSLY IF IT IS ALREADY KNOWN, which is the difference
+            // between the community title appearing and not.
             //
-            // The response shape is also read defensively now: `data.titles.length`
-            // threw for the 404 that is the normal answer for a video nobody has
-            // submitted branding for, and the throw landed in the .catch() below,
-            // where it was indistinguishable from a network failure.
-            fetchBranding(videoID)
-                .then((data) => {
-                    if (!data) return;
-                    const title = bestTitle(data);
-                    if (title && item.tileRenderer?.metadata?.tileMetadataRenderer?.title) {
-                        item.tileRenderer.metadata.tileMetadataRenderer.title.simpleText = title;
-                    }
+            // Applying it from a .then() is applying it after the component has
+            // drawn: the app redraws only when something calls its own Da()/K(),
+            // nothing observes this object, so a late write changes the payload
+            // and not the screen until something unrelated redraws that tile.
+            // dearrowCache.ts carries the bundle quotes. Repeats are the common
+            // case on a television and the cache is warm from disk at launch, so
+            // most tiles take this branch.
+            const known = knownBranding(videoID);
+            if (known !== undefined) {
+                applyBranding(item, videoID, known);
+            } else {
+                // First sighting. Fetched for the NEXT time this video is drawn
+                // -- and applied anyway, which costs nothing and is what a
+                // re-render will pick up.
+                fetchBranding(videoID)
+                    .then((data) => applyBranding(item, videoID, data))
+                    .catch(() => {});
+            }
+        }
+    }
+}
 
-                    if (configRead('enableDeArrowThumbnails')) {
-                        const time = bestThumbnailTime(data);
-                        const thumb = item.tileRenderer?.header?.tileHeaderRenderer?.thumbnail;
-                        if (time !== null && thumb) {
-                            // VERIFIED BEFORE IT REPLACES ANYTHING. This
-                            // overwrites the tile's ONLY thumbnail -- a real TV
-                            // payload carries exactly one entry -- so a
-                            // substitute that does not load leaves the tile with
-                            // no image at all: a grey box. The generator answers
-                            // 204 with an empty body for a frame it has not
-                            // produced yet, which is an ordinary reply and
-                            // decodes to nothing. This is the only path in the
-                            // whole mod that can blank a tile, which is why it
-                            // is the only one that checks.
-                            //
-                            // The probe is not an extra download: it is the same
-                            // request the renderer would make, made sooner, so a
-                            // success is already cached when the swap lands. A
-                            // failure costs one request and keeps YouTube's own
-                            // frame.
-                            const url = `https://dearrow-thumb.ajay.app/api/v1/getThumbnail?videoID=${encodeURIComponent(videoID)}&time=${time}`;
-                            const original = thumb.thumbnails;
-                            const probe = new Image();
-                            probe.onload = () => {
-                                // An empty body can still reach onload; only a
-                                // decoded image has a width.
-                                if (!probe.naturalWidth) return;
-                                // And only if nothing else has changed it since.
-                                if (thumb.thumbnails !== original) return;
-                                thumb.thumbnails = [{ url, width: 1280, height: 720 }];
-                            };
-                            // Deliberately empty: keeping YouTube's thumbnail IS
-                            // the handling, and there is nothing to report.
-                            probe.onerror = () => {};
-                            probe.src = url;
-                        }
-                    }
-                })
-                .catch(() => {});
+/** Writes a DeArrow answer onto one tile. Safe to call with null, and twice. */
+function applyBranding(item: any, videoID: string, data: Branding | null | undefined): void {
+    if (!data) return;
+    const title = bestTitle(data);
+    if (title && item.tileRenderer?.metadata?.tileMetadataRenderer?.title) {
+        item.tileRenderer.metadata.tileMetadataRenderer.title.simpleText = title;
+        // Only alongside the title it describes. bestTitle returns null for a
+        // vote to keep YouTube's own title, so a non-null answer IS a community
+        // submission -- which is what makes one flag honest for both.
+        markCommunityTitle(item.tileRenderer);
+    }
+
+    if (configRead('enableDeArrowThumbnails')) {
+        const time = bestThumbnailTime(data);
+        const thumb = item.tileRenderer?.header?.tileHeaderRenderer?.thumbnail;
+        if (time !== null && thumb) {
+            // VERIFIED BEFORE IT REPLACES ANYTHING. This overwrites the tile's
+            // ONLY thumbnail -- a real TV payload carries exactly one entry --
+            // so a substitute that does not load leaves the tile with no image
+            // at all: a grey box. The generator answers 204 with an empty body
+            // for a frame it has not produced yet, which is an ordinary reply
+            // and decodes to nothing. This is the only path in the whole mod
+            // that can blank a tile, which is why it is the only one that
+            // checks.
+            //
+            // The probe is not an extra download: it is the same request the
+            // renderer would make, made sooner, so a success is already cached
+            // when the swap lands. A failure costs one request and keeps
+            // YouTube's own frame.
+            const url = `https://dearrow-thumb.ajay.app/api/v1/getThumbnail?videoID=${encodeURIComponent(videoID)}&time=${time}`;
+            const original = thumb.thumbnails;
+            const probe = new Image();
+            probe.onload = () => {
+                // An empty body can still reach onload; only a decoded image has
+                // a width.
+                if (!probe.naturalWidth) return;
+                // And only if nothing else has changed it since.
+                if (thumb.thumbnails !== original) return;
+                thumb.thumbnails = [{ url, width: 1280, height: 720 }];
+            };
+            // Deliberately empty: keeping YouTube's thumbnail IS the handling,
+            // and there is nothing to report.
+            probe.onerror = () => {};
+            probe.src = url;
         }
     }
 }

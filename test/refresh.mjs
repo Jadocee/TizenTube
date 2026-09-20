@@ -304,6 +304,7 @@ for (const [file, dir, landmarks] of [
             'export function shelfIsEmpty',
             'export function shelfCanShrink',
             'export function deArrowableTile',
+            'export function markCommunityTitle',
             'export function shrinkShelf',
             'SHRINKABLE_TILE_STYLES',
             'export function hasMembersOnlyBadge',
@@ -314,9 +315,11 @@ for (const [file, dir, landmarks] of [
         'tile-fixes',
         [
             'export function fetchBranding',
+            'export function knownBranding',
             'export function bestTitle',
             'export function bestThumbnailTime',
             'CACHE_LIMIT',
+            'MAX_CONCURRENT',
         ],
     ],
     [
