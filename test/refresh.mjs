@@ -377,6 +377,7 @@ for (const [file, dir, landmarks] of [
             'export function remainingMs',
             'export function hidesAt',
             'NOTICE_DURATION_MS',
+            'WELCOME_DURATION_MS',
             'COALESCE_WINDOW_MS',
         ],
     ],

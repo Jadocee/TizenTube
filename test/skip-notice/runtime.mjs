@@ -79,8 +79,12 @@ globalThis.document = {
     createElementNS: () => makeEl(),
 };
 
-const { showSkipNotice, hideSkipNotice } = await import('./runtime.generated.mts');
-const { NOTICE_DURATION_MS, COALESCE_WINDOW_MS } = await import('./skipNotice.generated.mts');
+const { showSkipNotice, showWelcomeNotice, hideSkipNotice } = await import(
+    './runtime.generated.mts'
+);
+const { NOTICE_DURATION_MS, WELCOME_DURATION_MS, COALESCE_WINDOW_MS } = await import(
+    './skipNotice.generated.mts'
+);
 
 const { check, done } = checker();
 
@@ -153,12 +157,36 @@ const forward = glyph();
 check('a skip draws an arrow', typeof forward === 'string' && forward.length > 0, true);
 tick(COALESCE_WINDOW_MS);
 showSkipNotice('Not skipping sponsored segment (was skipped 3 times)', false);
-check('a NOT-skip draws a different mark', glyph() !== forward, true);
+const notSkipped = glyph();
+check('a NOT-skip draws a different mark', notSkipped !== forward, true);
 check('  ...and it is still a real path', (glyph() || '').length > 0, true);
 tick(COALESCE_WINDOW_MS);
 showSkipNotice('Skipping outro', true);
 check('  ...and a later skip goes back to the arrow', glyph(), forward);
 tick(COALESCE_WINDOW_MS);
+
+// --- the welcome, through the same element ----------------------------------
+// It used to be a showToast call, which hands the message to YouTube's own
+// overlayToastRenderer -- the app's top-right chrome, styled as the app. The
+// mod has one notice now, so its one unprompted message goes through that.
+tick(COALESCE_WINDOW_MS);
+showWelcomeNotice('Welcome to TizenTube 9 — Go to settings');
+check('the welcome shows in the notice', text(), 'Welcome to TizenTube 9 — Go to settings');
+check('  ...on screen', shown(), '');
+const welcomeGlyph = glyph();
+check('  ...with a mark of its own', welcomeGlyph !== forward, true);
+// Neither of the skip glyphs fits it: a fast-forward promises a skip and a
+// block promises a refusal, and the welcome describes nothing that happened.
+check('  ...that is not the not-skipped mark either', welcomeGlyph !== notSkipped, true);
+check('  ...and is a real path', (welcomeGlyph || '').length > 0, true);
+
+// It stays up LONGER than a skip notice, which is the whole reason the duration
+// is a parameter rather than a constant read inside the shell.
+tick(NOTICE_DURATION_MS + 1);
+check('  ...and outlives a skip notice', shown(), '');
+tick(WELCOME_DURATION_MS - NOTICE_DURATION_MS);
+check('  ...but not forever', shown(), null);
+check('  ...leaving no timer behind', liveTimers(), 0);
 
 // --- leaving the player forgets ---------------------------------------------
 // The one event that makes the history irrelevant: the next video's first skip
