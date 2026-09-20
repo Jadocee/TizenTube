@@ -12,7 +12,7 @@ import playerTextCss from './playerText.css';
 import { configChangeEmitter, configRead, configWrite } from '../config.js';
 import { onStartupScreenNow, whenStartupScreenClears } from '../features/startupScreen.js';
 import updateStyle from './theme.js';
-import { showToast } from './ytUI.js';
+import { showWelcomeNotice } from './skipNotice.js';
 import modernUI from './settings.js';
 import resolveCommand, { patchResolveCommand } from '../resolveCommand.js';
 import { pipToFullscreen } from '../features/pictureInPicture.js';
@@ -506,9 +506,35 @@ function execute_once_dom_loaded(): void {
     // the setting is off.
     resetScreenDimming();
     if (configRead('showWelcomeToast')) {
-        setTimeout(() => {
-            showToast(t('welcomeMsg.title'), t('welcomeMsg.subtitle'));
-        }, 2000);
+        // THROUGH THE MOD'S OWN NOTICE, and deferred past any startup screen.
+        //
+        // It used to be showToast, which hands the message to YouTube's
+        // overlayToastRenderer: the app's top-right chrome, styled as the app.
+        // The mod has one notice of its own now, so its one unprompted message
+        // goes through that instead of borrowing the app's.
+        //
+        // Gated on the startup screen for a reason the toast never had to care
+        // about: the notice sits at z-index 900 and the app's own `#loader` is
+        // `z-index: 1000 !important`, so a welcome fired while an account
+        // picker or a loader is up is drawn underneath it and simply never
+        // seen. The 2000ms delay is kept -- it is what stops the welcome
+        // landing in the middle of the home page's own first paint.
+        //
+        // Joined into one line because the element holds one text node. It
+        // wraps to a second centred line if a translation needs it, which the
+        // stylesheet is built for.
+        whenStartupScreenClears(
+            () => {
+                setTimeout(() => {
+                    showWelcomeNotice(`${t('welcomeMsg.title')} — ${t('welcomeMsg.subtitle')}`);
+                }, 2000);
+            },
+            {
+                isOnScreen: onStartupScreenNow,
+                setInterval: (fn, ms) => setInterval(fn, ms),
+                clearInterval: (handle) => clearInterval(handle as ReturnType<typeof setInterval>),
+            },
+        );
     }
 
     // DEFERRED, NOT SKIPPED, and the difference is a session's worth of ads.

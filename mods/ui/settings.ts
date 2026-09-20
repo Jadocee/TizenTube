@@ -10,7 +10,12 @@ import {
 import qrcode from 'qrcode-npm';
 import { t } from 'i18next';
 import { readStartupError } from './startupError.js';
-import { channelOf, channelEntry, parseChannelEntry } from '../features/videoContext.js';
+import {
+    channelOf,
+    channelEntry,
+    parseChannelEntry,
+    displayName,
+} from '../features/videoContext.js';
 import { aisListStatus } from '../features/aisList.js';
 import { parseEntry } from '../features/tileMenu.js';
 import type { Config, ConfigKey } from '../config.js';
@@ -236,7 +241,11 @@ function disabledChannelOptions(): ArrayMemberRow[] {
     const stored = configRead('sponsorBlockDisabledChannels');
     const rows: ArrayMemberRow[] = stored.map((entry): ArrayMemberRow => {
         const channel = parseChannelEntry(entry);
-        return { name: channel.name, value: entry, icon: 'ACCOUNT_CIRCLE' };
+        // displayName, not channel.name: an entry stored before the mod could
+        // find a display name reads "<id> <id>", and this is where the user
+        // sees it. It prefers a name learned since, and falls back to the id
+        // rather than to an empty row.
+        return { name: displayName(channel), value: entry, icon: 'ACCOUNT_CIRCLE' };
     });
 
     // The channel on screen, if it is not already in the list. This is the only
@@ -245,7 +254,7 @@ function disabledChannelOptions(): ArrayMemberRow[] {
     const playing = channelOf(null);
     if (playing && !stored.some((entry) => parseChannelEntry(entry).id === playing.id)) {
         rows.unshift({
-            name: playing.name,
+            name: displayName(playing),
             value: channelEntry(playing),
             subtitle: t('settings.options.sponsorblock.options.channels.nowPlaying'),
             icon: 'ACCOUNT_CIRCLE',
@@ -269,13 +278,17 @@ function captionChannelOptions(
     const stored = configRead(key);
     const rows: ArrayMemberRow[] = stored.map((entry): ArrayMemberRow => {
         const channel = parseChannelEntry(entry);
-        return { name: channel.name, value: entry, icon: 'ACCOUNT_CIRCLE' };
+        // displayName, not channel.name: an entry stored before the mod could
+        // find a display name reads "<id> <id>", and this is where the user
+        // sees it. It prefers a name learned since, and falls back to the id
+        // rather than to an empty row.
+        return { name: displayName(channel), value: entry, icon: 'ACCOUNT_CIRCLE' };
     });
 
     const playing = channelOf(null);
     if (playing && !stored.some((entry) => parseChannelEntry(entry).id === playing.id)) {
         rows.unshift({
-            name: playing.name,
+            name: displayName(playing),
             value: channelEntry(playing),
             subtitle: t('settings.options.sponsorblock.options.channels.nowPlaying'),
             icon: 'ACCOUNT_CIRCLE',

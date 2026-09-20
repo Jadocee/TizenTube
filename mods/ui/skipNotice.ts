@@ -1,6 +1,13 @@
 import { whenBodyReady } from '../utils/domReady.js';
 import { setStyleBlock } from './styleSheet.js';
-import { NONE, remainingMs, shouldShow, type NoticeState } from '../features/skipNotice.js';
+import {
+    NONE,
+    NOTICE_DURATION_MS,
+    WELCOME_DURATION_MS,
+    remainingMs,
+    shouldShow,
+    type NoticeState,
+} from '../features/skipNotice.js';
 import css from './skipNotice.css';
 
 // The DOM shell around features/skipNotice.ts. Everything that decides WHETHER
@@ -23,6 +30,11 @@ const MATERIAL_FAST_FORWARD = 'M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z';
    so it is the one that can least afford a contradictory mark. */
 const MATERIAL_BLOCK =
     'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM4 12c0-4.42 3.58-8 8-8 1.85 0 3.55.63 4.9 1.69L5.69 16.9C4.63 15.55 4 13.85 4 12zm8 8c-1.85 0-3.55-.63-4.9-1.69L18.31 7.1C19.37 8.45 20 10.15 20 12c0 4.42-3.58 8-8 8z';
+/* Material's Info, for the welcome. Neither of the two above fits a message
+   that describes nothing that just happened: a fast-forward promises a skip and
+   a block promises a refusal. */
+const MATERIAL_INFO =
+    'M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z';
 
 let element: HTMLDivElement | null = null;
 let label: HTMLSpanElement | null = null;
@@ -91,13 +103,13 @@ function hide(): void {
 }
 
 /**
- * Shows one line over the player.
+ * Shows one line, with a glyph, for a while.
  *
  * Re-showing the same text inside the coalesce window is a no-op rather than a
  * re-arm: chained segments fire in quick succession and a notice that keeps
  * extending its own life outlives the thing it is describing.
  */
-export function showSkipNotice(text: string, skipped = true): void {
+function showNotice(text: string, glyph: string, durationMs: number): void {
     const now = Date.now();
     if (!shouldShow(state, text, now)) return;
 
@@ -105,9 +117,6 @@ export function showSkipNotice(text: string, skipped = true): void {
     if (!node || !label) return;
 
     if (label.textContent !== text) label.textContent = text;
-    // The glyph has to agree with the sentence: "Not skipping ..." under a
-    // fast-forward arrow says two opposite things at once.
-    const glyph = skipped ? MATERIAL_FAST_FORWARD : MATERIAL_BLOCK;
     if (iconPath && iconPath.getAttribute('d') !== glyph) iconPath.setAttribute('d', glyph);
     state = { text, shownAt: now };
     node.setAttribute('data-shown', '');
@@ -116,7 +125,34 @@ export function showSkipNotice(text: string, skipped = true): void {
     // the new shownAt, so a replacing notice gets a full duration rather than
     // the remainder of the one it replaced.
     clearHide();
-    hideTimer = setTimeout(hide, remainingMs(state.shownAt, now));
+    hideTimer = setTimeout(hide, remainingMs(state.shownAt, now, durationMs));
+}
+
+/**
+ * Shows one line over the player.
+ *
+ * KEPT AS A TWO-ARGUMENT BOOLEAN. A `kind` string would read better in
+ * isolation and buys nothing: sponsorblock.ts has exactly two call sites, both
+ * already passing a boolean that means "was it skipped", and test/refresh.mjs
+ * anchors its lift on this signature.
+ */
+export function showSkipNotice(text: string, skipped = true): void {
+    // The glyph has to agree with the sentence: "Not skipping ..." under a
+    // fast-forward arrow says two opposite things at once.
+    showNotice(text, skipped ? MATERIAL_FAST_FORWARD : MATERIAL_BLOCK, NOTICE_DURATION_MS);
+}
+
+/**
+ * The welcome, through the same element as everything else.
+ *
+ * It used to go through YouTube's overlayToastRenderer, which put the mod's one
+ * unprompted message in the app's own top-right chrome, styled as the app and
+ * indistinguishable from it. Routed here it is centred low, in the mod's
+ * palette, with the mod's glyph -- and it is the same element the user will
+ * next see a skip notice in, which is the point of having one notice.
+ */
+export function showWelcomeNotice(text: string): void {
+    showNotice(text, MATERIAL_INFO, WELCOME_DURATION_MS);
 }
 
 /**

@@ -103,18 +103,52 @@
      shows nothing rather than parking an empty pill over the video. */
     visibility: hidden;
     opacity: 0;
+    /* The resting place the exit returns to, and the place the entrance starts
+       from. A translate is free here ONLY because this box is centred by
+       margins rather than by a transform -- see the note at the top of this
+       block. Measured with the entrance applied, the pill sits at the same x
+       and the same width as without it.
+
+       translate and opacity, nothing else: both composite without laying the
+       page out again, which is the rule this mod holds every animation to.
+       The scale is a hair under 1 rather than a real zoom -- at three metres
+       the difference reads as the thing arriving rather than as a zoom. */
+    transform: translateY(0.75rem) scale(0.98);
     /* Out is slower than in: the notice should register immediately and then
      leave without drawing a second glance. */
     transition:
         opacity 220ms ease-out,
+        transform 220ms ease-out,
         visibility 0s linear 220ms;
 
     &[data-shown] {
         visibility: visible;
         opacity: 1;
-        transition:
-            opacity 120ms ease-out,
-            visibility 0s linear 0s;
+        transform: none;
+        /* AN ANIMATION, NOT A TRANSITION, AND THAT IS THE WHOLE POINT.
+           A transition needs a previous computed style to move from, and
+           Chromium resolves style for the first time only once the element is
+           in the document -- which skipNotice.ts does in the same task that
+           sets this attribute. Measured in a real browser: on the FIRST notice
+           of a session getAnimations() was empty and opacity computed 1 in the
+           same frame, so the first skip every session hard-cut in while every
+           later one faded. An animation has no such requirement: it runs on the
+           element's first style resolution.
+
+           Re-showing while already up deliberately does NOT replay it. The
+           attribute is already set, so nothing restarts, and a replacing notice
+           swaps its text in place instead of flickering out and back.
+
+           NO FILL MODE, AND NOTHING TURNS THE TRANSITION OFF. The first draft
+           had `both` and `transition: none` here, and measured in a browser
+           that removed the EXIT: with `both` the shown values come from the
+           animation's fill rather than from the two declarations above, and
+           Chromium starts no transition when a change comes from an animation
+           being cancelled -- so taking the notice down jumped it off screen
+           instead of fading it. Without the fill the animation drives only the
+           260ms it runs for, the resting state is the declared one, and the
+           base rule's transition still owns the way out. */
+        animation: tt-sn-in 260ms cubic-bezier(0.2, 0.7, 0.3, 1);
     }
 
     & > .tt-sn-icon {
@@ -124,11 +158,39 @@
     }
 }
 
+/* The entrance. Declared after the block that uses it purely for reading order;
+   @keyframes is not part of the cascade, so its position does not decide
+   anything. */
+@keyframes tt-sn-in {
+    from {
+        opacity: 0;
+        transform: translateY(0.75rem) scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* Motion is a preference, and some televisions expose it as an accessibility
+   setting. The notice still appears and still goes away -- it just arrives
+   already in place, with nothing moving.
+
+   THE RESTING TRANSFORM IS DELIBERATELY NOT RESET HERE, and the first draft of
+   this block did reset it. It cannot matter: `&[data-shown]` sets
+   `transform: none` at (1,1,0) against this block's (1,0,0), so a shown notice
+   is at rest either way, and the offset only ever applies while the element is
+   `visibility: hidden` and `opacity: 0`. Turning the transition off is what
+   makes the exit instant. A line that cannot change what anyone sees, sitting
+   under a comment claiming it stops every notice parking low, is worse than no
+   line -- so it is gone and this says why. */
 @media (prefers-reduced-motion: reduce) {
     #tizentube-skip-notice {
         transition: none;
 
         &[data-shown] {
+            animation: none;
             transition: none;
         }
     }

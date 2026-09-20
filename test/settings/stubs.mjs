@@ -72,11 +72,21 @@ export const setNowPlaying = (v) => {
 };
 export const channelOf = () => nowPlaying;
 export const channelEntry = (c) => `${c.id} ${c.name}`;
+// Real logic, not a stub that lies. An entry with no space carries no NAME --
+// answering with the id there is the exact conflation that put "letters and
+// numbers" on screen where a channel name belongs.
 export const parseChannelEntry = (entry) => {
     const space = entry.indexOf(' ');
     return space < 0
-        ? { id: entry, name: entry }
+        ? { id: entry, name: '' }
         : { id: entry.slice(0, space), name: entry.slice(space + 1) };
+};
+// Also real: the settings rows are the only place this is used, so a stub that
+// simply returned `c.name` would test a screen the mod does not ship.
+export const nameForChannel = (id) => (nowPlaying && nowPlaying.id === id ? nowPlaying.name : '');
+export const displayName = (c) => {
+    if (c.name && c.name !== c.id) return c.name;
+    return nameForChannel(c.id) || c.id;
 };
 
 // features/aisList.js -- the settings screen reads its status for a subtitle.

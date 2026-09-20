@@ -1,6 +1,6 @@
 {
   "name": "@tizentube/dial-service",
-  "version": "0.1.22",
+  "version": "0.1.24",
   "type": "module",
   "main": "service.js",
   "scripts": {

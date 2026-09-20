@@ -17,6 +17,8 @@ import {
     deArrowableTile,
     shrinkShelf,
     SHRINKABLE_TILE_STYLES,
+    markCommunityTitle,
+    COMMUNITY_TITLE_OVERLAY,
 } from './tileFixes.generated.mts';
 
 const { check, done } = checker();
@@ -541,5 +543,75 @@ if (search) {
         0,
     );
 }
+
+// --- the community-title badge ---------------------------------------------
+// The mark that says a tile's title is the community's rather than YouTube's.
+//
+// THROUGH THE APP'S OWN RENDERER. The TV app builds one of these itself for its
+// account-lock badge -- `thumbnailOverlays:[{thumbnailOverlayIconRenderer:{icon:
+// {iconType:"LOCK"},...}}]` -- and registers the component under
+// `thumbnailOverlayIconRenderer` in the tile header's renderer map, so the mod
+// ships no DOM and no CSS for this and cannot drift from the app's placement.
+const tileWithHeader = () => ({ header: { tileHeaderRenderer: { thumbnail: {} } } });
+const overlays = (t) => t.header.tileHeaderRenderer.thumbnailOverlays;
+const badge = (t) => overlays(t)[overlays(t).length - 1].thumbnailOverlayIconRenderer;
+
+let marked = tileWithHeader();
+markCommunityTitle(marked);
+check('the badge is added to the tile header', overlays(marked).length, 1);
+check(
+    '  ...as an icon overlay the app knows how to draw',
+    Object.keys(overlays(marked)[0])[0],
+    'thumbnailOverlayIconRenderer',
+);
+// PEOPLE is in the app's own icon map -- ["PEOPLE","gZXOg"] in chunks/001.js --
+// so it resolves to a real glyph rather than an empty box.
+check('  ...with an icon the app has', badge(marked).icon.iconType, 'PEOPLE');
+// Fully-qualified enum values, as the app writes them. A bare "TOP_LEFT_CORNER"
+// misses the position map entirely and falls back to the centre of the tile,
+// which is neither minimal nor subtle.
+check(
+    '  ...positioned with the enum the app maps',
+    badge(marked).iconPosition,
+    'THUMBNAIL_OVERLAY_ICON_RENDERER_ICON_POSITION_TOP_LEFT_CORNER',
+);
+check(
+    '  ...at the small size',
+    badge(marked).iconSize,
+    'THUMBNAIL_OVERLAY_ICON_RENDERER_ICON_SIZE_SMALL',
+);
+
+// Idempotent. The same payload can be walked twice -- a response reaching both
+// JSON.parse and Response.json, or a tile applied once from the warm cache and
+// again from a late fetch -- and two badges would sit exactly on top of each
+// other.
+markCommunityTitle(marked);
+markCommunityTitle(marked);
+check('marking twice leaves one badge', overlays(marked).length, 1);
+
+// It must not throw away the overlays the app already put there.
+marked = tileWithHeader();
+marked.header.tileHeaderRenderer.thumbnailOverlays = [{ thumbnailOverlayTimeStatusRenderer: {} }];
+markCommunityTitle(marked);
+check('an existing overlay is kept', overlays(marked).length, 2);
+check(
+    '  ...and the duration badge is still first',
+    Object.keys(overlays(marked)[0])[0],
+    'thumbnailOverlayTimeStatusRenderer',
+);
+
+// Runs inside JSON.parse for every response the app parses, so junk must be a
+// no-op rather than a throw.
+for (const junk of [null, undefined, {}, { header: null }, { header: {} }, 42, 'tile']) {
+    markCommunityTitle(junk);
+}
+// "nothing threw" is not an assertion anything can fail, so this is: the shared
+// constant is still the shape the checks above asserted, rather than something
+// the loop or an earlier push mutated.
+check(
+    'junk leaves the shared overlay constant alone',
+    COMMUNITY_TITLE_OVERLAY.thumbnailOverlayIconRenderer.icon.iconType,
+    'PEOPLE',
+);
 
 done();

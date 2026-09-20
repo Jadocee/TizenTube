@@ -336,3 +336,49 @@ export function deArrowableTile(item: any): boolean {
     if (tile.tvhtml5ShelfRendererType === 'TVHTML5_TILE_RENDERER_TYPE_SHORTS') return false;
     return typeof tile.contentId === 'string' && VIDEO_ID.test(tile.contentId);
 }
+
+/* Material's "people" glyph is what the app calls PEOPLE, and it is in the TV
+   app's own icon map -- ["PEOPLE","gZXOg"] in chunks/001.js -- so it renders
+   without the mod shipping any DOM or CSS at all. */
+export const COMMUNITY_TITLE_OVERLAY = {
+    thumbnailOverlayIconRenderer: {
+        icon: { iconType: 'PEOPLE' },
+        iconPosition: 'THUMBNAIL_OVERLAY_ICON_RENDERER_ICON_POSITION_TOP_LEFT_CORNER',
+        iconSize: 'THUMBNAIL_OVERLAY_ICON_RENDERER_ICON_SIZE_SMALL',
+    },
+};
+
+/**
+ * Marks a tile whose title is the community's rather than YouTube's.
+ *
+ * THROUGH THE APP'S OWN RENDERER, not a DOM element of the mod's. The app
+ * already builds one of these for its account-lock badge, at
+ * `thumbnailOverlays:[{thumbnailOverlayIconRenderer:{icon:{iconType:"LOCK"},
+ * ...}}]`, and registers the component under `thumbnailOverlayIconRenderer` in
+ * the tile header's renderer map. So this is the same badge the app draws for
+ * itself, which means it inherits the app's placement, sizing and focus
+ * behaviour for free and cannot drift away from them.
+ *
+ * WHAT IT LOOKS LIKE, measured in main.css rather than guessed: TOP_LEFT_CORNER
+ * maps to `.n8TrWc`, whose `.j1hAdd` is a round `#0f0f0f` disc with a `#b7b7b7`
+ * glyph at `top:.75rem`, and SIZE_SMALL shrinks it to 1.5rem. It sits in the
+ * opposite corner from the duration badge, so nothing collides. On the FOCUSED
+ * tile the app inverts it -- `.app-quality-root .n8TrWc.F5qief .j1hAdd{
+ * background-color:#f1f1f1;color:#212121}` -- which is louder than the rest of
+ * the time and is accepted deliberately: it is exactly what the app does to its
+ * own LOCK badge, and `iconColor` cannot change it, because `.k3Vq9d` is (0,1,0)
+ * against that rule's (0,3,0).
+ *
+ * Idempotent. The same payload can be walked twice -- a response reaching both
+ * JSON.parse and Response.json, or a tile applied once from cache and again from
+ * a late fetch -- and two badges on one tile would overlap exactly.
+ */
+export function markCommunityTitle(tile: any): void {
+    const header = tile?.header?.tileHeaderRenderer;
+    if (!header) return;
+    if (!Array.isArray(header.thumbnailOverlays)) header.thumbnailOverlays = [];
+    for (const overlay of header.thumbnailOverlays) {
+        if (overlay?.thumbnailOverlayIconRenderer?.icon?.iconType === 'PEOPLE') return;
+    }
+    header.thumbnailOverlays.push(COMMUNITY_TITLE_OVERLAY);
+}
