@@ -271,6 +271,9 @@ runs `npm pack --dry-run` and inspects the file list before anything is sent.
 | `NPM_TOKEN` | publishing to npm | the run **warns and stays green**; nothing is published |
 | `TIZEN_AUTHOR_KEY` / `_PW` | signing the `.wgt` | the packaging steps skip; the run stays green |
 
+Where the certificate behind `TIZEN_AUTHOR_KEY` comes from, and what each kind
+of malformed value does, is [Creating the certificate](#creating-the-certificate).
+
 Both follow the same rule: *not configured* is a skip, *configured but broken*
 is a loud failure. A repository that only ships the TizenBrew module should not
 get a red `main` every time a version moves.
@@ -345,6 +348,89 @@ CI still uses `tizen.js`; nothing below changes that. The Docker route exists
 because a JavaScript reimplementation of a signing format is a thing you want to
 be able to check against the real one, and because building a signed widget
 locally should not mean installing a 663 MB SDK on your laptop.
+
+### Creating the certificate
+
+Both routes below take an `author.p12` and neither one makes it. Nothing about
+it is issued to you: the author certificate is self-signed and you generate it
+yourself, and the distributor half is not yours to make either — the packager
+falls back to the public `tizen-distributor-signer.p12`, which is what `-p
+public` selects in both invocations.
+
+> **This is not the Samsung certificate.** Certificate Manager offers two kinds
+> and they are not interchangeable. A *Samsung* certificate needs a Samsung
+> account and is bound to the DUID of every television you register with it, and
+> a widget signed with one installs on those sets and nowhere else. A *Tizen*
+> author certificate has neither requirement. This repository packages with the
+> second, which is why nothing here asks for a device id.
+
+**In Tizen Studio:** Tools → Certificate Manager → `+` → **Tizen** → author
+certificate. The name and password are yours to choose; the file lands under
+`~/tizen-studio-data/keystore/author/`.
+
+**Without installing Tizen Studio:** the image in `docker/tizen/` already
+contains the SDK, and its debug shell needs neither a certificate nor a
+password — which makes it the one place you can produce one without a 663 MB
+install of your own.
+
+```sh
+docker compose --profile debug run --rm shell
+# in the container:
+tizen certificate -a TizenTube -p '<password>' -f author -- /work
+```
+
+> **Not verified**, for the same reason as **With Docker** below: this was
+> written in an environment with no Docker daemon and no SDK. The flags are
+> reproduced from the SDK's CLI, not from a run. If `tizen certificate`
+> disagrees, it is the authority and this is the bug.
+
+Keep the `.p12` and its password. There is no way to recover either, and a
+widget signed with a *different* author certificate is a different application
+as far as a television is concerned — it will not upgrade over the old one.
+
+### Turning the certificate into the two secrets
+
+> Verified: everything in this subsection, by running
+> `.github/scripts/prepare-certificate.sh` directly against a throwaway `.p12`
+> built with OpenSSL. That proves the encoding and the plumbing. It does **not**
+> prove such a file would satisfy the packager — an OpenSSL `.p12` is not a
+> Tizen author certificate — only that a well-formed one survives the trip.
+
+```sh
+base64 -w0 author.p12      # the value for TIZEN_AUTHOR_KEY
+                           # TIZEN_AUTHOR_KEY_PW is the password, as typed
+```
+
+`-w0` is not available on macOS; `base64 -i author.p12 | tr -d '\n'` is the
+equivalent. Both go under **Settings → Secrets and variables → Actions**.
+
+What `prepare-certificate.sh` actually does with each kind of input, measured
+rather than inferred:
+
+| `TIZEN_AUTHOR_KEY` | `_PW` | Result |
+| --- | --- | --- |
+| valid, `-w0` | correct | `signed=true`; "the password opens it" |
+| valid, **wrapped** | correct | `signed=true` — identical. `base64 -d` ignores newlines |
+| valid | **wrong** | `signed=true` with a **warning**, and the run continues |
+| valid | absent | **exit 1** |
+| absent | set | **exit 1** |
+| absent | absent | `signed=false`; packaging skips and `main` stays green |
+| truncated | correct | **exit 1** — the decode is under 100 bytes |
+| not base64 | correct | **exit 1** |
+
+Three of those are worth reading twice. **Line wrapping does not matter** — the
+`-w0` above is for a tidy paste, not for correctness, so a secret that arrived
+across several lines is not your problem. **A wrong password is a warning, not
+a failure**, because OpenSSL 3 rejects some older ciphers the packager's own
+reader still accepts; if the build then fails at signing, the password is the
+first thing to check. And **half-configured is a hard failure** while
+*unconfigured* is a skip, because setting one of the pair is someone part-way
+through this page rather than a decision not to publish.
+
+Once both are set, a push to `main` that moves the widget version cuts the
+release. To recover one that was missed, re-run the workflow run for that merge:
+the gate compares against the push's own `before` commit, so it still sees the
+version move.
 
 ### With Docker
 
@@ -486,8 +572,15 @@ It inlines the userscript at build time; see
 [Build order](#build-order-and-why-it-is-not-negotiable).
 
 **`Error: Too few bytes to parse DER`** from the packager — the `.p12` is empty
-or truncated. In CI that means the signing secrets are not set; see
-[Signing is opt-in](../README.md#signing-is-opt-in).
+or truncated. This is how the first release failed, when both secrets were unset
+and `echo "" | base64 -d` produced a zero-byte file; the packager then reported
+a true statement about an empty file that said nothing about the cause. It can
+no longer reach the packager from CI: `prepare-certificate.sh` skips when
+neither secret is set and exits non-zero when the decode is under 100 bytes, so
+in a workflow run the error above means a *local* `.p12` is bad. See
+[Creating the certificate](#creating-the-certificate) for what each kind of
+malformed value does, and [Signing is opt-in](../README.md#signing-is-opt-in)
+for why unconfigured is a skip.
 
 **The app installs but shows nothing** — `standalone/service/dist/index.js` is
 missing from the package, so the widget has no service. Rebuild step 3 and
